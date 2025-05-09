@@ -2,13 +2,15 @@ MAX_TITLE_LENGTH = 20
 MAX_DESCRIPTION_LENGTH = 30
 DATE_FORMAT = "%-d-%b-%y"
 
+common_format = \
+    " {id}.{status}{title}{project}{tags}{priority}{deadline}{description}"
 FORMAT = {
-    "all": " {id}.{status}{title}{project}{tags}{priority}{deadline}{description}",
-    "project": " {id}.{status}{title}{tags}{priority}{deadline}{description}",
-    "tag": " {id}.{status}{title}{project}{priority}{deadline}{description}",
-    "priority": " {id}.{status}{title}{project}{tags}{deadline}{description}",
-    "deadline": " {id}.{status}{title}{project}{tags}{priority}{description}",
-    "created_at": " {id}.{status}{title}{project}{tags}{priority}{deadline}{description}",
+    "all": common_format,
+    "project": common_format.replace("{project}", ""),
+    "tag": common_format.replace("{tags}", ""),
+    "priority": common_format.replace("{priority}", ""),
+    "deadline": common_format.replace("{deadline}", ""),
+    "created_at": common_format,
 }
 PREFIXES = {
     'project': '/',
