@@ -3,7 +3,7 @@ from dateutil.relativedelta import relativedelta
 
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
-from parsimonious.exceptions import ParseError
+from parsimonious.exceptions import ParseError, VisitationError
 
 
 class DateTimeParser(NodeVisitor):
@@ -90,6 +90,13 @@ class DateTimeParser(NodeVisitor):
             """)
 
     @staticmethod
+    def _datetime(*args, **kwargs) -> datetime:
+        try:
+            return datetime(*args, **kwargs)
+        except ValueError as e:
+            raise ValueError(f"Invalid date/time format") from e
+
+    @staticmethod
     def _any_of(*args):
         for arg in args:
             if arg is not None:
@@ -143,9 +150,9 @@ class DateTimeParser(NodeVisitor):
             year = self.reference_date.year
         month = self.month_map[month.lower()]
         day = int(day)
-        result = datetime(year, month, day).date()
+        result = self._datetime(year, month, day).date()
         if result < self.reference_date.date():
-            result = datetime(year + 1, month, day).date()
+            result = self._datetime(year + 1, month, day).date()
         return result
 
     def visit_named_date(self, node, visited_children):
@@ -194,13 +201,16 @@ class DateTimeParser(NodeVisitor):
         if next_year:
             year += 1
         year += count - 1
-        last_day = (datetime(year, month + 1, 1) - timedelta(days=1)).day
-        return datetime(year, month, last_day).date()
+        last_day = (
+            self._datetime(year, month + 1, 1) - timedelta(days=1)
+        ).day
+        return self._datetime(year, month, last_day).date()
 
     def _end_unit(self, unit, count):
         count -= 1
         if unit == 'years':
-            return datetime(self.reference_date.year + count, 12, 31).date()
+            return self._datetime(
+                self.reference_date.year + count, 12, 31).date()
         elif unit == 'months':
             next_month = self.reference_date.replace(day=1) + relativedelta(months=count)
             last_day = (next_month.replace(day=1) + relativedelta(months=1) - timedelta(days=1)).day
@@ -223,27 +233,30 @@ if __name__ == "__main__":
         ('today',           datetime(2025, 5, 11, 23, 59, 59, 999999)),
         ('20:00',           datetime(2025, 5, 11, 20, 0, 0)),
         ('10am',            datetime(2025, 5, 12, 10, 0, 0)),
-        ('tomorrow 6pm',    datetime(2025, 5, 12, 18, 0, 0)),
-        ('tomorrow',        datetime(2025, 5, 12, 23, 59, 59, 999999)),
-        ('feb 21',          datetime(2026, 2, 21, 23, 59, 59, 999999)),
-        ('february 21 8am', datetime(2026, 2, 21, 8, 0, 0)),
-        ('2tue',            datetime(2025, 5, 20, 23, 59, 59, 999999)),
-        ('2fri',            datetime(2025, 5, 23, 23, 59, 59, 999999)),
         ('week',            datetime(2025, 5, 11, 23, 59, 59, 999999)),
         ('w',               datetime(2025, 5, 11, 23, 59, 59, 999999)),
+        ('tomorrow 6pm',    datetime(2025, 5, 12, 18, 0, 0)),
+        ('tomorrow',        datetime(2025, 5, 12, 23, 59, 59, 999999)),
         ('2w',              datetime(2025, 5, 18, 23, 59, 59, 999999)),
+        ('2tue',            datetime(2025, 5, 20, 23, 59, 59, 999999)),
+        ('2fri',            datetime(2025, 5, 23, 23, 59, 59, 999999)),
         ('M',               datetime(2025, 5, 31, 23, 59, 59, 999999)),
         ('month',           datetime(2025, 5, 31, 23, 59, 59, 999999)),
+        ('+M',              datetime(2025, 6, 11, 11, 0, 0, 0)),
+        ('+1M',             datetime(2025, 6, 11, 11, 0, 0, 0)),
+        ('+Md',             datetime(2025, 6, 12, 11, 0, 0, 0)),
         ('3month',          datetime(2025, 7, 31, 23, 59, 59, 999999)),
+        ('february 21 8am', datetime(2026, 2, 21, 8, 0, 0)),
+        ('feb 21',          datetime(2026, 2, 21, 23, 59, 59, 999999)),
         ('feb',             datetime(2026, 2, 28, 23, 59, 59, 999999)),
         ('1feb',            datetime(2026, 2, 28, 23, 59, 59, 999999)),
         ('3feb',            datetime(2028, 2, 29, 23, 59, 59, 999999)),
-        ('+M',              datetime(2025, 6, 11, 11, 0, 0, 0)),
     ]
     error_cases = [
         'invalid',
         '12:99',
-        '+feb'
+        '+feb',
+        'feb 29',
     ]
 
     # Run positive test cases
@@ -251,12 +264,12 @@ if __name__ == "__main__":
         result = parser.parse(text)
         fail_msg = f"FAIL: {text} => {result} (expected {expected})"
         assert result == expected, fail_msg
-        print(f"PASS: {text:10} => {result}")
+        print(f"PASS: {text:15} => {result}")
     for text in error_cases:
         try:
             result = parser.parse(text)
             print(
                 f"FAIL: {text} should have raised an error "
                 f"but returned {result}")
-        except ParseError:
+        except (ParseError, VisitationError):
             print(f"PASS: {text} correctly raised an error")
