@@ -28,6 +28,14 @@ class TodoItem:
         attrs = " ".join(f"{k}={v}" for k, v in self.to_dict().items())
         return f"<{self.__class__.__name__} {attrs}>"
 
+    @staticmethod
+    def _datetime_to_str(dt: Optional[datetime]) -> Optional[str]:
+        return f"{dt:%Y-%m-%dT%H:%M:%S}" if dt else None
+
+    @staticmethod
+    def _str_to_datetime(dt_str: Optional[str]) -> Optional[datetime]:
+        return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%S") if dt_str else None
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -35,10 +43,10 @@ class TodoItem:
             "description": self.description,
             "project": self.project,
             "tags": self.tags,
-            "deadline": self.deadline,
             "status": self.status,
             "priority": self.priority,
-            "created_at": self.created_at,
+            "deadline": self._datetime_to_str(self.deadline),
+            "created_at": self._datetime_to_str(self.created_at),
         }
 
     @classmethod
@@ -51,6 +59,6 @@ class TodoItem:
             tags=data["tags"],
             status=data["status"],
             priority=data["priority"],
-            deadline=data["deadline"],
-            created_at=data["created_at"],
+            deadline=cls._str_to_datetime(data["deadline"]),
+            created_at=cls._str_to_datetime(data["created_at"]),
         )

@@ -30,7 +30,9 @@ class TaskBook:
         if path is None and self.path is None:
             raise ValueError("No path specified for saving.")
         real_path: str = path or self.path  # type: ignore
-        os.makedirs(os.path.dirname(real_path), exist_ok=True)
+        folder = os.path.dirname(real_path)
+        if folder:
+            os.makedirs(folder, exist_ok=True)
         with open(real_path, "w") as f:
             data = [todo.to_dict() for todo in self.todos]
             json.dump(data, f, indent=4)

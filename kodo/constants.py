@@ -1,6 +1,15 @@
+SECONDS = {
+    "y": 31536000,
+    'M': 2592000,
+    'w': 604800,
+    'd': 86400,
+    'h': 3600,
+    'm': 60,
+    's': 1,
+}
 MAX_TITLE_LENGTH = 20
 MAX_DESCRIPTION_LENGTH = 30
-DATE_FORMAT = "%-d-%b-%y"
+DATE_FORMAT = "%y-%b-%-d"
 
 common_format = \
     " {id}.{status}{title}{project}{tags}{priority}{deadline}{description}"
@@ -14,9 +23,9 @@ FORMAT = {
 }
 PREFIXES = {
     'project': '/',
-    'tag': '#',
+    'tag': '@',
     'deadline': '^',
-    'id': '@',
+    'id': '.',
     'priority': '!',
 }
 ID_ATTRS = {"color": "grey"}
@@ -39,6 +48,11 @@ PRIORITY_ATTRS = {
     "normal": {"color": None},
     "low": {"color": "grey"},
 }
+PRIORITY_FORMATTED = {
+    "high": f"{PRIORITY_SYMBOLS['high']} high",
+    "normal": f"{PRIORITY_SYMBOLS['normal'] or '.'} normal",
+    "low": f"{PRIORITY_SYMBOLS['low'] or '_'} low",
+}
 STATUS_SYMBOLS = {
     "note": "·",
     "pending": "☐",
@@ -49,6 +63,7 @@ STATUS_ATTRS = {
     "pending": {"color": "yellow", "attrs": ["bold"]},
     "done": {"color": "green", "attrs": ["bold"]},
 }
+STATUS_FORMATTED = {k: f"{v} {k}" for k, v in STATUS_SYMBOLS.items()}
 TAG_SYMBOLS = {
     "star": "★",
 }

@@ -1,5 +1,6 @@
 from datetime import datetime
 from os import stat
+from re import T
 from typing import Optional, List, Dict, Tuple, Callable, Literal, Any
 
 from . import constants
@@ -9,120 +10,153 @@ from .utils import colored, timedelta_format
 
 GroupBy = Literal[
     "all", "project", "tag", "status", "priority", "deadline", "created_at"]
+SortBy = Literal[
+    "id", "status", "title", "project", "tags", "priority",
+    "deadline", "created_at"]
 GroupFunc = Callable[[TodoItem], Optional[str | List[str]]]
-OrderFunc = Callable[[TodoItem], Any]
+SortFunc = Callable[[TodoItem], Any]
 
 
-class Renderer:
-    def __init__(self) -> None:
-        super().__init__()
-        self._priority_formatted = {
-            k: f"{v} {k}" if v is not None else k
-            for k, v in constants.PRIORITY_SYMBOLS.items()}
-        self._status_formatted = {
-            k: f"{v} {k}" for k, v in constants.STATUS_SYMBOLS.items()}
+def _shorten(text: str, max_len: int) -> str:
+    if len(text) > max_len:
+        return f"{text[:max_len]}…"
+    return text
 
-    @staticmethod
-    def _shorten(text: str, max_len: int) -> str:
-        if len(text) > max_len:
-            return f"{text[:max_len]}…"
-        return text
 
-    def _format_date(
-        self, date: Optional[datetime], status: Optional[Status] = None,
-        mode: Literal["deadline", "created_at"] = "deadline",
-        use_color: bool = True,
-    ) -> str:
-        if date is None:
-            return "^never"
-        remaining_time = date - datetime.now()
-        if mode == "created_at":
-            remaining_time = -remaining_time
-        seconds = remaining_time.total_seconds()
-        if abs(seconds) < 365 * 24 * 60 * 60:  # one year
-            time = timedelta_format(remaining_time, num_components=1)
-        else:
-            time = f"{date:{constants.DATE_FORMAT}}"
-        time = "^" + time
-        if not use_color:
-            return time
-        if mode != "created_at" and (
-            status is None or status not in ["done", "note"]
-        ):
-            attrs = constants.DEADLINE_ATTRS["_default"]
-            for k, v in constants.DEADLINE_ATTRS.items():
-                if isinstance(k, int) and remaining_time.total_seconds() < k:
-                    attrs = v
-        else:
-            attrs = constants.DEADLINE_ATTRS["_inactive"]
-        return colored(time, **attrs)
+def _format_date(
+    date: Optional[datetime], status: Optional[Status] = None,
+    mode: Literal["deadline", "created_at"] = "deadline",
+    use_color: bool = True,
+) -> str:
+    if date is None:
+        return "^never"
+    remaining_time = date - datetime.now()
+    if mode == "created_at":
+        remaining_time = -remaining_time
+    seconds = remaining_time.total_seconds()
+    if abs(seconds) < 365 * 24 * 60 * 60:  # one year
+        time = timedelta_format(remaining_time, num_components=1)
+    else:
+        time = f"{date:{constants.DATE_FORMAT}}"
+    time = "^" + time
+    if not use_color:
+        return time
+    if mode != "created_at" and (
+        status is None or status not in ["done", "note"]
+    ):
+        attrs = constants.DEADLINE_ATTRS["_default"]
+        for k, v in constants.DEADLINE_ATTRS.items():
+            if isinstance(k, int) and remaining_time.total_seconds() < k:
+                attrs = v
+    else:
+        attrs = constants.DEADLINE_ATTRS["_inactive"]
+    return colored(time, **attrs)
 
-    @staticmethod
-    def _sort_id(todo: TodoItem) -> int:
-        return todo.id
 
-    @staticmethod
-    def _sort_deadline(todo: TodoItem) -> datetime:
-        return todo.deadline or datetime(9999, 12, 31)
-
+class FilterMixin:
+    @classmethod
     def _filter(
-        self, func: Callable[[TodoItem], bool], todos: List[TodoItem]
+        cls, func: Callable[[TodoItem], bool], todos: List[TodoItem]
     ) -> List[TodoItem]:
         return [todo for todo in todos if func(todo)]
 
+    @classmethod
     def filter_by_project(
-        self, todos: List[TodoItem], project: str = "Uncategorized"
+        cls, todos: List[TodoItem], project: str = "Uncategorized"
     ) -> List[TodoItem]:
-        return self._filter(lambda todo: todo.project == project, todos)
+        return cls._filter(lambda todo: todo.project == project, todos)
 
+    @classmethod
     def filter_by_tag(
-        self, todos: List[TodoItem], tag: Optional[str] = None
+        cls, todos: List[TodoItem], tag: Optional[str] = None
     ) -> List[TodoItem]:
         if tag is None:
-            return self._filter(lambda todo: not todo.tags, todos)
-        return self._filter(lambda todo: tag in todo.tags, todos)
+            return cls._filter(lambda todo: not todo.tags, todos)
+        return cls._filter(lambda todo: tag in todo.tags, todos)
 
+    @classmethod
     def filter_by_status(
-        self, todos: List[TodoItem], status: Status = "pending"
+        cls, todos: List[TodoItem], status: Status = "pending"
     ) -> List[TodoItem]:
-        return self._filter(lambda todo: todo.status == status, todos)
+        return cls._filter(lambda todo: todo.status == status, todos)
 
+    @classmethod
     def filter_by_priority(
-        self, todos: List[TodoItem], priority: Priority = "normal"
+        cls, todos: List[TodoItem], priority: Priority = "normal"
     ) -> List[TodoItem]:
-        return self._filter(lambda todo: todo.priority == priority, todos)
+        return cls._filter(lambda todo: todo.priority == priority, todos)
 
-    @staticmethod
+    @classmethod
     def _select_by_date_range(
-        date: datetime, date_range: Tuple[datetime, datetime]
+        cls, date: datetime, date_range: Tuple[datetime, datetime]
     ) -> bool:
         from_date, to_date = date_range
         return from_date <= date <= to_date
 
+    @classmethod
     def filter_by_deadline(
-        self, todos: List[TodoItem], date_range: Tuple[datetime, datetime]
+        cls, todos: List[TodoItem], date_range: Tuple[datetime, datetime]
     ) -> List[TodoItem]:
         func = lambda todo: \
-            self._select_by_date_range(todo.deadline, date_range)
-        return self._filter(func, todos)
+            cls._select_by_date_range(todo.deadline, date_range)
+        return cls._filter(func, todos)
 
+    @classmethod
     def filter_by_created_at(
-        self, todos: List[TodoItem], date_range: Tuple[datetime, datetime]
+        cls, todos: List[TodoItem], date_range: Tuple[datetime, datetime]
     ) -> List[TodoItem]:
         func = lambda todo: \
-            self._select_by_date_range(todo.created_at, date_range)
-        return self._filter(func, todos)
+            cls._select_by_date_range(todo.created_at, date_range)
+        return cls._filter(func, todos)
 
+
+class SortMixin:
+    @staticmethod
+    def sort_id(todo: TodoItem) -> int:
+        return todo.id
+
+    @staticmethod
+    def sort_status(todo: TodoItem) -> int:
+        return list(constants.STATUS_FORMATTED).index(todo.status)
+
+    @staticmethod
+    def sort_title(todo: TodoItem) -> str:
+        return todo.title
+
+    @staticmethod
+    def sort_project(todo: TodoItem) -> str:
+        return todo.project
+
+    @staticmethod
+    def sort_tags(todo: TodoItem) -> Tuple[str, ...]:
+        return tuple(sorted(todo.tags))
+
+    @staticmethod
+    def sort_priority(todo: TodoItem) -> int:
+        return list(constants.PRIORITY_FORMATTED).index(todo.priority)
+
+    @staticmethod
+    def sort_deadline(todo: TodoItem) -> datetime:
+        return todo.deadline or datetime(9999, 12, 31)
+
+    @staticmethod
+    def sort_created_at(todo: TodoItem) -> datetime:
+        return todo.created_at
+
+
+class GroupMixin(SortMixin):
+    @classmethod
     def _group(
-        self, todos: List[TodoItem],
-        group_func: GroupFunc, order_func: Optional[OrderFunc] = None,
+        cls, todos: List[TodoItem],
+        group_func: GroupFunc,
+        group_sort_func: Optional[SortFunc] = None,
     ) -> Dict[str | datetime, List[TodoItem]]:
         groups = {}
         orders: Dict[str, Any] = {}
         for todo in todos:
             key_or_keys = group_func(todo)
-            if order_func:
-                order = order_func(todo)
+            if group_sort_func:
+                order = group_sort_func(todo)
             else:
                 order = repr(key_or_keys)
             if not key_or_keys:
@@ -142,63 +176,70 @@ class Renderer:
             ordered_groups[key] = groups[key]
         return ordered_groups
 
+    @classmethod
     def group_by_all(
-        self, todos: List[TodoItem]
+        cls, todos: List[TodoItem]
     ) -> Dict[str | datetime, List[TodoItem]]:
         gfunc = lambda todo: "_all"
-        return self._group(todos, gfunc)
+        return cls._group(todos, gfunc)
 
+    @classmethod
     def group_by_project(
-        self, todos: List[TodoItem]
+        cls, todos: List[TodoItem]
     ) -> Dict[str | datetime, List[TodoItem]]:
         gfunc = lambda todo: f"{constants.PREFIXES['project']}{todo.project}"
-        return self._group(todos, gfunc)
+        return cls._group(todos, gfunc)
 
+    @classmethod
     def group_by_tag(
-        self, todos: List[TodoItem]
+        cls, todos: List[TodoItem]
     ) -> Dict[str | datetime, List[TodoItem]]:
         gfunc = lambda todo: [
             f"{constants.PREFIXES['tag']}{t}" for t in todo.tags
         ] if todo.tags else "untagged"
-        return self._group(todos, gfunc)
+        return cls._group(todos, gfunc)
 
+    @classmethod
     def group_by_status(
-        self, todos: List[TodoItem]
+        cls, todos: List[TodoItem]
     ) -> Dict[str | datetime, List[TodoItem]]:
         gfunc = lambda todo: colored(
-            self._status_formatted[todo.status],
+            constants.STATUS_FORMATTED[todo.status],
             **constants.STATUS_ATTRS[todo.status])
-        ofunc = lambda todo: list(self._status_formatted).index(todo.status)
-        return self._group(todos, gfunc, ofunc)
+        return cls._group(todos, gfunc, cls.sort_status)
 
+    @classmethod
     def group_by_priority(
-        self, todos: List[TodoItem]
+        cls, todos: List[TodoItem]
     ) -> Dict[str | datetime, List[TodoItem]]:
         gfunc = lambda todo: colored(
-            self._priority_formatted[todo.priority],
+            constants.PRIORITY_FORMATTED[todo.priority],
             **constants.PRIORITY_ATTRS[todo.priority])
-        ofunc = lambda todo: \
-            list(self._priority_formatted).index(todo.priority)
-        return self._group(todos, gfunc, ofunc)
+        return cls._group(todos, gfunc, cls.sort_priority)
 
+    @classmethod
     def group_by_deadline(
-        self, todos: List[TodoItem]
+        cls, todos: List[TodoItem]
     ) -> Dict[str | datetime, List[TodoItem]]:
         def gfunc(todo: TodoItem) -> str:
-            return self._format_date(
+            return _format_date(
                 todo.deadline, todo.status, use_color=False)  # type: ignore
-        ofunc = lambda todo: todo.deadline or datetime(9999, 12, 31)
-        return self._group(todos, gfunc, ofunc)
+        return cls._group(todos, gfunc, cls.sort_deadline)
 
+    @classmethod
     def group_by_created_at(
-        self, todos: List[TodoItem]
+        cls, todos: List[TodoItem]
     ) -> Dict[str | datetime, List[TodoItem]]:
         def gfunc(todo: TodoItem) -> str:
-            return self._format_date(
+            return _format_date(
                 todo.created_at, todo.status,  # type: ignore
                 "created_at", use_color=False)
-        ofunc = lambda todo: todo.deadline
-        return self._group(todos, gfunc, ofunc)
+        return cls._group(todos, gfunc, cls.sort_created_at)
+
+
+class Renderer(FilterMixin, GroupMixin):
+    def __init__(self) -> None:
+        super().__init__()
 
     def get_stats(self, todos: List[TodoItem]):
         total = len(todos)
@@ -242,7 +283,7 @@ class Renderer:
         return f"{symbol}"
 
     def _render_title(self, todo: TodoItem) -> Optional[str]:
-        title = self._shorten(todo.title, constants.MAX_TITLE_LENGTH)
+        title = _shorten(todo.title, constants.MAX_TITLE_LENGTH)
         attrs = {}
         for k, v in constants.TITLE_ATTRS.items():
             p, q = k.split(".")
@@ -275,12 +316,12 @@ class Renderer:
     def _render_deadline(self, todo: TodoItem) -> Optional[str]:
         if todo.deadline is None:
             return None
-        return self._format_date(todo.deadline, todo.status)  # type: ignore
+        return _format_date(todo.deadline, todo.status)  # type: ignore
 
     def _render_description(self, todo: TodoItem) -> Optional[str]:
         if todo.description is None:
             return None
-        desc = self._shorten(
+        desc = _shorten(
             todo.description, constants.MAX_DESCRIPTION_LENGTH)
         return colored(desc, **constants.DESCRIPTION_ATTRS)
 
@@ -299,13 +340,16 @@ class Renderer:
         return constants.FORMAT[group_by].format(**fields)
 
     def render(
-        self, todos: List[TodoItem], group_by: GroupBy = "all",
+        self, todos: List[TodoItem],
+        group_by: GroupBy = "all",
+        sort_by: SortBy = "id",
     ) -> str:
         text = []
         grouped = getattr(self, f"group_by_{group_by}")(todos)
         for group, gtodos in grouped.items():
             if not gtodos:
                 continue
+            gtodos = sorted(gtodos, key=getattr(self, f"sort_{sort_by}"))
             if group_by == "all":
                 text.append("")
             else:
@@ -325,8 +369,5 @@ class Renderer:
 
 if __name__ == "__main__":
     from .book import TaskBook
-    book = TaskBook()
-    book.add("Task", "This is a task", "project", ["wip"], priority="low", deadline=datetime(2025, 7, 15))
-    book.add("Complete task", "This is a complete task", "project", ["test"], "done")
-    book.add("A note", None, "another", ["star"], "note", "high")
-    print(Renderer().render(book.todos))
+    book = TaskBook(path="book.json")
+    print(Renderer().render(book.todos, sort_by="deadline"))
