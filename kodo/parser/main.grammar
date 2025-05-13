@@ -1,0 +1,43 @@
+# search
+selection_chain = ws? (selection ws?)*
+selection = shared / group / sort
+group =
+    project_token / tag_token / priority_token / status_token / deadline_token
+sort = sort_token (
+    project_token / tag_token /
+    priority_token / status_token / deadline_token
+)
+
+# action
+action_chain = ws? (action ws?)*
+action = shared / delete_token
+
+# components
+shared = task_range / project / tag / priority / status / deadline / text
+task_range = task_id (range_token task_id)?
+project = project_token project_name
+tag = tag_token pm? tag_name
+deadline = deadline_token text
+status = status_token status_val
+status_val = "done" / "d" / "pending" / "p" / "note" / "n" / ""
+priority = priority_token priority_val
+priority_val = "high" / "h" / "normal" / "n" / "low" / "l" / pm / ""
+
+# literals
+text = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+\s*"
+range_token = "{range}"
+project_token = "{project}"
+tag_token = "{tag}"
+deadline_token = "{deadline}"
+priority_token = "{priority}"
+status_token = "{status}"
+sort_token = "{sort}"
+delete_token = "{delete}"
+task_id = ~r"\d+"
+project_name = ~r"[a-zA-Z0-9_\-/]+"
+tag_name = ~r"[a-zA-Z0-9_\-]+"
+double_quote = "\""
+single_quote = "'"
+pm = ~r"[+\-]"
+
+ws = ~r"\s+"

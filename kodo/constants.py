@@ -1,15 +1,14 @@
-SECONDS = {
-    "y": 31536000,
-    'M': 2592000,
-    'w': 604800,
-    'd': 86400,
-    'h': 3600,
-    'm': 60,
-    's': 1,
+TOKENS = {
+    'separator': '.',
+    'range': '..',
+    'project': '/',
+    'tag': '@',
+    'deadline': '^',
+    'priority': '!',
+    'status': ':',
+    'sort': '=',
+    'delete': '--',
 }
-MAX_TITLE_LENGTH = 20
-MAX_DESCRIPTION_LENGTH = 30
-DATE_FORMAT = "%y-%b-%-d"
 
 common_format = \
     " {id}.{status}{title}{project}{tags}{priority}{deadline}{description}"
@@ -20,13 +19,6 @@ FORMAT = {
     "priority": common_format.replace("{priority}", ""),
     "deadline": common_format.replace("{deadline}", ""),
     "created_at": common_format,
-}
-PREFIXES = {
-    'project': '/',
-    'tag': '@',
-    'deadline': '^',
-    'id': '.',
-    'priority': '!',
 }
 ID_ATTRS = {"color": "grey"}
 TITLE_ATTRS = {
@@ -88,3 +80,16 @@ PROGRESS_ATTRS = {
     0.25: {"color": "yellow", "attrs": ["bold"]},
     0: {"color": "red", "attrs": ["bold"]},
 }
+
+SECONDS = {
+    "y": 31536000,
+    'M': 2592000,
+    'w': 604800,
+    'd': 86400,
+    'h': 3600,
+    'm': 60,
+    's': 1,
+}
+MAX_TITLE_LENGTH = 20
+MAX_DESCRIPTION_LENGTH = 30
+DATE_FORMAT = "%y-%b-%-d"

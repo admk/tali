@@ -1,3 +1,5 @@
+import os
+
 from datetime import time, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
@@ -5,89 +7,35 @@ from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 from parsimonious.exceptions import ParseError, VisitationError
 
+from .common import CommonMixin
 
-class DateTimeParser(NodeVisitor):
-    def __init__(self, reference_date=None):
+
+class DateTimeParser(NodeVisitor, CommonMixin):
+    weekday_map = {
+        'mon': 0, 'tue': 1, 'wed': 2, 'thu': 3,
+        'fri': 4, 'sat': 5, 'sun': 6,
+        'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
+        'friday': 4, 'saturday': 5, 'sunday': 6,
+    }
+    month_map = {
+        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7,
+        'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+        'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5,
+        'june': 6, 'july': 7, 'august': 8, 'september': 9,
+        'october': 10, 'november': 11, 'december': 12,
+    }
+    unit_map = {
+        'year': 'years', 'y': 'years', 'month': 'months', 'M': 'months',
+        'week': 'weeks', 'w': 'weeks', 'day': 'days', 'd': 'days',
+        'hour': 'hours', 'h': 'hours', 'minute': 'minutes', 'm': 'minutes',
+    }
+
+    def __init__(self, reference_dt=None):
         super().__init__()
-        self.reference_date = reference_date or datetime.now()
-        self.weekday_map = {
-            'mon': 0, 'tue': 1, 'wed': 2, 'thu': 3,
-            'fri': 4, 'sat': 5, 'sun': 6,
-            'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
-            'friday': 4, 'saturday': 5, 'sunday': 6,
-        }
-        self.month_map = {
-            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7,
-            'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
-            'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5,
-            'june': 6, 'july': 7, 'august': 8, 'september': 9,
-            'october': 10, 'november': 11, 'december': 12,
-        }
-        self.unit_map = {
-            'year': 'years', 'y': 'years', 'month': 'months', 'M': 'months',
-            'week': 'weeks', 'w': 'weeks', 'day': 'days', 'd': 'days',
-            'hour': 'hours', 'h': 'hours', 'minute': 'minutes', 'm': 'minutes',
-        }
-        self.grammar = Grammar(r"""
-            expression = relative_datetime / date_time / time_date
-            date_time = date ws? time?
-            time_date = time ws? date?
-            date = absolute_date / named_date / end_date
-            time = hour (":" minute)? ws? ampm?
-            ampm = "am" / "pm" / "AM" / "PM"
-            hour = ~r"[0-2]?[0-9]"
-            minute = ~r"[0-5][0-9]"
-            absolute_date = (year date_sep)? month date_sep day
-            year = ~r"[0-9]{2,4}"
-            day = ~r"[0-3]?[0-9]"
-            date_sep = "-" / "/" / " "
-
-            relative_datetime = "+" count_unit+
-            count_unit = ordinal? unit "s"?
-
-            end_date = ordinal? end "s"?
-            end = unit / weekday / month
-
-            named_date = "today" / "tomorrow"
-
-            ordinal = ~r"[1-9][0-9]*"
-            unit =
-                unit_year / unit_month / unit_week /
-                unit_day / unit_hour / unit_minute
-            unit_year = "year" / "y"
-            unit_month = "month" / "M"
-            unit_week = "week" / "w"
-            unit_day = "day" / "d"
-            unit_hour = "hour" / "h"
-            unit_minute = "minute" / "m"
-            weekday =
-                monday / tuesday / wednesday / thursday /
-                friday / saturday / sunday
-            monday = ~r"mon(day)?"i
-            tuesday = ~r"tue(sday)?"i
-            wednesday = ~r"wed(nesday)?"i
-            thursday = ~r"thu(rsday)?"i
-            friday = ~r"fri(day)?"i
-            saturday = ~r"sat(urday)?"i
-            sunday = ~r"sun(day)?"i
-            month =
-                january / february / march / april / may / june / july /
-                august / september / october / november / december
-            january = ~r"jan(uary)?"i
-            february = ~r"feb(ruary)?"i
-            march = ~r"mar(ch)?"i
-            april = ~r"apr(il)?"i
-            may = ~r"may"i
-            june = ~r"jun(e)?"i
-            july = ~r"jul(y)?"i
-            august = ~r"aug(ust)?"i
-            september = ~r"sep(tember)?"i
-            october = ~r"oct(ober)?"i
-            november = ~r"nov(ember)?"i
-            december = ~r"dec(ember)?"i
-
-            ws = ~r"\s+"
-            """)
+        self.reference_dt = reference_dt or datetime.now()
+        root = os.path.dirname(__file__)
+        with open(os.path.join(root, 'datetime.grammar'), 'r') as f:
+            self.grammar = Grammar(f.read())
 
     @staticmethod
     def _datetime(*args, **kwargs) -> datetime:
@@ -96,14 +44,8 @@ class DateTimeParser(NodeVisitor):
         except ValueError as e:
             raise ValueError(f"Invalid date/time format") from e
 
-    @staticmethod
-    def _any_of(*args):
-        for arg in args:
-            if arg is not None:
-                return arg
-
     def visit_expression(self, node, visited_children):
-        return self._any_of(*visited_children)
+        return self._visit_any_of(node, visited_children)
 
     def visit_relative_datetime(self, node, visited_children):
         _, count_units = visited_children
@@ -117,19 +59,19 @@ class DateTimeParser(NodeVisitor):
             unit = self.unit_map[unit]
             if unit in ('years', 'months'):
                 reldelta = relativedelta(**{unit: count})  # type: ignore
-                new_date = self.reference_date + reldelta
-                delta = new_date - self.reference_date
+                new_date = self.reference_dt + reldelta
+                delta = new_date - self.reference_dt
             else:
                 delta += timedelta(**{unit: count})
-        return (self.reference_date + delta)
+        return self.reference_dt + delta
 
     def visit_date_time(self, node, visited_children):
         date, _, time = visited_children
-        date = date or self.reference_date.date()
+        date = date or self.reference_dt.date()
         if time is None:
             time = datetime.max.time()
         dt = datetime.combine(date, time)
-        if dt <= self.reference_date:
+        if dt <= self.reference_dt:
             dt += timedelta(days=1)
         return dt
 
@@ -138,29 +80,29 @@ class DateTimeParser(NodeVisitor):
         return self.visit_date_time(node, [date, _, time])
 
     def visit_date(self, node, visited_children):
-        return self._any_of(*visited_children)
+        return self._visit_any_of_or_none(node, visited_children)
 
     def visit_absolute_date(self, node, visited_children):
         year, month, _, day = visited_children
         if year:
             year = int(year[0])
             if year < 100:
-                year += 2000 if year < self.reference_date.year % 100 else 1900
+                year += 2000 if year < self.reference_dt.year % 100 else 1900
         else:
-            year = self.reference_date.year
+            year = self.reference_dt.year
         month = self.month_map[month.lower()]
         day = int(day)
         result = self._datetime(year, month, day).date()
-        if result < self.reference_date.date():
+        if result < self.reference_dt.date():
             result = self._datetime(year + 1, month, day).date()
         return result
 
     def visit_named_date(self, node, visited_children):
         text = node.text.lower()
         if text == 'today':
-            return self.reference_date.date()
+            return self.reference_dt.date()
         elif text == 'tomorrow':
-            return self.reference_date.date() + timedelta(days=1)
+            return self.reference_dt.date() + timedelta(days=1)
         raise ValueError(f"Unknown named date: {text}")
 
     def visit_end_date(self, node, visited_children):
@@ -187,17 +129,17 @@ class DateTimeParser(NodeVisitor):
         return time(hour, minute)
 
     def _end_weekday(self, weekday, count):
-        days_ahead = (weekday - self.reference_date.weekday() + 7) % 7
+        days_ahead = (weekday - self.reference_dt.weekday() + 7) % 7
         if days_ahead == 0:
             days_ahead = 7
         days_ahead += (count - 1) * 7
-        return self.reference_date.date() + timedelta(days=days_ahead)
+        return self.reference_dt.date() + timedelta(days=days_ahead)
 
     def _end_month(self, month, count):
-        year = self.reference_date.year
-        next_year = month == self.reference_date.month
-        next_year = next_year and self.reference_date.day > 1
-        next_year = next_year or (month < self.reference_date.month)
+        year = self.reference_dt.year
+        next_year = month == self.reference_dt.month
+        next_year = next_year and self.reference_dt.day > 1
+        next_year = next_year or (month < self.reference_dt.month)
         if next_year:
             year += 1
         year += count - 1
@@ -209,16 +151,23 @@ class DateTimeParser(NodeVisitor):
     def _end_unit(self, unit, count):
         count -= 1
         if unit == 'years':
-            return self._datetime(
-                self.reference_date.year + count, 12, 31).date()
+            year = self.reference_dt.year
+            return self._datetime(year + count, 12, 31).date()
         elif unit == 'months':
-            next_month = self.reference_date.replace(day=1) + relativedelta(months=count)
-            last_day = (next_month.replace(day=1) + relativedelta(months=1) - timedelta(days=1)).day
+            next_month = self.reference_dt.replace(day=1)
+            next_month += relativedelta(months=count)
+            last_day = (
+                next_month.replace(day=1) +
+                relativedelta(months=1) -
+                timedelta(days=1)
+            ).day
             return next_month.replace(day=last_day).date()
         elif unit == 'weeks':
-            return self.reference_date.date() + timedelta(days=7 * count - (self.reference_date.weekday() + 1) % 7)
+            days = 7 * count - (self.reference_dt.weekday() + 1) % 7
+            return self.reference_dt.date() + timedelta(days=days)
         elif unit == 'days':
-            return self.reference_date.date() + timedelta(days=count)
+            return self.reference_dt.date() + timedelta(days=count)
+        raise ValueError(f'Unexpected unit {unit!r}.')
 
     def generic_visit(self, node, visited_children):
         if len(visited_children) == 1:
