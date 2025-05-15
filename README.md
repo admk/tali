@@ -54,11 +54,12 @@ kd 1 . ^-6h      # Move earlier by 6 hours
 ```
 #### **Absolute Deadlines**
 ```bash
-kd 1 . ^mon       # Next Monday
-kd 1 . ^2tue      # Tuesday after next
-kd 1 . ^today     # Due today
-kd 1 . ^never     # Remove deadline
-kd 1 . ^"25-8-5"  # Set specific date
+kd 1 . ^mon             # Next Monday
+kd 1 . ^2tue            # Tuesday after next
+kd 1 . ^today           # Due today
+kd 1 . ^tomorrow ^8pm   # Due tomorrow at 8 PM
+kd 1 . ^never           # Remove deadline
+kd 1 . ^"25-8-5" ^9:00  # Set specific date and time
 ```
 
 ### **4. Delete Tasks**
@@ -94,25 +95,26 @@ kd "fix (bug|issue)" @critical  # Search regex + tag
 kd /work !high ^today           # High-priority work tasks due today
 ```
 
-### **6. #### **Multi-Task Edits****
+### **6. Edit Multiple Tasks**
 ```bash
-kd 1 3 4 6..9 . :done  # Mark multiple tasks done
-kd /home . !high       # Set all "home" tasks to high priority
-kd /old . /new         # Rename project
-kd 1..4 "^fix" @old . @old @new  # Replace @old tag with @new for tasks 1–4 with title starting with "fix" and has tag "@old"
-kd 2..5 . --           # delete tasks 2–5
+kd 1 3 4 6..9 . :done       # Mark multiple tasks done
+kd /home . !high            # Set all "home" tasks to high priority
+kd /old . /new              # Rename project
+kd 1..4 @old . @-old @+new  # Replace @old tag with @new for tasks 1–4 with title starting with "fix" and has tag "@old"
+kd 2..5 . --                # delete tasks 2–5
 ```
 
 ## **Quick Symbol Guide**
 
-| Symbol | Name      | Example Usage      |
-|--------|-----------|--------------------|
-| `.`    | Separator | `kd /old . /new`   |
-| `/`    | Project   | `kd /work`         |
-| `@`    | Tag       | `kd 1 . @bug`      |
-| `^`    | Deadline  | `kd 1 . ^tomorrow` |
-| `:`    | Status    | `:pending`         |
-| `!`    | Priority  | `!high`            |
-| `--`   | Delete    | `kd :done . --`    |
-| `=`    | Sort-by   | `=/`               |
+| Symbol | Name      | Example Usage   |
+|--------|-----------|-----------------|
+| `.`    | Separator | `/old . /new`   |
+| `..`   | ID Range  | `2..5`          |
+| `/`    | Project   | `/work`         |
+| `@`    | Tag       | `@bug`          |
+| `^`    | Deadline  | `^tomorrow`     |
+| `:`    | Status    | `:pending`      |
+| `!`    | Priority  | `!high`         |
+| `-`    | Delete    | `:done . -`     |
+| `=`    | Sort-by   | `=/`            |
 

@@ -7,6 +7,15 @@ Priority = Literal["high", "normal", "low"]
 
 
 class TodoItem:
+    id: int
+    title: str
+    project: str
+    tags: List[str]
+    status: Status
+    priority: Priority
+    deadline: Optional[datetime]
+    created_at: datetime
+
     def __init__(
         self, id: int, title: str, description: Optional[str] = None,
         project: str = "Uncategorized", tags: Optional[List[str]] = None,

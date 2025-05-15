@@ -1,6 +1,6 @@
 # search
 selection_chain = ws? (selection ws?)*
-selection = shared / group / sort
+selection = shared / sort / group / text
 group =
     project_token / tag_token / priority_token / status_token / deadline_token
 sort = sort_token (
@@ -10,10 +10,10 @@ sort = sort_token (
 
 # action
 action_chain = ws? (action ws?)*
-action = shared / delete_token
+action = shared / delete_token / text
 
 # components
-shared = task_range / project / tag / priority / status / deadline / text
+shared = task_range / project / tag / priority / status / deadline
 task_range = task_id (range_token task_id)?
 project = project_token project_name
 tag = tag_token pm? tag_name
