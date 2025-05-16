@@ -4,7 +4,6 @@ from datetime import datetime
 
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
-from parsimonious.exceptions import ParseError, VisitationError
 
 from .. import constants
 from ..book.select import GroupBy, SortBy, FilterBy, FilterValue
@@ -32,10 +31,21 @@ class CommandParser(NodeVisitor, CommonMixin):
         self, mode: Mode, text: str, pos: int = 0
     ) -> Dict[str, str | List[str]]:
         grammar = getattr(self, f"{mode}_grammar")
-        parsed = super().visit(grammar.parse(text, pos))
-        if 'deadline' in parsed:
-            parsed['deadline'] = \
-                self.datetime_parser.parse(" ".join(parsed['deadline']))
+        ast = grammar.parse(text, pos)
+        parsed = super().visit(ast)
+        if not parsed:
+            return parsed
+        if mode == "selection":
+            if parsed.get("status") == "":
+                # a hack for empty status to denote group
+                del parsed["status"]
+                parsed["group"] = "status"
+        if mode == "action":
+            if "!" in parsed.get("title", ""):
+                parsed["priority"] = "high"
+        if "deadline" in parsed:
+            parsed["deadline"] = \
+                self.datetime_parser.parse(" ".join(parsed["deadline"]))
         return parsed
 
     def parse(
@@ -45,23 +55,29 @@ class CommandParser(NodeVisitor, CommonMixin):
         Optional[GroupBy], Optional[SortBy],
         Optional[Dict[str, str | List[str]]],
     ]:
-        if " . " in text:
-            commands = text.split(" . ")
+        separator = constants.TOKENS["separator"]
+        if f" {separator} " in text:
+            commands = text.split(f" {separator} ")
             try:
                 selection, action = commands
             except ValueError:
                 raise SyntaxError("Invalid command format.")
             selection = self._parse_mode("selection", selection, pos)
             action = self._parse_mode("action", action, pos)
-        elif text.startswith(". "):
+        elif text.startswith(f"{separator} "):
             selection = None
             action = self._parse_mode("action", text[2:], pos)
         else:
+            if text.endswith(f" {separator}"):
+                # a hack for separator at the end
+                text = text[:-len(f" {separator}")]
             selection = self._parse_mode("selection", text, pos)
             action = None
         if selection is not None:
-            group: Optional[GroupBy] = selection.pop("group", None)  # type: ignore
-            sort: Optional[SortBy] = selection.pop("sort", None)  # type: ignore
+            group: Optional[GroupBy] = \
+                selection.pop("group", None)  # type: ignore
+            sort: Optional[SortBy] = \
+                selection.pop("sort", None)  # type: ignore
         else:
             group = sort = None
         return selection, group, sort, action  # type: ignore

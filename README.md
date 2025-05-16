@@ -21,7 +21,6 @@ kd . Fix bug! /dev @urgent ^2h              # High-priority task, due 2 hours fr
 ```bash
 kd 1 . New title /newproject :n  # Update title, project, and mark as note for task 1
 ```
-- The space surrounding `.` can be omitted.
 #### Tag Changes
 ```bash
 kd 1 . @tag       # Toggle tag
@@ -71,23 +70,23 @@ kd :done . -  # Delete all done tasks
 ### **5. Filter & Search**
 #### **Basic Filters**
 ```bash
-kd 1..5          # Show tasks 1–5
-kd /work        # Tasks in "work" project
-kd @meeting     # Tasks with "@meeting" tag
-kd !high        # High-priority tasks
-kd :pending     # Pending tasks
-kd ^today       # Due today
+kd 1..5       # Show tasks 1–5
+kd /work      # Tasks in "work" project
+kd @meeting   # Tasks with "@meeting" tag
+kd !high      # High-priority tasks
+kd :pending   # Pending tasks
+kd ^today     # Due today
 ```
 #### **Grouping/Sorting**
 ```bash
-kd /            # Group by project
-kd @            # Group by tag
-kd !            # Group by priority
-kd ^            # Group by deadline
-kd =/           # Sort by project names
-kd =@           # Sort by tag names
-kd =!           # Sort by priorities
-kd =^           # Sort by deadlines
+kd /    # Group by project
+kd @    # Group by tag
+kd !    # Group by priority
+kd ^    # Group by deadline
+kd =/   # Sort by project names
+kd =@   # Sort by tag names
+kd =!   # Sort by priorities
+kd =^   # Sort by deadlines
 ```
 #### **Advanced Search**
 ```bash

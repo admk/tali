@@ -1,8 +1,8 @@
 import sys
 import shlex
 import argparse
-from . import __version__
 
+from . import __version__
 from .parser import CommandParser
 from .book import TaskBook
 from .book.select import GroupBy, SortBy
@@ -53,24 +53,31 @@ class CLI:
         if rargs:
             selection, group_by, sort_by, action = \
                 self.command_parser.parse(rargs)
+            # print(selection, group_by, sort_by, action)
         else:
             selection = group_by = sort_by = action = None
-        if action is None:
-            group: GroupBy = group_by or self.default_config["group"]  # type: ignore
-            sort: SortBy = sort_by or self.default_config["sort"]  # type: ignore
+        if not action:
+            group: GroupBy = \
+                group_by or self.default_config["group"]  # type: ignore
+            sort: SortBy = \
+                sort_by or self.default_config["sort"]  # type: ignore
             grouped_todos = book.select(selection, group, sort)
-            print(self.renderer.render(grouped_todos, group, bool(not selection)))
+            text = self.renderer.render(
+                grouped_todos, group, bool(not selection))
+            print(text)
             return
-        if selection:
-            todos = book.select(selection)[None]
-            todos = book.action(todos, action)
-            print(
-                f"\n  Updated {len(todos)} item"
-                f"{'s' if len(todos) > 1 else ''}.\n")
-            for todo in todos:
-                print("  " + self.renderer.render_item(todo, "all"))
-        else:
-            print(book.add(**action))  # type: ignore
+        if selection is None:
+            item = book.add(**action)  # type: ignore
+            print("\n" + self.renderer.render_item(item))
+            return
+        before_todos = book.select(selection)[None]
+        after_todos = book.action(before_todos, action)
+        print(
+            f"\n  Updated {len(before_todos)} item"
+            f"{'s' if len(before_todos) > 1 else ''}.\n")
+        for btodo, atodo in zip(before_todos, after_todos):
+            diff = self.renderer.render_item_diff(btodo, atodo)
+            print("  " + diff)
 
 
 def main():

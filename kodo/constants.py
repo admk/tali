@@ -11,9 +11,10 @@ TOKENS = {
 }
 
 common_format = \
-    " {id}.{status}{title}{project}{tags}{priority}{deadline}{description}"
+    "{id}.{status}{title}{project}{tags}{priority}{deadline}{description}"
 FORMAT = {
     "all": common_format,
+    "status": common_format.replace("{status}", ""),
     "project": common_format.replace("{project}", ""),
     "tag": common_format.replace("{tags}", ""),
     "priority": common_format.replace("{priority}", ""),

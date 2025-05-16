@@ -44,44 +44,59 @@ class Renderer:
         text.append("  " + " · ".join(stats_text))
         return "\n".join(text)
 
-    def _render_id(self, id: int) -> Optional[str]:
-        return colored(str(id), **constants.ID_ATTRS)
+    def _render_id(self, id: int, color: bool = True) -> Optional[str]:
+        text = f"{id:>4}"
+        if not color:
+            return text
+        return colored(text, **constants.ID_ATTRS)
 
     def _render_status(
-        self, status: Status, header: bool = False
+        self, status: Status, header: bool = False, color: bool = True
     ) -> Optional[str]:
         if header:
             symbol = constants.STATUS_FORMATTED[status]
         else:
             symbol = constants.STATUS_SYMBOLS[status]
+        if not color:
+            return symbol
         return colored(symbol, **constants.STATUS_ATTRS[status])
 
-    def _render_title(self, todo: TodoItem) -> Optional[str]:
+    def _render_title(
+        self, todo: TodoItem, color: bool = True
+    ) -> Optional[str]:
         title = shorten(todo.title, constants.MAX_TITLE_LENGTH)
         attrs = {}
         for k, v in constants.TITLE_ATTRS.items():
             p, q = k.split(".")
             if getattr(todo, p) == q:
                 attrs |= v
+        if not color:
+            return title
         return colored(title, **attrs)
 
-    def _render_tags(self, tags: List[str]) -> Optional[str]:
+    def _render_tags(
+        self, tags: List[str], color: bool = True
+    ) -> Optional[str]:
         new_tags = []
         for tag in tags:
             key = tag if tag in constants.TAG_SYMBOLS else "_default"
             default_tag = f"{constants.TOKENS['tag']}{tag}"
-            new_tags.append(colored(
-                constants.TAG_SYMBOLS.get(key, default_tag),
-                **constants.TAG_ATTRS[key]))
+            text = constants.TAG_SYMBOLS.get(key, default_tag)
+            if color:
+                text = colored(text, **constants.TAG_ATTRS[key])
+            new_tags.append(text)
         return " ".join([tag for tag in new_tags])
 
-    def _render_project(self, project: str) -> Optional[str]:
-        return colored(
-            f"{constants.TOKENS['project']}{project}",
-            **constants.PROJECT_ATTRS)  # type: ignore
+    def _render_project(
+        self, project: str, color: bool = True
+    ) -> Optional[str]:
+        text = f"{constants.TOKENS['project']}{project}"
+        if not color:
+            return text
+        return colored(text, **constants.PROJECT_ATTRS)  # type: ignore
 
     def _render_priority(
-        self, priority: Priority, header: bool = False
+        self, priority: Priority, header: bool = False, color: bool = True
     ) -> Optional[str]:
         if header:
             symbol = constants.PRIORITY_FORMATTED[priority]
@@ -89,56 +104,92 @@ class Renderer:
             symbol = constants.PRIORITY_SYMBOLS[priority] or ""
         if not symbol:
             return None
+        if not color:
+            return symbol
         return colored(symbol, **constants.PRIORITY_ATTRS[priority])
 
     def _render_deadline(
-        self, deadline: Optional[datetime], status: Status,
+        self, deadline: Optional[datetime], status: Status, color: bool = True
     ) -> Optional[str]:
         if deadline is None:
             return None
-        return format_datetime(deadline, status)  # type: ignore
+        return format_datetime(deadline, status, use_color=color)
 
-    def _render_created_at(self, created_at: datetime) -> Optional[str]:
+    def _render_created_at(
+        self, created_at: datetime, color: bool = True
+    ) -> Optional[str]:
         return format_datetime(
-            created_at, todo.status,  # type: ignore
-            "created_at", use_color=False)
+            created_at, "pending", "created_at", use_color=color)
 
-    def _render_description(self, description: Optional[str]) -> Optional[str]:
+    def _render_description(
+        self, description: Optional[str], color: bool = True
+    ) -> Optional[str]:
         if description is None:
             return None
         desc = shorten(description, constants.MAX_DESCRIPTION_LENGTH)
+        if not color:
+            return desc
         return colored(desc, **constants.DESCRIPTION_ATTRS)
 
-    def _render_header(self, group_by: GroupBy, value: Any) -> str | None:
+    def _render_header(
+        self, group_by: GroupBy, value: Any, color: bool = True
+    ) -> str | None:
         if group_by == "all":
             return None
         if group_by == "project":
-            return self._render_project(value)
+            return self._render_project(value, color)
         if group_by == "tag":
-            return self._render_tags([value])
+            return self._render_tags([value], color)
         if group_by == "priority":
-            return self._render_priority(value, header=True)
+            return self._render_priority(value, True, color)
         if group_by == "status":
-            return self._render_status(value, header=True)
+            return self._render_status(value, True, color)
         if group_by == "deadline":
-            return self._render_deadline(value, "pending")
+            return self._render_deadline(value, "pending", color)
         if group_by == "created_at":
-            return self._render_created_at(value)
+            return self._render_created_at(value, color)
         raise ValueError(f"Unknown group_by: {group_by}")
 
-    def render_item(self, todo: TodoItem, group_by: GroupBy) -> str:
+    def _render_fields(
+        self, todo: TodoItem, color: bool = True
+    ) -> Dict[str, str]:
         fields = {
-            "id": self._render_id(todo.id),
-            "status": self._render_status(todo.status),
-            "title": self._render_title(todo),
-            "tags": self._render_tags(todo.tags),
-            "priority": self._render_priority(todo.priority),
-            "project": self._render_project(todo.project),
-            "deadline": self._render_deadline(todo.deadline, todo.status),
-            "description": self._render_description(todo.description),
+            "id": self._render_id(todo.id, color),
+            "status": self._render_status(todo.status, color=color),
+            "title": self._render_title(todo, color),
+            "tags": self._render_tags(todo.tags, color),
+            "priority": self._render_priority(todo.priority, color=color),
+            "project": self._render_project(todo.project, color),
+            "deadline": self._render_deadline(
+                todo.deadline, todo.status, color),
+            "description": self._render_description(todo.description, color),
         }
-        fields = {k: " " + v if v else "" for k, v in fields.items()}
-        return constants.FORMAT[group_by].format(**fields)
+        return {k: " " + v if v else "" for k, v in fields.items()}
+
+    def render_item(
+        self, todo: TodoItem, group_by: GroupBy = "all", color: bool = True
+    ) -> str:
+        fields = self._render_fields(todo, color)
+        return constants.FORMAT[group_by].format(**fields)[1:]
+
+    def render_item_diff(
+        self, before_todo: TodoItem, after_todo: TodoItem, color: bool = True
+    ) -> str:
+        before_fields = self._render_fields(before_todo, False)
+        after_fields = self._render_fields(after_todo, False)
+        after_fields_colored = self._render_fields(after_todo, True)
+        fields = {}
+        for k, v in before_fields.items():
+            if v == after_fields[k]:
+                fields[k] = after_fields_colored[k]
+            else:
+                bv = before_fields[k].lstrip()
+                bv = colored(bv, color="grey", attrs=["strike"])
+                lb, arrow, rb = (
+                    colored(t, color="red", attrs=["bold"]) for t in "{→}")
+                av = after_fields_colored[k].lstrip()
+                fields[k] = f" {lb}{bv} {arrow} {av}{rb}"
+        return constants.FORMAT["all"].format(**fields)[1:]
 
     def render(
         self, grouped_todos: Dict[Any, List[TodoItem]],

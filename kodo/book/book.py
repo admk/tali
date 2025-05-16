@@ -1,6 +1,7 @@
 import os
+import copy
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
 
 from .item import TodoItem, Status, Priority
@@ -151,6 +152,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     ) -> List[TodoItem]:
         if actions is None:
             return todos
+        todos = copy.deepcopy(todos)
         for todo in todos:
             for action, value in actions.items():
                 value = getattr(self, action)(todo, value)
