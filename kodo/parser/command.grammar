@@ -22,7 +22,7 @@ status = status_token word?
 priority = priority_token word?
 
 # literals
-word = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+\s*"
+word = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+"
 separator_token = "{separator}"
 range_token = "{range}"
 project_token = "{project}"

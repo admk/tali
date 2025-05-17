@@ -1,4 +1,4 @@
-expression = relative_datetime / date_time / time_date
+datetime_expression = relative_datetime / date_time / time_date
 date_time = date ws? time?
 time_date = time ws? date?
 date = absolute_date / named_date / end_date

@@ -5,7 +5,7 @@ from datetime import datetime
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
-from parsimonious.nodes import NodeVisitor
+from parsimonious.nodes import NodeVisitor, VisitationError
 
 from .. import constants
 from ..common import error
@@ -25,42 +25,30 @@ class CommandParser(NodeVisitor, CommonMixin):
         with open(os.path.join(root, 'command.grammar'), 'r') as f:
             grammar = f.read()
             grammar = grammar.format(**constants.TOKENS)
-            for mode in ["selection", "action"]:
-                entry = "command = {mode}_chain\n\n"
-                grammar = entry.format(mode=mode) + grammar
-                setattr(self, f"{mode}_grammar", Grammar(grammar))
+        for mode in ["selection", "action"]:
+            entry = "command = {mode}_chain\n\n"
+            mode_grammar = entry.format(mode=mode) + grammar
+            setattr(self, f"{mode}_grammar", Grammar(mode_grammar))
 
     def _parse_mode(
         self, mode: Mode, text: str, pos: int = 0
     ) -> Dict[str, str | List[str]]:
         grammar = getattr(self, f"{mode}_grammar")
         try:
-            ast = grammar.parse(text, pos)
+            ast = grammar.parse(text.strip(), pos)
         except ParseError as e:
             arrow = " " * e.pos + "^ "
             msg = f"{e.text}\n{arrow}\n{e}"
             error(msg)
-        parsed = super().visit(ast)
-        if not parsed:
-            return parsed
-        if mode == "selection":
-            if parsed.get("status") == "":
-                # a hack for empty status to denote group
-                del parsed["status"]
-                parsed["group"] = "status"
-        if mode == "action":
-            if "!" in parsed.get("title", ""):
-                parsed["priority"] = "high"
-        if "deadline" in parsed:
-            parsed["deadline"] = \
-                self.datetime_parser.parse(" ".join(parsed["deadline"]))
-        return parsed
+        return super().visit(ast)
 
     def parse(self, text: str, pos: int = 0) -> Tuple[
         Optional[Dict[FilterBy, FilterValue]],
         Optional[GroupBy], Optional[SortBy],
         Optional[Dict[str, str | List[str]]],
     ]:
+        if not text.strip():
+            return None, None, None, None
         separator = constants.TOKENS["separator"]
         if f" {separator} " in text:
             commands = text.split(f" {separator} ")
@@ -93,10 +81,12 @@ class CommandParser(NodeVisitor, CommonMixin):
         items = [item] + [i for _, i in items]
         parsed = {}
         for item in items:
-            if len(item) == 2:
+            if isinstance(item, tuple):
                 kind, value = item
-            else:
+            elif isinstance(item, str):
                 kind, value = "text", item
+            else:
+                raise ValueError(f"Unknown item {item!r}.")
             if kind == "ids":
                 parsed.setdefault("ids", []).extend(value)
             elif kind == "project":
@@ -120,14 +110,28 @@ class CommandParser(NodeVisitor, CommonMixin):
         if "ids" in parsed:
             parsed["ids"] = list(sorted(set(parsed["ids"])))
         if "title" in parsed:
-            parsed["title"] = "".join(parsed["title"]).strip()
+            parsed["title"] = " ".join(parsed["title"]).strip()
+        if "deadline" in parsed:
+            try:
+                dt = self.datetime_parser.parse(" ".join(parsed["deadline"]))
+            except (ParseError, VisitationError) as e:
+                error(f"Invalid date time syntax. {e}")
+            parsed["deadline"] = dt
         return parsed
 
     def visit_action_chain(self, node, visited_children):
-        return self._visit_chain(node, visited_children)
+        parsed = self._visit_chain(node, visited_children)
+        if "!" in parsed.get("title", ""):
+            parsed["priority"] = "high"
+        return parsed
 
     def visit_selection_chain(self, node, visited_children):
-        return self._visit_chain(node, visited_children)
+        parsed = self._visit_chain(node, visited_children)
+        if parsed.get("status") == "":
+            # a hack for empty status to denote group
+            del parsed["status"]
+            parsed["group"] = "status"
+        return parsed
 
     def visit_task_range(self, node, visited_children):
         first, last = visited_children
@@ -146,7 +150,7 @@ class CommandParser(NodeVisitor, CommonMixin):
         return "tag", op + tag
 
     def visit_deadline(self, node, visited_children):
-        _, (_, deadline) = visited_children
+        _, deadline = visited_children
         return "deadline", deadline.strip()
 
     def visit_status(self, node, visited_children):

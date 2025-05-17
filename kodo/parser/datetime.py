@@ -44,7 +44,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         except ValueError as e:
             raise ValueError(f"Invalid date/time format") from e
 
-    def visit_expression(self, node, visited_children):
+    def visit_datetime_expression(self, node, visited_children):
         return self._visit_any_of(node, visited_children)
 
     def visit_relative_datetime(self, node, visited_children):

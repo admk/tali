@@ -7,7 +7,7 @@ TOKENS = {
     'priority': '!',
     'status': ':',
     'sort': '=',
-    'delete': '--',
+    'delete': '-',
 }
 
 common_format = \
@@ -34,7 +34,7 @@ GROUP_ATTRS = {"attrs": ["bold"]}
 PRIORITY_SYMBOLS = {
     "high": "!",
     "normal": None,
-    "low": None,
+    "low": "_",
 }
 PRIORITY_ATTRS = {
     "high": {"color": "magenta", "attrs": ["bold"]},

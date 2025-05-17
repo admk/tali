@@ -72,8 +72,7 @@ class CLI:
 
     def _process_action(self, book: TaskBook, command: str) -> ActionResult:
         config = self.default_config
-        selection, group, sort, action = \
-            self.command_parser.parse(command)
+        selection, group, sort, action = self.command_parser.parse(command)
         group = group or config["group"]
         sort = sort or config["sort"]
 
