@@ -1,30 +1,29 @@
 # search
-selection_chain = ws? (selection ws?)*
-selection = shared / sort / group / text
+selection_chain = selection (ws selection)*
+selection = shared / sort / group / word
+
+# action
+action_chain = action (ws action)*
+action = shared / delete_token / word
+
+# components
 group =
     project_token / tag_token / priority_token / status_token / deadline_token
 sort = sort_token (
     project_token / tag_token /
     priority_token / status_token / deadline_token
 )
-
-# action
-action_chain = ws? (action ws?)*
-action = shared / delete_token / text
-
-# components
 shared = task_range / project / tag / priority / status / deadline
 task_range = task_id (range_token task_id)?
 project = project_token project_name
 tag = tag_token pm? tag_name
-deadline = deadline_token text
-status = status_token status_val
-status_val = "done" / "d" / "pending" / "p" / "note" / "n" / ""
-priority = priority_token priority_val
-priority_val = "high" / "h" / "normal" / "n" / "low" / "l" / pm / ""
+deadline = deadline_token word
+status = status_token word?
+priority = priority_token word?
 
 # literals
-text = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+\s*"
+word = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+\s*"
+separator_token = "{separator}"
 range_token = "{range}"
 project_token = "{project}"
 tag_token = "{tag}"

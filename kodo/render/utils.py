@@ -1,12 +1,10 @@
 from datetime import date, datetime, timedelta
 from typing import Optional, Literal
 
-from termcolor import colored
+from termcolor import colored, ATTRIBUTES
 
 from .. import constants
 from ..book.item import Status
-
-from termcolor import ATTRIBUTES
 
 
 ATTRIBUTES |= {

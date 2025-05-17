@@ -1,11 +1,14 @@
 import os
+import textwrap
 from typing import Literal, Optional, Dict, List, Tuple
 from datetime import datetime
 
+from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
 from .. import constants
+from ..common import error
 from ..book.select import GroupBy, SortBy, FilterBy, FilterValue
 from .common import CommonMixin
 from .datetime import DateTimeParser
@@ -31,7 +34,12 @@ class CommandParser(NodeVisitor, CommonMixin):
         self, mode: Mode, text: str, pos: int = 0
     ) -> Dict[str, str | List[str]]:
         grammar = getattr(self, f"{mode}_grammar")
-        ast = grammar.parse(text, pos)
+        try:
+            ast = grammar.parse(text, pos)
+        except ParseError as e:
+            arrow = " " * e.pos + "^ "
+            msg = f"{e.text}\n{arrow}\n{e}"
+            error(msg)
         parsed = super().visit(ast)
         if not parsed:
             return parsed
@@ -48,9 +56,7 @@ class CommandParser(NodeVisitor, CommonMixin):
                 self.datetime_parser.parse(" ".join(parsed["deadline"]))
         return parsed
 
-    def parse(
-        self, text: str, pos: int = 0
-    ) -> Tuple[
+    def parse(self, text: str, pos: int = 0) -> Tuple[
         Optional[Dict[FilterBy, FilterValue]],
         Optional[GroupBy], Optional[SortBy],
         Optional[Dict[str, str | List[str]]],
@@ -82,17 +88,15 @@ class CommandParser(NodeVisitor, CommonMixin):
             group = sort = None
         return selection, group, sort, action  # type: ignore
 
-    def visit_text(self, node, visited_children):
-        return "text", node.text
-
-    def visit_ws(self, node, visited_children):
-        return None
-
     def _visit_chain(self, node, visited_children):
-        _, items = visited_children
+        item, items = visited_children
+        items = [item] + [i for _, i in items]
         parsed = {}
         for item in items:
-            (kind, value), _ = item
+            if len(item) == 2:
+                kind, value = item
+            else:
+                kind, value = "text", item
             if kind == "ids":
                 parsed.setdefault("ids", []).extend(value)
             elif kind == "project":
@@ -147,10 +151,12 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def visit_status(self, node, visited_children):
         _, status = visited_children
+        status = status[0] if status else ""
         return "status", status
 
     def visit_priority(self, node, visited_children):
         _, priority = visited_children
+        priority = priority[0] if priority else ""
         return "priority", priority
 
     def visit_group(self, node, visited_children):
@@ -162,12 +168,9 @@ class CommandParser(NodeVisitor, CommonMixin):
         return "sort", sort
 
     visit_task_id = CommonMixin._visit_int
-    visit_project_name = visit_tag_name = \
-        visit_status_val = visit_priority_val = \
-        visit_pm = CommonMixin._visit_str
-    visit_selection = visit_action = visit_shared = \
-        CommonMixin._visit_any_of
-
+    visit_word = visit_project_name = visit_tag_name = visit_pm = \
+        CommonMixin._visit_str
+    visit_selection = visit_action = visit_shared = CommonMixin._visit_any_of
     visit_ws = CommonMixin._visit_noop
 
     def generic_visit(self, node, visited_children):

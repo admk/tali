@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
 
+from ..common import warn
 from .item import TodoItem, Status, Priority
 from .select import (
     FilterMixin, GroupMixin, SortMixin, FilterBy, FilterValue, GroupBy, SortBy)
@@ -66,23 +67,26 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         return title
 
     def status(self, todo: TodoItem, status: str) -> Status:
-        new_status: Optional[Status] = None
         if status:
             status_map: Dict[str, Status] = {
                 "p": "pending", "pending": "pending",
                 "n": "note", "note": "note",
                 "d": "done", "done": "done",
             }
-            new_status = status_map[status]
-        elif todo.status == "done":
-            new_status = "pending"
-        elif todo.status == "pending":
-            new_status = "done"
-        elif todo.status == "note":
+            try:
+                return status_map[status]
+            except KeyError:
+                raise ValueError(f"Unrecognized status {status!r}.")
+        if todo.status == "note":
             raise ValueError("Cannot toggle status of a note.")
-        if new_status is None:
+        status_changes: Dict[Status, Status] = {
+            "done": "pending",
+            "pending": "done",
+        }
+        try:
+            return status_changes[todo.status]
+        except KeyError:
             raise ValueError(f"Unrecognized status {status!r}.")
-        return new_status
 
     def priority(self, todo: TodoItem, priority: Priority):
         new_priority: Optional[Priority] = None
@@ -96,6 +100,9 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         except KeyError:
             pass
         priority_changes: Dict[Tuple[str, Priority], Priority] = {
+            ("", "high"): "normal",
+            ("", "normal"): "high",
+            ("", "low"): "normal",
             ("+", "high"): "high",
             ("+", "normal"): "high",
             ("+", "low"): "normal",
@@ -108,7 +115,9 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         except KeyError:
             pass
         if not new_priority:
-            raise ValueError(f"Unrecognized priority {priority!r}.")
+            raise ValueError(
+                "Cannot change priority from "
+                f"{todo.priority!r} to {priority!r}.")
         return new_priority
 
     def project(self, todo: TodoItem, project: str) -> str:
@@ -155,6 +164,10 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         todos = copy.deepcopy(todos)
         for todo in todos:
             for action, value in actions.items():
-                value = getattr(self, action)(todo, value)
-                setattr(todo, action, value)
+                try:
+                    value = getattr(self, action)(todo, value)
+                except ValueError as e:
+                    warn(e)
+                else:
+                    setattr(todo, action, value)
         return todos
