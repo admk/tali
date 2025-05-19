@@ -1,8 +1,8 @@
-import os
 import copy
-import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Tuple
+
+from box import Box
 
 from ..common import warn
 from .item import TodoItem, Status, Priority
@@ -15,28 +15,12 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     path: Optional[str]
 
     def __init__(
-        self, todos: Optional[List[TodoItem]] = None,
-        path: Optional[str] = None
+        self, config: Box, todos: Optional[List[TodoItem]] = None,
     ):
         super().__init__()
-        self.path = path
-        if todos is None and path is not None:
-            if os.path.exists(path):
-                with open(path, "r") as f:
-                    todos = [TodoItem.from_dict(todo) for todo in json.load(f)]
+        self.config = config
         self.todos = todos or []
         self.next_id = max([todo.id for todo in self.todos], default=0) + 1
-
-    def save(self, path: str | None = None):
-        if path is None and self.path is None:
-            raise ValueError("No path specified for saving.")
-        real_path: str = path or self.path  # type: ignore
-        folder = os.path.dirname(real_path)
-        if folder:
-            os.makedirs(folder, exist_ok=True)
-        with open(real_path, "w") as f:
-            data = [todo.to_dict() for todo in self.todos]
-            json.dump(data, f, indent=4)
 
     def add(
         self, title: str, description: Optional[str] = None,
@@ -54,15 +38,6 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         self.next_id += 1
         return todo
 
-    def delete(self, todo: int | TodoItem) -> TodoItem:
-        todo_id = todo if isinstance(todo, int) else todo.id
-        # find the todo item, and pop it from the list
-        for i, t in enumerate(self.todos):
-            if t.id == todo_id:
-                item = self.todos.pop(i)
-                return item
-        raise ValueError("Todo item not found.")
-
     def title(self, todo: TodoItem, title: str) -> str:
         return title
 
@@ -72,6 +47,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                 "p": "pending", "pending": "pending",
                 "n": "note", "note": "note",
                 "d": "done", "done": "done",
+                "x": "delete", "delete": "delete",
             }
             try:
                 return status_map[status]
@@ -145,7 +121,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
 
     def select(
         self, filters: Optional[Dict[FilterBy, FilterValue]],
-        group_by: GroupBy = "all", sort_by: SortBy = "id",
+        group_by: GroupBy = "range", sort_by: SortBy = "range",
     ) -> Dict[Any, List[TodoItem]]:
         todos = self.todos
         if filters is not None:
@@ -161,8 +137,9 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     ) -> List[TodoItem]:
         if actions is None:
             return todos
-        todos = copy.deepcopy(todos)
-        for todo in todos:
+        id_todos = {t.id: t for t in todos}
+        new_id_todos = {}
+        for id, todo in copy.deepcopy(id_todos).items():
             for action, value in actions.items():
                 try:
                     value = getattr(self, action)(todo, value)
@@ -170,4 +147,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                     warn(e)
                 else:
                     setattr(todo, action, value)
-        return todos
+            if todo != id_todos[id]:
+                new_id_todos[id] = todo
+        all_todos = {t.id: t for t in self.todos} | new_id_todos
+        self.todos = list(sorted(all_todos.values(), key=lambda t: t.id))
+        return list(sorted(new_id_todos.values(), key=lambda t: t.id))

@@ -1,9 +1,8 @@
 from datetime import datetime, date
 from typing import Optional, List, Dict, Tuple, Callable, Literal, Any
 
-from termcolor import colored
+from box import Box
 
-from .. import constants
 from ..book.item import TodoItem, Status, Priority
 
 
@@ -11,9 +10,9 @@ FilterBy = Literal[
     "title", "project", "tag", "status", "priority", "deadline", "created_at"]
 ActBy = Literal["add", "delete"] | FilterBy
 GroupBy = Literal[
-    "all", "project", "tag", "status", "priority", "deadline", "created_at"]
+    "range", "project", "tag", "status", "priority", "deadline", "created_at"]
 SortBy = Literal[
-    "id", "status", "title", "project", "tags", "priority",
+    "range", "status", "title", "project", "tags", "priority",
     "deadline", "created_at"]
 FilterValue = str | Tuple[datetime, datetime]
 GroupKey = Optional[str | datetime | date]
@@ -21,12 +20,22 @@ GroupFunc = Callable[[TodoItem], GroupKey]
 SortFunc = Callable[[TodoItem], Any]
 
 
-class FilterMixin:
+class SelectMixin:
+    config: Box
+
+
+class FilterMixin(SelectMixin):
     def filter_by_ids(self, todos, ids: List[int]) -> bool:
         return todos.id in ids
 
+    def filter_by_title(self, todos, title: str) -> bool:
+        return title.lower() in todos.title.lower()
+
     def filter_by_project(self, todos, project: str) -> bool:
-        return todos.project == project
+        separator = self.config.token.project
+        todo_splits = todos.project.split(separator)
+        splits = project.split(separator)
+        return all(p == q for p, q in zip(splits, todo_splits))
 
     def filter_by_tags(self, todo: TodoItem, tags: List[str]) -> bool:
         return all(t in todo.tags for t in tags) if tags else not todo.tags
@@ -69,12 +78,12 @@ class FilterMixin:
         return filtered_todos
 
 
-class SortMixin:
-    def sort_id(self, todo: TodoItem) -> int:
+class SortMixin(SelectMixin):
+    def sort_range(self, todo: TodoItem) -> int:
         return todo.id
 
     def sort_status(self, todo: TodoItem) -> int:
-        return list(constants.STATUS_FORMATTED).index(todo.status)
+        return list(self.config.group.header.status).index(todo.status)
 
     def sort_title(self, todo: TodoItem) -> str:
         return todo.title
@@ -86,7 +95,7 @@ class SortMixin:
         return tuple(sorted(todo.tags))
 
     def sort_priority(self, todo: TodoItem) -> int:
-        return list(constants.PRIORITY_FORMATTED).index(todo.priority)
+        return list(self.config.group.header.priority).index(todo.priority)
 
     def sort_deadline(self, todo: TodoItem) -> datetime:
         return todo.deadline or datetime(9999, 12, 31)
@@ -111,6 +120,8 @@ class GroupMixin(SortMixin):
     def group_by_all(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         return lambda _: None, None
 
+    group_by_range = group_by_all
+
     def group_by_project(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         return self._group_by_value("project")
 
@@ -131,9 +142,9 @@ class GroupMixin(SortMixin):
                 return None
             delta = dt - datetime.now()
             if delta.seconds < 0:
-                return "_overdue"
+                return "overdue"
             if delta.days < 1:
-                return "_today"
+                return "today"
             return dt.date()
         sfunc = lambda todo: todo.deadline or datetime(9999, 12, 31)
         return gfunc, sfunc

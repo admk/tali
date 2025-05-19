@@ -1,11 +1,13 @@
+from dataclasses import dataclass
 from typing import Optional, List, Literal
 from datetime import datetime
 
 
-Status = Literal["pending", "done", "note"]
+Status = Literal["pending", "done", "note", "delete"]
 Priority = Literal["high", "normal", "low"]
 
 
+@dataclass
 class TodoItem:
     id: int
     title: str
@@ -15,10 +17,13 @@ class TodoItem:
     priority: Priority
     deadline: Optional[datetime]
     created_at: datetime
+    _keys = [
+        "id", "title", "description", "project", "tags",
+        "status", "priority", "deadline", "created_at"]
 
     def __init__(
         self, id: int, title: str, description: Optional[str] = None,
-        project: str = "Uncategorized", tags: Optional[List[str]] = None,
+        project: str = "inbox", tags: Optional[List[str]] = None,
         status: Status = "pending", priority: Priority = "normal",
         deadline: Optional[datetime] = None,
         created_at: Optional[datetime] = None,

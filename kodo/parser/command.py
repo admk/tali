@@ -1,5 +1,4 @@
 import os
-import textwrap
 from typing import Literal, Optional, Dict, List, Tuple
 from datetime import datetime
 
@@ -7,8 +6,9 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor, VisitationError
 
-from .. import constants
-from ..common import error
+from box import Box
+
+from ..common import debug, error
 from ..book.select import GroupBy, SortBy, FilterBy, FilterValue
 from .common import CommonMixin
 from .datetime import DateTimeParser
@@ -18,13 +18,14 @@ Mode = Literal["selection", "action"]
 
 
 class CommandParser(NodeVisitor, CommonMixin):
-    def __init__(self, reference_dt: Optional[datetime] = None):
+    def __init__(self, config: Box, reference_dt: Optional[datetime] = None):
         super().__init__()
+        self.config = config
         self.datetime_parser = DateTimeParser(reference_dt or datetime.now())
         root = os.path.dirname(__file__)
         with open(os.path.join(root, 'command.grammar'), 'r') as f:
             grammar = f.read()
-            grammar = grammar.format(**constants.TOKENS)
+            grammar = grammar.format(**config.token)
         for mode in ["selection", "action"]:
             entry = "command = {mode}_chain\n\n"
             mode_grammar = entry.format(mode=mode) + grammar
@@ -36,6 +37,7 @@ class CommandParser(NodeVisitor, CommonMixin):
         grammar = getattr(self, f"{mode}_grammar")
         try:
             ast = grammar.parse(text.strip(), pos)
+            debug(f"Parsed {mode} AST:\n{ast}")
         except ParseError as e:
             arrow = " " * e.pos + "^ "
             msg = f"{e.text}\n{arrow}\n{e}"
@@ -49,7 +51,7 @@ class CommandParser(NodeVisitor, CommonMixin):
     ]:
         if not text.strip():
             return None, None, None, None
-        separator = constants.TOKENS["separator"]
+        separator = self.config.token.separator
         if f" {separator} " in text:
             commands = text.split(f" {separator} ")
             try:
@@ -105,6 +107,8 @@ class CommandParser(NodeVisitor, CommonMixin):
                 parsed["group"] = value
             elif kind == "sort":
                 parsed["sort"] = value
+            elif kind == "delete":
+                parsed["delete"] = True
             else:
                 raise ValueError(f"Unknown kind {kind!r}.")
         if "ids" in parsed:
@@ -127,10 +131,10 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def visit_selection_chain(self, node, visited_children):
         parsed = self._visit_chain(node, visited_children)
-        if parsed.get("status") == "":
-            # a hack for empty status to denote group
-            del parsed["status"]
-            parsed["group"] = "status"
+        for group in ["priority", "status"]:
+            if parsed.get(group) == "":
+                del parsed[group]
+                parsed["group"] = group
         return parsed
 
     def visit_task_range(self, node, visited_children):
@@ -171,6 +175,9 @@ class CommandParser(NodeVisitor, CommonMixin):
         sort = node.children[1].children[0].expr_name.replace("_token", "")
         return "sort", sort
 
+    def visit_delete_token(self, node, visited_children):
+        return "delete", None
+
     visit_task_id = CommonMixin._visit_int
     visit_word = visit_project_name = visit_tag_name = visit_pm = \
         CommonMixin._visit_str
@@ -179,20 +186,3 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def generic_visit(self, node, visited_children):
         return visited_children
-
-
-if __name__ == "__main__":
-    parser = CommandParser()
-    commands = """
-    . Buy milk /grocery                      # Basic task
-    . "Team meeting" /work @meeting ^fri :n  # Note with tag and deadline
-    . Fix bug! !high /dev @+urgent ^2pm      # High-priority task, due 2 hours from now
-    hello, world.
-    1..5 . /home
-    @ =/
-    """
-    commands = commands.strip().split("\n")
-    commands = [command.split("#")[0].strip() for command in commands]
-    for command in commands:
-        result = parser.parse(command)
-        print(command, result)

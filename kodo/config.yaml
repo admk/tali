@@ -1,0 +1,92 @@
+token:
+  range: '..'
+  status: ','
+  separator: '.'
+  project: '/'
+  tag: '@'
+  priority: '!'
+  deadline: '^'
+  sort: '='
+group:
+  by: project
+  format:
+    range: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'
+    status: '{id}{title}{project}{tags}{priority}{deadline}{description}'
+    project: '{id}{status}{title}{tags}{priority}{deadline}{description}'
+    tag: '{id}{status}{title}{project}{priority}{deadline}{description}'
+    priority: '{id}{status}{title}{project}{tags}{deadline}{description}'
+    deadline: '{id}{status}{title}{project}{tags}{priority}{description}'
+    created_at: '{.group.format.range}'
+  header:
+    format: '[bold]{group}[/bold] [bright_black]{progress}[/bright_black]'
+    priority:
+      high: '[magenta]{.item.priority.format.high} high[/magenta]'
+      normal: '. normal'
+      low: '[bright_black]{.item.priority.format.low} low[/bright_black]'
+    status:
+      pending: '[yellow]{.item.status.format.pending} pending[/yellow]'
+      done: "[green]{.item.status.format.done} done[/green]"
+      note: "[blue]{.item.status.format.note} note[/blue]"
+  empty: ":crystal_ball::sparkles: [italic]Nothing to show.[/italic]"
+sort:
+  by: created_at
+item:
+  format: '{.group.format.range}'
+  id:
+    format: '[bright_black]{:>5}.[/bright_black]'
+  status:
+    format:
+      pending: '[bold yellow]☐[/bold yellow]'
+      done: '[bold green]✔[/bold green]'
+      note: '[bold blue]·[/bold blue]'
+      delete: '[bold red]✘[/bold red]'
+  title:
+    format:
+      status_done: '[strike bright_black]{}[/strike bright_black]'
+      priority_high: '[bold magenta]{}[/bold magenta]'
+      priority_low: '[bright_black]{}[/bright_black]'
+    max_length: 0
+  tag:
+    format:
+      _: '[underline]{.token.tag}{}[/underline]'
+      star: '[bold yellow]★[/bold yellow]'
+  project:
+    default: /inbox
+    format: '[bold]{.token.project}{}[/bold]'
+  priority:
+    format:
+      high: '[bold magenta]{.token.priority}[/bold magenta]'
+      low: '[bright_black]_[/bright_black]'
+      normal: ''
+  deadline:
+    format:
+      _: '[blue]{}[/blue]'
+      status_done: '[bright_black]{}[/bright_black]'
+      2592000: '[green]{}[/green]'
+      604800: '[cyan]{}[/cyan]'
+      86400: '[magenta]{}[/magenta]'
+      3600: '[yellow]{}[/yellow]'
+      0: '[red]{}[/red]'
+    timedelta: yMwdhms
+    num_components: 1
+    datetime: '%y-%b-%-d'
+  created_at:
+    format: '[bright_black]{:%y-%b-%-d %H:%M}[/bright_black]'
+  description:
+    format: '[italic bright_black]{}[/italic bright_black]'
+    max_length: 30
+  diff:
+    format: '[bold red]{{[/bold red][strike bright_black]{}[/strike bright_black] [bold]→[/bold] {}[bold red]}}[/bold red]'
+stats:
+  progress:
+    10: '[bold red]{}[/bold red]'
+    25: '[bold yellow]{}[/bold yellow]'
+    50: '[bold magenta]{}[/bold magenta]'
+    75: '[bold blue]{}[/bold blue]'
+    90: '[bold cyan]{}[/bold cyan]'
+    _: '[bold green]{}[/bold green]'
+  separator: ' | '
+  pending: '[yellow]{.item.status.format.pending} {}[/yellow] pending'
+  done: "[green]{.item.status.format.done} {}[/green] done"
+  note: "[blue]{.item.status.format.note} {}[/blue] note"
+  notes: "[blue]{.item.status.format.note} {}[/blue] notes"

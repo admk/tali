@@ -1,25 +1,56 @@
-from datetime import date, datetime, timedelta
-from typing import Optional, Literal
+from datetime import timedelta
+from dataclasses import dataclass
+from typing import Optional, Union, Dict, List
 
-from termcolor import colored, ATTRIBUTES
-
-from .. import constants
-from ..book.item import Status
+from ..book.select import GroupBy
+from ..book.item import TodoItem
 
 
-ATTRIBUTES |= {
-    "italic": 3,
-    "strike": 9,
+@dataclass
+class ViewResult:
+    grouped_todos: Dict[GroupBy, List[TodoItem]]
+    group: GroupBy
+    show_all: bool
+
+
+@dataclass
+class AddResult:
+    item: TodoItem
+
+
+@dataclass
+class EditResult:
+    before: List[TodoItem]
+    after: List[TodoItem]
+
+
+ActionResult = Union[ViewResult, AddResult, EditResult]
+
+
+SECONDS = {
+    "y": 31536000,
+    'M': 2592000,
+    'w': 604800,
+    'd': 86400,
+    'h': 3600,
+    'm': 60,
+    's': 1,
 }
 
 
 def shorten(text: str, max_len: int) -> str:
+    if max_len <= 0:
+        return text
     if len(text) > max_len:
         return f"{text[:max_len]}…"
     return text
 
 
-def _timedelta_format(
+def pluralize(text: str, count: int) -> str:
+    return f"{text}s" if count != 1 else text
+
+
+def timedelta_format(
     delta: timedelta,
     fmt: Optional[str] = None,
     num_components: int = 2
@@ -28,21 +59,12 @@ def _timedelta_format(
     negative = total_seconds < 0
     if negative:
         total_seconds = -total_seconds
-    components = {
-        'y': 31536000,
-        'M': 2592000,
-        'w': 604800,
-        'd': 86400,
-        'h': 3600,
-        'm': 60,
-        's': 1,
-    }
-    fmt = fmt or "".join(components.keys())
-    if not all(c in components for c in fmt):
+    fmt = fmt or "".join(SECONDS.keys())
+    if not all(c in SECONDS for c in fmt):
         raise ValueError(f'Invalid format: {fmt}')
     text = []
     leading_zeros = True
-    for k, v in components.items():
+    for k, v in SECONDS.items():
         if k not in fmt:
             continue
         count = int(total_seconds // v)
@@ -57,35 +79,3 @@ def _timedelta_format(
             text.append(f'{count}{k}')
     sign = "-" if negative else ""
     return f"{sign}{''.join(text) or '0s'}"
-
-
-def format_datetime(
-    dt: Optional[date | datetime], status: Optional[Status] = None,
-    mode: Literal["deadline", "created_at"] = "deadline",
-    use_color: bool = True,
-) -> str:
-    if dt is None:
-        return "^never"
-    if isinstance(dt, date):
-        dt = datetime.combine(dt, datetime.max.time())
-    remaining_time = dt - datetime.now()
-    if mode == "created_at":
-        remaining_time = -remaining_time
-    seconds = remaining_time.total_seconds()
-    if abs(seconds) < 365 * 24 * 60 * 60:  # one year
-        time = _timedelta_format(remaining_time, num_components=1)
-    else:
-        time = f"{dt:{constants.DATE_FORMAT}}"
-    time = "^" + time
-    if not use_color:
-        return time
-    if mode != "created_at" and (
-        status is None or status not in ["done", "note"]
-    ):
-        attrs = constants.DEADLINE_ATTRS["_default"]
-        for k, v in constants.DEADLINE_ATTRS.items():
-            if isinstance(k, int) and remaining_time.total_seconds() < k:
-                attrs = v
-    else:
-        attrs = constants.DEADLINE_ATTRS["_inactive"]
-    return colored(time, **attrs)
