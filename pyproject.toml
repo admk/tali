@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tusk"
+dynamic = ["version"]
+description = ":crystal_ball::sparkles: Weave productivity spells with symbols that conjures order from chaos."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+authors = [
+    {name = "admk"}
+]
+keywords = ["cli", "task", "todo", "productivity"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Programming Language :: Python :: 3",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "GitPython>=3.1",
+    "python-box>=7.0",
+    "parsimonious>=0.10",
+    "rich>=12.5",
+]
+
+[project.scripts]
+tusk = "tusk.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/admk/tusk"
+Issues = "https://github.com/admk/tusk/issues"
+
+[tool.setuptools.packages.find]
+include = ["tusk", "tusk.*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "tusk.__version__"}
