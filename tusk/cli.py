@@ -3,6 +3,7 @@ import sys
 import yaml
 import shlex
 import argparse
+import textwrap
 from typing import Literal
 
 from box import Box
@@ -135,7 +136,9 @@ class CLI:
         todos = load(db_file)
         book = TaskBook(self.config, todos)
         result = self._process_action(book, self.command)
-        self.rich.print(self.renderer.render_result(result))
+        text = self.renderer.render_result(result)
+        text = "\n" + textwrap.indent(text, "  ")
+        self.rich.print(text)
         if not isinstance(result, (AddResult, EditResult)):
             return 0
         if self.args.dry_run:

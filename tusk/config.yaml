@@ -36,7 +36,7 @@ sort:
 item:
   format: '{.group.format.range}'
   id:
-    format: '[bright_black]{:>5}.[/bright_black]'
+    format: '[bright_black]{:>4}.[/bright_black]'
   status:
     format:
       pending: '[bold yellow]☐[/bold yellow]'

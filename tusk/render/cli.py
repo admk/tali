@@ -43,12 +43,12 @@ class Renderer:
                 if isinstance(k, int) and progress * 100 <= k:
                     progress_format = v
             progress_str = progress_format.format(progress_str)
-            text.append(f"\n  {progress_str} of all tasks complete.")
+            text.append(f"{progress_str} of all tasks complete.")
         stats_text = []
         status_map = self.config.stats
         for key in ["done", "pending", "note"]:
             stats_text.append(status_map[key].format(stats[key]))
-        text.append("  " + self.config.stats.separator.join(stats_text))
+        text.append(self.config.stats.separator.join(stats_text))
         return "\n".join(text)
 
     def _render_id(self, id: int) -> Optional[str]:
@@ -189,23 +189,21 @@ class Renderer:
     ) -> str:
         text = []
         if not grouped_todos:
-            text.append("\n  " + self.config.group.empty)
+            text.append(self.config.group.empty)
         for group, gtodos in grouped_todos.items():
             if not gtodos:
                 continue
-            if group_by == "range":
-                text.append("")
-            else:
+            if group_by != "range":
                 stats = self.get_stats(gtodos)
-                text.append("")
                 progress = f"[{stats['done']}/{len(gtodos)}]"
                 group = self._render_header(group_by, group)
                 header = self.config.group.header.format.format(
                     group=group, progress=progress)
-                text.append("  " + header)
+                text.append(header)
             for todo in gtodos:
                 item = f"{self.render_item(todo, group_by)}"
                 text.append(item)
+            text.append("")
         if grouped_todos and render_stats:
             all_todos = functools.reduce(operator.add, grouped_todos.values())
             text.append(self.render_stats(all_todos))
@@ -219,7 +217,7 @@ class Renderer:
             return self.render_item(result.item)
         if isinstance(result, EditResult):
             c = len(result.after)
-            text = ["", f"  Updated {c} {pluralize('item', c)}\n"]
+            text = [f"Updated {c} {pluralize('item', c)}\n"]
             for btodo, atodo in zip(result.before, result.after):
                 text.append(self.render_item_diff(btodo, atodo))
         else:
