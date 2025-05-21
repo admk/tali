@@ -42,9 +42,10 @@ group:
       low: '[bright_black]{.item.priority.format.low} low[/bright_black]'
     status:
       pending: '[yellow]{.item.status.format.pending} pending[/yellow]'
-      done: "[green]{.item.status.format.done} done[/green]"
-      note: "[blue]{.item.status.format.note} note[/blue]"
-  empty: ":crystal_ball::sparkles: [italic]Nothing to show.[/italic]"
+      done: '[green]{.item.status.format.done} done[/green]'
+      note: '[blue]{.item.status.format.note} note[/blue]'
+      archive: '[bright_black]{.item.status.format.archive} archived[/bright_black]'
+  empty: ':crystal_ball::sparkles: [italic]Nothing to show.[/italic]'
 sort:
   by: created_at
 item:
@@ -107,6 +108,6 @@ stats:
   separator: ' '
   status:
     pending: '[yellow]{.item.status.format.pending} {}[/yellow] pending'
-    done: "[green]{.item.status.format.done} {}[/green] done"
-    note: "[blue]{.item.status.format.note} {}[/blue] notes"
-    archive: "[bright_black]{.item.status.format.archive} {}[/bright_black] archived"
+    done: '[green]{.item.status.format.done} {}[/green] done'
+    note: '[blue]{.item.status.format.note} {}[/blue] notes'
+    archive: '[bright_black]{.item.status.format.archive} {}[/bright_black] archived'

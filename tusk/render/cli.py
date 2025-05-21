@@ -18,20 +18,18 @@ class Renderer:
         super().__init__()
         self.config = config
 
-    def get_stats(self, todos: List[TodoItem]):
-        total = len(todos)
+    def _get_stats(self, todos: List[TodoItem]):
         stats = {}
         for status in get_args(Status):
             if status == "delete":
                 continue
             stats[status] = len([t for t in todos if t.status == status])
-        progress = None
-        if total > 0:
-            progress = stats["pending"] / (stats["done"] + stats["pending"])
+        total = stats["done"] + stats["pending"]
+        progress = stats["pending"] / total if total > 0 else None
         return stats | {"progress": progress}
 
     def render_stats(self, todos: List[TodoItem]) -> str:
-        stats = self.get_stats(todos)
+        stats = self._get_stats(todos)
         text = []
         progress = stats["progress"]
         if progress is not None:
@@ -195,7 +193,7 @@ class Renderer:
             if not gtodos:
                 continue
             if group_by != "id_range":
-                stats = self.get_stats(gtodos)
+                stats = self._get_stats(gtodos)
                 progress = f"[{stats['done']}/{len(gtodos)}]"
                 group = self._render_header(group_by, group)
                 header = self.config.group.header.format.format(
