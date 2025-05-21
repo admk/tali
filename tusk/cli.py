@@ -4,14 +4,15 @@ import yaml
 import shlex
 import argparse
 import textwrap
+import contextlib
 from typing import Literal
 
 from box import Box
 from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
-from . import __toolname__, __version__
-from .common import format_config, set_level, info
+from . import __name__ as _NAME, __version__
+from .common import format_config, set_level, debug
 from .parser import CommandParser
 from .book import load, save, undo, TaskBook
 from .render.cli import Renderer
@@ -30,12 +31,8 @@ class CLI:
             'help':
                 'The configuration file to use. '
                 'If not provided, it reads from '
-                f'"$XDG_CONFIG_HOME/{__toolname__}/config.toml" or '
-                f'"~/.config/{__toolname__}/config.toml".',
-        },
-        ('-d', '--dry-run'): {
-            'action': 'store_true',
-            'help': 'Do not save the changes to the database.'
+                f'"$XDG_CONFIG_HOME/{_NAME}/config.toml" or '
+                f'"~/.config/{_NAME}/config.toml".',
         },
         ('-u', '--undo'): {
             'action': 'store_true',
@@ -48,15 +45,15 @@ class CLI:
                 'The database file to use. '
                 'If not provided, it reads from '
                 f'`config.db_file` in the configuration file or '
-                f'"$XDG_DATA_HOME/{__toolname__}/book.json" or '
-                f'"~/.config/{__toolname__}/book.json".',
+                f'"$XDG_DATA_HOME/{_NAME}/book.json" or '
+                f'"~/.config/{_NAME}/book.json".',
         },
     }
 
     def __init__(self) -> None:
         super().__init__()
         parser = self._create_parser()
-        self.rich = Console()
+        self.rich_console = Console()
         self.args, rargs = parser.parse_known_args()
         if self.args.verbose:
             set_level("DEBUG")
@@ -77,7 +74,7 @@ class CLI:
             folder = os.environ.get("XDG_CONFIG_HOME", "~/.config")
         else:
             raise ValueError(f"Invalid key: {key}")
-        return os.path.join(folder, __toolname__)
+        return os.path.join(folder, _NAME)
 
     def _db_file(self) -> str:
         db_file = self.args.db_file
@@ -113,6 +110,10 @@ class CLI:
 
     def _process_action(self, book: TaskBook, command: str) -> ActionResult:
         selection, group, sort, action = self.command_parser.parse(command)
+        debug(f"Selection: {selection}")
+        debug(f"Group: {group}")
+        debug(f"Sort: {sort}")
+        debug(f"Action: {action}")
         group = group or self.config.group.by
         sort = sort or self.config.sort.by
         if not action:
@@ -131,21 +132,22 @@ class CLI:
     def main(self) -> int:
         db_file = self._db_file()
         if self.args.undo:
-            print("Undoing the last save...")
             undo(db_file)
+            return 0
         todos = load(db_file)
         book = TaskBook(self.config, todos)
         result = self._process_action(book, self.command)
         text = self.renderer.render_result(result)
-        text = "\n" + textwrap.indent(text, "  ")
-        self.rich.print(text)
+        text = "\n" + textwrap.indent(text, "  ").rstrip()
+        if self.config.pager.enable and isinstance(result, ViewResult):
+            pager = self.rich_console.pager(styles=self.config.pager.styles)
+        else:
+            pager = contextlib.nullcontext()
+        with pager:
+            self.rich_console.print(text)
         if not isinstance(result, (AddResult, EditResult)):
             return 0
-        if self.args.dry_run:
-            print()
-            info("Dry run, no changes saved.")
-        else:
-            save(self.command, book.todos, db_file, self.config.file.backup)
+        save(self.command, book.todos, db_file, self.config.file.backup)
         return 0
 
 
