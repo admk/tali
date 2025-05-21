@@ -115,7 +115,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
 
     def select(
         self, filters: Optional[Dict[FilterBy, FilterValue]],
-        group_by: GroupBy = "range", sort_by: SortBy = "range",
+        group_by: GroupBy = "id_range", sort_by: SortBy = "id_range",
     ) -> Dict[Any, List[TodoItem]]:
         todos = self.todos
         if filters is not None:

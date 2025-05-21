@@ -188,7 +188,7 @@ class Renderer:
     ) -> str:
         text = []
         if not grouped_todos:
-            text.append(self.config.group.empty)
+            text.append(self.config.message.empty)
         for group, gtodos in grouped_todos.items():
             if not gtodos:
                 continue
@@ -212,11 +212,12 @@ class Renderer:
         if isinstance(result, ViewResult):
             return self.render(
                 result.grouped_todos, result.group, result.show_all)
-        elif isinstance(result, AddResult):
-            return self.render_item(result.item)
-        if isinstance(result, EditResult):
+        if isinstance(result, AddResult):
+            text = [self.config.message.add, "", self.render_item(result.item)]
+        elif isinstance(result, EditResult):
             c = len(result.after)
-            text = [f"Updated {c} {pluralize('item', c)}\n"]
+            text = [
+                self.config.message.edit.format(c, pluralize('item', c)), ""]
             for btodo, atodo in zip(result.before, result.after):
                 text.append(self.render_item_diff(btodo, atodo))
         else:

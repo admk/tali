@@ -24,6 +24,10 @@ alias:
     h: high
     n: normal
     l: low
+message:
+  empty: ':crystal_ball::sparkles: [italic]Nothing to show.[/italic]'
+  add: ':crystal_ball::sparkles: [italic]Added 1 item.[/italic]'
+  edit: ':crystal_ball::sparkles: [italic]Updated {} {}.[/italic]'
 group:
   by: project
   format:
@@ -45,7 +49,6 @@ group:
       done: '[green]{.item.status.format.done} done[/green]'
       note: '[blue]{.item.status.format.note} note[/blue]'
       archive: '[bright_black]{.item.status.format.archive} archived[/bright_black]'
-  empty: ':crystal_ball::sparkles: [italic]Nothing to show.[/italic]'
 sort:
   by: created_at
 item:
@@ -69,6 +72,7 @@ item:
   tag:
     format:
       _: '[blue]{.token.tag}[underline]{}[/underline][/blue]'
+      _untagged: '[italic bright_black]Untagged[/italic bright_black]'
       star: '[bold yellow]★[/bold yellow]'
   project:
     default: /inbox
