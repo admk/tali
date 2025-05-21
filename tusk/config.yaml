@@ -1,3 +1,6 @@
+file:
+  db: null
+  history: 10
 token:
   range: '..'
   status: ','
@@ -48,7 +51,7 @@ item:
     max_length: 0
   tag:
     format:
-      _: '[underline]{.token.tag}{}[/underline]'
+      _: '[blue]{.token.tag}[underline]{}[/underline][/blue]'
       star: '[bold yellow]★[/bold yellow]'
   project:
     default: /inbox

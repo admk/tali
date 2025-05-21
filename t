@@ -1,3 +1,3 @@
 #!/usr/bin/env python
-from kodo.cli import main
+from tusk.cli import main
 main()

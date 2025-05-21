@@ -3,13 +3,14 @@ import sys
 import yaml
 import shlex
 import argparse
+from typing import Literal
 
 from box import Box
 from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
-from . import __version__
-from .common import format_config, set_level, debug, info
+from . import __toolname__, __version__
+from .common import format_config, set_level, info
 from .parser import CommandParser
 from .book import load, save, undo, TaskBook
 from .render.cli import Renderer
@@ -28,8 +29,8 @@ class CLI:
             'help':
                 'The configuration file to use. '
                 'If not provided, it reads from '
-                '"$XDG_CONFIG_HOME/kodo/config.toml" or '
-                '"~/.config/kodo/config.toml".',
+                f'"$XDG_CONFIG_HOME/{__toolname__}/config.toml" or '
+                f'"~/.config/{__toolname__}/config.toml".',
         },
         ('-d', '--dry-run'): {
             'action': 'store_true',
@@ -44,7 +45,10 @@ class CLI:
             'default': None,
             'help':
                 'The database file to use. '
-                'If not provided, it reads from "~/.config/kodo/db.json".',
+                'If not provided, it reads from '
+                f'`config.db_file` in the configuration file or '
+                f'"$XDG_DATA_HOME/{__toolname__}/book.json" or '
+                f'"~/.config/{__toolname__}/book.json".',
         },
     }
 
@@ -63,12 +67,31 @@ class CLI:
         self.command_parser = CommandParser(self.config)
         self.renderer = Renderer(self.config)
 
+    def _xdg_path(
+        self, key: Literal["data", "config"]
+    ) -> str:
+        if key == "data":
+            folder = os.environ.get("XDG_DATA_HOME", "~/.local/share")
+        elif key == "config":
+            folder = os.environ.get("XDG_CONFIG_HOME", "~/.config")
+        else:
+            raise ValueError(f"Invalid key: {key}")
+        return os.path.join(folder, __toolname__)
+
+    def _db_file(self) -> str:
+        db_file = self.args.db_file
+        if db_file:
+            return db_file
+        db_file = self.config.file.db
+        if db_file is not None:
+            return db_file
+        return os.path.join(self._xdg_path("data"), "book.json")
+
     def _init_config(self) -> Box:
         if self.args.rc_file:
             rc_file = self.args.rc_file
         else:
-            config_home = os.environ.get("XDG_CONFIG_HOME", "~/.config")
-            rc_file = os.path.join(config_home, "kodo", "config.yaml")
+            rc_file = os.path.join(self._xdg_path("config"), "config.yaml")
         default_rc_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "config.yaml")
         with open(default_rc_file, "r") as f:
@@ -105,14 +128,13 @@ class CLI:
         return EditResult(before_todos, after_todos)
 
     def main(self) -> int:
-        db_file = self.args.db_file or "book.json"
+        db_file = self._db_file()
         if self.args.undo:
             print("Undoing the last save...")
             undo(db_file)
         todos = load(db_file)
         book = TaskBook(self.config, todos)
         result = self._process_action(book, self.command)
-        debug(result)
         self.rich.print(self.renderer.render_result(result))
         if not isinstance(result, (AddResult, EditResult)):
             return 0
