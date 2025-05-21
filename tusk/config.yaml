@@ -5,7 +5,7 @@ pager:
   enable: false
   styles: true
 token:
-  range: '..'
+  id_range: '..'
   status: ','
   separator: '.'
   project: '/'
@@ -27,13 +27,13 @@ alias:
 group:
   by: project
   format:
-    range: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'
+    id_range: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'
     status: '{id}{title}{project}{tags}{priority}{deadline}{description}'
     project: '{id}{status}{title}{tags}{priority}{deadline}{description}'
     tag: '{id}{status}{title}{project}{priority}{deadline}{description}'
     priority: '{id}{status}{title}{project}{tags}{deadline}{description}'
     deadline: '{id}{status}{title}{project}{tags}{priority}{description}'
-    created_at: '{.group.format.range}'
+    created_at: '{.group.format.id_range}'
   header:
     format: '[bold]{group}[/bold] [bright_black]{progress}[/bright_black]'
     priority:
@@ -48,7 +48,7 @@ group:
 sort:
   by: created_at
 item:
-  format: '{.group.format.range}'
+  format: '{.group.format.id_range}'
   id:
     format: '[bright_black]{:>4}.[/bright_black]'
   status:

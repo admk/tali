@@ -7,10 +7,10 @@ action = shared / word
 # components
 sort = sort_token group
 group =
-    range_token / project_token / tag_token /
+    id_range_token / project_token / tag_token /
     priority_token / status_token / deadline_token
 shared = task_range / project / tag / priority / status / deadline
-task_range = task_id (range_token task_id)?
+task_range = task_id (id_range_token task_id)?
 project = project_token project_name
 tag = tag_token pm? tag_name
 deadline = deadline_token word
@@ -20,7 +20,7 @@ priority = priority_token word?
 # literals
 word = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+"
 separator_token = "{separator}"
-range_token = "{range}"
+id_range_token = "{id_range}"
 project_token = "{project}"
 tag_token = "{tag}"
 deadline_token = "{deadline}"

@@ -1,7 +1,7 @@
 import operator
 import functools
 from datetime import date, datetime
-from typing import Optional, List, Dict, Any
+from typing import get_args, Optional, List, Dict, Any
 
 from box import Box
 
@@ -20,18 +20,15 @@ class Renderer:
 
     def get_stats(self, todos: List[TodoItem]):
         total = len(todos)
-        done = len([t for t in todos if t.status == "done"])
-        pending = len([t for t in todos if t.status == "pending"])
-        notes = len([t for t in todos if t.status == "note"])
-        archived = len([t for t in todos if t.status == "archive"])
-        progress = done / (done + pending) if total > 0 else None
-        return {
-            "progress": progress,
-            "done": done,
-            "pending": pending,
-            "note": notes,
-            "archive": archived,
-        }
+        stats = {}
+        for status in get_args(Status):
+            if status == "delete":
+                continue
+            stats[status] = len([t for t in todos if t.status == status])
+        progress = None
+        if total > 0:
+            progress = stats["pending"] / (stats["done"] + stats["pending"])
+        return stats | {"progress": progress}
 
     def render_stats(self, todos: List[TodoItem]) -> str:
         stats = self.get_stats(todos)
@@ -133,7 +130,7 @@ class Renderer:
     def _render_header(
         self, group_by: GroupBy, value: Any
     ) -> str | None:
-        if group_by == "range":
+        if group_by == "id_range":
             return None
         if group_by == "project":
             return self._render_project(value)
@@ -163,7 +160,7 @@ class Renderer:
         return {k: " " + v if v else "" for k, v in fields.items()}
 
     def render_item(
-        self, todo: TodoItem, group_by: GroupBy = "range"
+        self, todo: TodoItem, group_by: GroupBy = "id_range"
     ) -> str:
         fields = self._render_fields(todo)
         format = self.config.group.format[group_by]
@@ -197,7 +194,7 @@ class Renderer:
         for group, gtodos in grouped_todos.items():
             if not gtodos:
                 continue
-            if group_by != "range":
+            if group_by != "id_range":
                 stats = self.get_stats(gtodos)
                 progress = f"[{stats['done']}/{len(gtodos)}]"
                 group = self._render_header(group_by, group)

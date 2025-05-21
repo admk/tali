@@ -11,9 +11,9 @@ FilterBy = Literal[
     "title", "project", "tag", "status", "priority", "deadline", "created_at"]
 ActBy = Literal["add", "delete"] | FilterBy
 GroupBy = Literal[
-    "range", "project", "tag", "status", "priority", "deadline", "created_at"]
+    "id_range", "project", "tag", "status", "priority", "deadline", "created_at"]
 SortBy = Literal[
-    "range", "status", "title", "project", "tags", "priority",
+    "id_range", "status", "title", "project", "tags", "priority",
     "deadline", "created_at"]
 FilterValue = str | Tuple[datetime, datetime]
 GroupKey = Optional[str | datetime | date]
@@ -83,7 +83,7 @@ class FilterMixin(SelectMixin):
 
 
 class SortMixin(SelectMixin):
-    def sort_range(self, todo: TodoItem) -> int:
+    def sort_id_range(self, todo: TodoItem) -> int:
         return todo.id
 
     def sort_status(self, todo: TodoItem) -> int:
@@ -124,7 +124,7 @@ class GroupMixin(SortMixin):
     def group_by_all(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         return lambda _: None, None
 
-    group_by_range = group_by_all
+    group_by_id_range = group_by_all
 
     def group_by_project(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         return self._group_by_value("project")
