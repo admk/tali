@@ -8,11 +8,12 @@ import contextlib
 from typing import Literal
 
 from box import Box
+from rich.panel import Panel
 from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
 from . import __name__ as _NAME, __version__
-from .common import format_config, set_level, debug, error
+from .common import format_config, set_level, debug, error, strip_rich
 from .parser import CommandParser
 from .book import load, save, undo, TaskBook
 from .render.cli import Renderer
@@ -136,7 +137,11 @@ class CLI:
     def main(self) -> int:
         db_file = self._db_file()
         if self.args.undo:
-            undo(db_file)
+            message = undo(db_file)
+            command, _, _, *updates = message.splitlines()
+            text = ["", f"  Undid command `{command}`"]
+            self.rich_console.print("\n".join(text))
+            self.rich_console.print(Panel.fit("\n".join(updates)))
             return 0
         todos = load(db_file)
         book = TaskBook(self.config, todos)
@@ -151,7 +156,8 @@ class CLI:
             self.rich_console.print(text)
         if not isinstance(result, (AddResult, EditResult)):
             return 0
-        save(self.command, book.todos, db_file, self.config.file.backup)
+        message = self.command + "\n\n" + text
+        save(message, book.todos, db_file, self.config.file.backup)
         return 0
 
 

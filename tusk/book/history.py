@@ -26,17 +26,15 @@ def load(path: Optional[str]) -> List[TodoItem]:
         return [TodoItem.from_dict(todo) for todo in json.load(f)]
 
 
-def undo(path: str):
+def undo(path: str) -> str:
     """Restore the most recent version from git history."""
     try:
         repo = _get_repo(path)
-        info(f"Undid commit `{repo.head.commit.message}`.")
+        message = repo.head.commit.message
         repo.git.checkout('HEAD~1')
-        debug(
-            f"Restored previous version of {path!r} "
-            f"with commit `{repo.head.commit.message!r}`")
     except GitCommandError as e:
         error(f"Failed to undo changes: {e}")
+    return str(message)
 
 
 def save(
