@@ -18,8 +18,7 @@ def strip_rich(text: str) -> str:
 
 _handler = RichHandler(show_time=False, show_path=False, rich_tracebacks=True)
 logging.basicConfig(
-    level="NOTSET", format="%(message)s",
-    handlers=[_handler])
+    level=logging.INFO, format="%(message)s", handlers=[_handler])
 log = logging.getLogger("rich")
 
 

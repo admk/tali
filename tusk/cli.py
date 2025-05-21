@@ -142,7 +142,7 @@ class CLI:
             print()
             info("Dry run, no changes saved.")
         else:
-            save(book.todos, db_file)
+            save(self.command, book.todos, db_file, self.config.file.backup)
         return 0
 
 
