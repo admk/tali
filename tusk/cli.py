@@ -12,7 +12,7 @@ from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
 from . import __name__ as _NAME, __version__
-from .common import format_config, set_level, debug
+from .common import format_config, set_level, debug, error
 from .parser import CommandParser
 from .book import load, save, undo, TaskBook
 from .render.cli import Renderer
@@ -121,7 +121,11 @@ class CLI:
             return ViewResult(
                 grouped_todos, group, bool(not selection))  # type: ignore
         if selection is None:
-            item = book.add(**action)  # type: ignore
+            try:
+                title = action.pop("title")
+            except KeyError:
+                error("Missing title.")
+            item = book.add(title, **action)  # type: ignore
             return AddResult(item)
         before_todos = book.select(selection)[None]
         after_todos = book.action(before_todos, action)
