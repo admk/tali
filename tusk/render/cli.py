@@ -23,12 +23,14 @@ class Renderer:
         done = len([t for t in todos if t.status == "done"])
         pending = len([t for t in todos if t.status == "pending"])
         notes = len([t for t in todos if t.status == "note"])
-        progress = (done / total) if total > 0 else None
+        archived = len([t for t in todos if t.status == "archive"])
+        progress = done / (done + pending) if total > 0 else None
         return {
             "progress": progress,
             "done": done,
             "pending": pending,
-            "note": notes
+            "note": notes,
+            "archive": archived,
         }
 
     def render_stats(self, todos: List[TodoItem]) -> str:
@@ -45,9 +47,8 @@ class Renderer:
             progress_str = progress_format.format(progress_str)
             text.append(f"{progress_str} of all tasks complete.")
         stats_text = []
-        status_map = self.config.stats
-        for key in ["done", "pending", "note"]:
-            stats_text.append(status_map[key].format(stats[key]))
+        for key, value in self.config.stats.status.items():
+            stats_text.append(value.format(stats[key]))
         text.append(self.config.stats.separator.join(stats_text))
         return "\n".join(text)
 
@@ -62,7 +63,10 @@ class Renderer:
         return self.config.item.status.format[status]
 
     def _render_title(self, todo: TodoItem) -> Optional[str]:
-        title = shorten(todo.title, self.config.item.title.max_length)
+        title = todo.title
+        for token in self.config.token.values():
+            title = title.replace(f'\\{token}', token)
+        title = shorten(title, self.config.item.title.max_length)
         for k, v in self.config.item.title.format.items():
             p, q = k.split("_")
             if getattr(todo, p) == q:

@@ -30,11 +30,11 @@ def undo(path: str):
     """Restore the most recent version from git history."""
     try:
         repo = _get_repo(path)
-        info(f"Undid commit {repo.head.commit.message}.")
+        info(f"Undid commit `{repo.head.commit.message}`.")
         repo.git.checkout('HEAD~1')
         debug(
             f"Restored previous version of {path!r} "
-            f"with commit {repo.head.commit.message!r}")
+            f"with commit `{repo.head.commit.message!r}`")
     except GitCommandError as e:
         error(f"Failed to undo changes: {e}")
 

@@ -1,5 +1,6 @@
 from datetime import datetime, date
-from typing import Optional, List, Dict, Tuple, Callable, Literal, Any
+from typing import (
+    get_args, Optional, List, Dict, Tuple, Callable, Literal, Any)
 
 from box import Box
 
@@ -41,6 +42,9 @@ class FilterMixin(SelectMixin):
         return all(t in todo.tags for t in tags) if tags else not todo.tags
 
     def filter_by_status(self, todo: TodoItem, status: Status) -> bool:
+        status = self.config.alias.status.get(status, status)
+        if status not in get_args(Status):
+            raise ValueError(f"Unrecognized status {status!r}.")
         return todo.status == status
 
     def filter_by_priority(self, todo: TodoItem, priority: Priority) -> bool:

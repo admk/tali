@@ -1,6 +1,9 @@
 file:
   db: null
   backup: true
+pager:
+  enable: false
+  styles: true
 token:
   range: '..'
   status: ','
@@ -10,6 +13,17 @@ token:
   priority: '!'
   deadline: '^'
   sort: '='
+alias:
+  status:
+    a: archive
+    p: pending
+    n: note
+    d: done
+    x: delete
+  priority:
+    h: high
+    n: normal
+    l: low
 group:
   by: project
   format:
@@ -43,9 +57,11 @@ item:
       done: '[bold green]✔[/bold green]'
       note: '[bold blue]·[/bold blue]'
       delete: '[bold red]✘[/bold red]'
+      archive: '[bold bright_black]-[/bold bright_black]'
   title:
     format:
       status_done: '[strike bright_black]{}[/strike bright_black]'
+      status_archive: '[strike bright_black]{}[/strike bright_black]'
       priority_high: '[bold magenta]{}[/bold magenta]'
       priority_low: '[bright_black]{}[/bright_black]'
     max_length: 0
@@ -88,8 +104,9 @@ stats:
     75: '[bold blue]{}[/bold blue]'
     90: '[bold cyan]{}[/bold cyan]'
     _: '[bold green]{}[/bold green]'
-  separator: ' | '
-  pending: '[yellow]{.item.status.format.pending} {}[/yellow] pending'
-  done: "[green]{.item.status.format.done} {}[/green] done"
-  note: "[blue]{.item.status.format.note} {}[/blue] note"
-  notes: "[blue]{.item.status.format.note} {}[/blue] notes"
+  separator: ' '
+  status:
+    pending: '[yellow]{.item.status.format.pending} {}[/yellow] pending'
+    done: "[green]{.item.status.format.done} {}[/green] done"
+    note: "[blue]{.item.status.format.note} {}[/blue] notes"
+    archive: "[bright_black]{.item.status.format.archive} {}[/bright_black] archived"

@@ -3,7 +3,7 @@ from typing import Optional, List, Literal
 from datetime import datetime
 
 
-Status = Literal["pending", "done", "note", "delete"]
+Status = Literal["pending", "done", "note", "delete", "archive"]
 Priority = Literal["high", "normal", "low"]
 
 

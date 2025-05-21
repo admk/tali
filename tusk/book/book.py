@@ -1,10 +1,10 @@
 import copy
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Tuple
+from typing import get_args, Optional, List, Dict, Any, Tuple
 
 from box import Box
 
-from ..common import warn
+from ..common import warn, error
 from .item import TodoItem, Status, Priority
 from .select import (
     FilterMixin, GroupMixin, SortMixin, FilterBy, FilterValue, GroupBy, SortBy)
@@ -43,18 +43,10 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
 
     def status(self, todo: TodoItem, status: str) -> Status:
         if status:
-            status_map: Dict[str, Status] = {
-                "p": "pending", "pending": "pending",
-                "n": "note", "note": "note",
-                "d": "done", "done": "done",
-                "x": "delete", "delete": "delete",
-            }
-            try:
-                return status_map[status]
-            except KeyError:
-                raise ValueError(f"Unrecognized status {status!r}.")
-        if todo.status == "note":
-            raise ValueError("Cannot toggle status of a note.")
+            status = self.config.alias.status.get(status, status)
+            if status not in get_args(Status):
+                error(f"Unrecognized status {status!r}.")
+            return status
         status_changes: Dict[Status, Status] = {
             "done": "pending",
             "pending": "done",
@@ -62,7 +54,9 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         try:
             return status_changes[todo.status]
         except KeyError:
-            raise ValueError(f"Unrecognized status {status!r}.")
+            error(
+                "Cannot toggle status of an item "
+                f"with status {todo.status!r}.")
 
     def priority(self, todo: TodoItem, priority: Priority):
         new_priority: Optional[Priority] = None
@@ -91,7 +85,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         except KeyError:
             pass
         if not new_priority:
-            raise ValueError(
+            error(
                 "Cannot change priority from "
                 f"{todo.priority!r} to {priority!r}.")
         return new_priority
