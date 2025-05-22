@@ -1,7 +1,9 @@
 import os
 import json
-from typing import List, Optional
+from typing import List, Optional, Generator
 
+from contextlib import contextmanager
+import tempfile
 from git import GitCommandError, InvalidGitRepositoryError
 from git.repo import Repo
 
@@ -9,22 +11,15 @@ from ..common import error, info, debug
 from .item import TodoItem
 
 
-def _get_repo(path: str) -> Repo:
-    dir_path = os.path.dirname(path) or "."
-    bare_path = os.path.join(dir_path, ".tusk.git")
-    
-    # Check if we should use existing bare repo
+@contextmanager
+def _get_repo(path: str) -> Generator[Repo, None, None]:
+    path = os.path.splitext(path)[0] + ".git"
+    bare_path = os.path.join(path, ".git")
     if os.path.exists(bare_path):
-        return Repo(bare_path)
-    
-    # Check if working dir is already a git repo
-    try:
-        working_repo = Repo(dir_path, search_parent_directories=True)
-        # Create bare clone for tusk history
-        return working_repo.clone(bare_path, bare=True)
-    except InvalidGitRepositoryError:
-        # No existing git repo, init new bare repo
-        return Repo.init(bare_path, bare=True)
+        bare_repo = Repo(bare_path)
+    else:
+        bare_repo = Repo.init(bare_path, bare=True)
+    yield bare_repo
 
 
 def load(path: Optional[str]) -> List[TodoItem]:
@@ -39,9 +34,9 @@ def load(path: Optional[str]) -> List[TodoItem]:
 def undo(path: str) -> str:
     """Restore the most recent version from git history."""
     try:
-        repo = _get_repo(path)
-        message = repo.head.commit.message
-        repo.git.checkout('HEAD~1')
+        with _get_repo(path) as repo:
+            message = repo.head.commit.message
+            repo.index.checkout('HEAD~1')
     except GitCommandError as e:
         error(f"Failed to undo changes: {e}")
     return str(message)
@@ -64,8 +59,8 @@ def save(
         json.dump(data, f, indent=4)
     if backup:
         try:
-            repo = _get_repo(path)
-            repo.index.add(os.path.basename(path))
-            repo.index.commit(commit_message)
+            with _get_repo(path) as repo:
+                repo.index.add(os.path.basename(path))
+                repo.index.commit(commit_message)
         except GitCommandError as e:
             error(f"Failed to commit changes: {e}")
