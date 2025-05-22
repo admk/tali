@@ -166,9 +166,11 @@ class CLI:
         if self.args.undo:
             message = undo(db_path)
             command, _, _, *updates = message.splitlines()
-            text = ["", f"  Undid command `{command}`"]
-            self.rich_console.print("\n".join(text))
-            self.rich_console.print(Panel.fit("\n".join(updates)))
+            text = self.config.message.undo.format(command)
+            text = "\n" + textwrap.indent(text, "  ")
+            self.rich_console.print(text)
+            updates = textwrap.dedent("\n".join(updates))
+            self.rich_console.print(Panel.fit(updates))
             return 0
         todos = load(db_path)
         book = TaskBook(self.config, todos)

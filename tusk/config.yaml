@@ -25,9 +25,10 @@ alias:
     n: normal
     l: low
 message:
-  empty: ':crystal_ball::sparkles: [italic]Nothing to show.[/italic]'
-  add: ':crystal_ball::sparkles: [italic]Added 1 item.[/italic]'
-  edit: ':crystal_ball::sparkles: [italic]Updated {} {}.[/italic]'
+  empty: ':dizzy: [italic]Nothing to show.[/italic]'
+  add: '🪄 [italic]Added 1 item.[/italic]'
+  edit: ':crystal_ball: [italic]Updated {} {}.[/italic]'
+  undo: ':hourglass_flowing_sand: Undid command `{}`'
 group:
   by: project
   format:
