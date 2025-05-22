@@ -2,7 +2,8 @@ file:
   db: null
   backup: true
 pager:
-  enable: false
+  enable: true
+  command: less -R
   styles: true
 token:
   id_range: '..'
@@ -19,16 +20,20 @@ alias:
     p: pending
     n: note
     d: done
+    c: done
     x: delete
   priority:
     h: high
     n: normal
     l: low
+    i: ignore
 message:
-  empty: ':dizzy: [italic]Nothing to show.[/italic]'
+  progress: '{} of all tasks complete.'
+  empty: ':dizzy: [italic yellow]Nothing to show.[/italic yellow]'
   add: '🪄 [italic]Added 1 item.[/italic]'
+  no_edit: ':thinking_face: [italic yellow]Nothing to update.[/italic yellow]'
   edit: ':crystal_ball: [italic]Updated {} {}.[/italic]'
-  undo: ':hourglass_flowing_sand: Undid command `{}`'
+  undo: ':hourglass_flowing_sand: Undid command `{}` with change:'
 group:
   by: project
   format:
@@ -60,7 +65,7 @@ item:
     format:
       pending: '[bold yellow]☐[/bold yellow]'
       done: '[bold green]✔[/bold green]'
-      note: '[bold blue]·[/bold blue]'
+      note: '[bold blue]•[/bold blue]'
       delete: '[bold red]✘[/bold red]'
       archive: '[bold bright_black]-[/bold bright_black]'
   title:
@@ -110,7 +115,7 @@ stats:
     75: '[bold blue]{}[/bold blue]'
     90: '[bold cyan]{}[/bold cyan]'
     _: '[bold green]{}[/bold green]'
-  separator: ' '
+  separator: ' · '
   status:
     pending: '[yellow]{.item.status.format.pending} {}[/yellow] pending'
     done: '[green]{.item.status.format.done} {}[/green] done'

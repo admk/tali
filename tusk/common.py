@@ -1,13 +1,23 @@
+import os
 import re
 import sys
 import logging
-from typing import Any, NoReturn, Callable, Dict
+from typing import Any, NoReturn, Callable, Dict, Generator
+from contextlib import contextmanager
 
 from box import Box
 from rich.logging import RichHandler
 from rich.traceback import install
 
 install()
+
+
+@contextmanager
+def os_env_swap(**kwargs) -> Generator[None, None, None]:
+    old_env = os.environ.copy()
+    os.environ.update(kwargs)
+    yield
+    os.environ.update(old_env)
 
 
 def strip_rich(text: str) -> str:

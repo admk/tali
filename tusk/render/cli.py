@@ -40,7 +40,7 @@ class Renderer:
                 if isinstance(k, int) and progress * 100 <= k:
                     progress_format = v
             progress_str = progress_format.format(progress_str)
-            text.append(f"{progress_str} of all tasks complete.")
+            text.append(self.config.message.progress.format(progress_str))
         stats_text = []
         for key, value in self.config.stats.status.items():
             stats_text.append(value.format(stats[key]))
@@ -215,9 +215,14 @@ class Renderer:
         if isinstance(result, AddResult):
             text = [self.config.message.add, "", self.render_item(result.item)]
         elif isinstance(result, EditResult):
-            c = len(result.after)
-            text = [
-                self.config.message.edit.format(c, pluralize('item', c)), ""]
+            if not result.after:
+                text = [self.config.message.no_edit]
+            else:
+                c = len(result.after)
+                message = self.config.message.edit.format(
+                    c, pluralize('item', c))
+                text = [message]
+                text.append("")
             for btodo, atodo in zip(result.before, result.after):
                 text.append(self.render_item_diff(btodo, atodo))
         else:

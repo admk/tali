@@ -14,7 +14,7 @@ from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
 from . import __name__ as _NAME, __version__, __description__
-from .common import format_config, set_level, debug, error
+from .common import format_config, set_level, debug, error, os_env_swap
 from .parser import CommandParser
 from .book import load, save, undo, TaskBook
 from .render.cli import Renderer
@@ -184,7 +184,11 @@ class CLI:
             pager = self.rich_console.pager(styles=self.config.pager.styles)
         else:
             pager = contextlib.nullcontext()
-        with pager:
+        if self.config.pager.command:
+            os_env = os_env_swap(PAGER=self.config.pager.command)
+        else:
+            os_env = contextlib.nullcontext()
+        with os_env, pager:
             self.rich_console.print(text)
         if not isinstance(result, (AddResult, EditResult)):
             return 0
