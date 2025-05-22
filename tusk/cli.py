@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
-from . import __name__ as _NAME, __version__
+from . import __name__ as _NAME, __version__, __description__
 from .common import format_config, set_level, debug, error
 from .parser import CommandParser
 from .book import load, save, undo, TaskBook
@@ -23,6 +23,11 @@ from .render.utils import ActionResult, ViewResult, AddResult, EditResult
 
 class CLI:
     options = {
+        ('-v', '--version'): {
+            'action': 'version',
+            'version': f"{_NAME} {__version__}",
+            'help': 'Show the version number and exit.'
+        },
         ('-d', '--debug'): {
             'action': 'store_true',
             'help': 'Enable debug output. '
@@ -31,20 +36,30 @@ class CLI:
             'type': str,
             'default': None,
             'help':
-                'The configuration file to use. '
-                'If not provided, it reads from '
-                f'"$XDG_CONFIG_HOME/{_NAME}/config.toml" or '
-                f'"~/.config/{_NAME}/config.toml".',
+                f"""
+                The configuration file to use.
+                If not provided, it reads from
+                `$XDG_CONFIG_HOME/{_NAME}/config.toml` or
+                `~/.config/{_NAME}/config.toml`.
+                """
         },
         ('-db', '--db-path'): {
             'type': str,
             'default': None,
             'help':
-                'The database file to use. '
-                'If not provided, it reads from '
-                f'`config.db_path` in the configuration file or '
-                f'"$XDG_DATA_HOME/{_NAME}/book.json" or '
-                f'"~/.config/{_NAME}/book.json".',
+                f"""
+                The database to use.
+                If unspecified,
+                it will search in the following order:
+
+                1. The `.tusk` directory located
+                in the nearest ancestral folder
+                relative to the current working directory.
+                2. The path specified by `config.db_path`
+                    in the configuration file.
+                3. `$XDG_DATA_HOME/{_NAME}/book.json`.
+                4. `~/.config/{_NAME}/book.json`.
+                """,
         },
         ('-j', '--json'): {
             'action': 'store_true',
@@ -86,8 +101,15 @@ class CLI:
         db_path = self.args.db_path
         if db_path:
             return db_path
-        db_path = self.config.file.db
-        if db_path is not None:
+        cwd = os.getcwd()
+        while True:
+            db_path = os.path.join(cwd, ".tusk")
+            if os.path.exists(db_path):
+                return db_path
+            cwd = os.path.dirname(cwd)
+            if cwd == "/":
+                break
+        if self.config.file.db is not None:
             return db_path
         return os.path.join(self._xdg_path("data"), "book")
 
@@ -108,7 +130,7 @@ class CLI:
 
     def _create_parser(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
-            description="A keyboard wielder's TODO app.",
+            description=__description__,
             formatter_class=RichHelpFormatter)
         for option, kwargs in self.options.items():
             parser.add_argument(*option, **kwargs)

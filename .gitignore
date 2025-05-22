@@ -1,3 +1,4 @@
+.tusk/
 __pycache__/
 *.egg-info
 .aider*
