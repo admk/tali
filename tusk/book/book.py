@@ -42,6 +42,9 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         self.next_id += 1
         return todo
 
+    def id(self, todo: TodoItem, id: int) -> int:
+        return id
+
     def title(self, todo: TodoItem, title: str) -> str:
         return title
 
@@ -150,3 +153,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         all_todos = {t.id: t for t in self.todos} | new_id_todos
         self.todos = list(sorted(all_todos.values(), key=lambda t: t.id))
         return list(sorted(new_id_todos.values(), key=lambda t: t.id))
+
+    def re_index(self) -> None:
+        for i, todo in enumerate(self.todos):
+            todo.id = self.id(todo, i + 1)

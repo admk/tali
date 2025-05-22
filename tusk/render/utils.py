@@ -51,17 +51,6 @@ class EditResult(ActionResult):
         }
 
 
-SECONDS = {
-    "y": 31536000,
-    'M': 2592000,
-    'w': 604800,
-    'd': 86400,
-    'h': 3600,
-    'm': 60,
-    's': 1,
-}
-
-
 def shorten(text: str, max_len: int) -> str:
     if max_len <= 0:
         return text
@@ -74,16 +63,38 @@ def pluralize(text: str, count: int) -> str:
     return f"{text}s" if count != 1 else text
 
 
+SECONDS = {
+    "y": 31536000,
+    "M": 2592000,
+    "w": 604800,
+    "d": 86400,
+    "h": 3600,
+    "m": 60,
+    "s": 1,
+}
+_DEFAULT_FORMAT = {
+    "y": "[green]y[/]",
+    "M": "[cyan]M[/]",
+    "w": "[blue]w[/]",
+    "d": "[yellow]d[/]",
+    "h": "[magenta]h[/]",
+    "m": "[red]m[/]",
+    "s": "s",
+}
+
+
 def timedelta_format(
     delta: timedelta,
-    fmt: Optional[str] = None,
+    fmt: Optional[str | Dict[str, str]] = None,
     num_components: int = 2
 ):
     total_seconds = delta.total_seconds()
     negative = total_seconds < 0
     if negative:
         total_seconds = -total_seconds
-    fmt = fmt or "".join(SECONDS.keys())
+    fmt = fmt or _DEFAULT_FORMAT
+    if isinstance(fmt, str):
+        fmt = {c: _DEFAULT_FORMAT[c] for c in fmt}
     if not all(c in SECONDS for c in fmt):
         raise ValueError(f'Invalid format: {fmt}')
     text = []
@@ -100,6 +111,6 @@ def timedelta_format(
             if len(text) >= num_components:
                 continue
         if count > 0:
-            text.append(f'{count}{k}')
+            text.append(f'{count}{fmt[k]}')
     sign = "-" if negative else ""
     return f"{sign}{''.join(text) or '0s'}"

@@ -97,7 +97,9 @@ item:
       86400: '[magenta]{}[/magenta]'
       3600: '[yellow]{}[/yellow]'
       0: '[red]{}[/red]'
-    timedelta: yMwdhms
+    timedelta: {
+      'y': 'y', 'M': 'M', 'w': 'w', 'd': 'd',
+      'h': 'h', 'm': 'm', 's': 's'}
     num_components: 1
     datetime: '%y-%b-%-d'
   created_at:

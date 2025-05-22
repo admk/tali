@@ -1,14 +1,17 @@
-import json
 import os
 import sys
+import copy
+import json
 import yaml
 import shlex
 import argparse
 import textwrap
 import contextlib
-from typing import Literal
+from typing import Literal, List
+from datetime import datetime
 
 from box import Box
+from rich.box import SIMPLE_HEAVY
 from rich.panel import Panel
 from rich.console import Console
 from rich_argparse import RichHelpFormatter
@@ -16,9 +19,10 @@ from rich_argparse import RichHelpFormatter
 from . import __name__ as _NAME, __version__, __description__
 from .common import format_config, set_level, debug, error, os_env_swap
 from .parser import CommandParser
-from .book import load, save, undo, TaskBook
+from .book import load, save, undo, history, TaskBook
 from .render.cli import Renderer
-from .render.utils import ActionResult, ViewResult, AddResult, EditResult
+from .render.utils import (
+    timedelta_format, ActionResult, ViewResult, AddResult, EditResult)
 
 
 class CLI:
@@ -69,13 +73,23 @@ class CLI:
             'action': 'store_true',
             'help': 'Undo the last run.'
         },
+        ('-H', '--history'): {
+            'action': 'store_true',
+            'help': 'Show the history of the database.'
+        },
+        ('-r', '--re-index'): {
+            'action': 'store_true',
+            'help': 'Re-index all items.'
+        },
     }
 
-    def __init__(self) -> None:
+    def __init__(self, args: List[str] = sys.argv) -> None:
         super().__init__()
+        args = args[1:]
         parser = self._create_parser()
         self.rich_console = Console()
-        self.args, rargs = parser.parse_known_args()
+        self._text_flags = " ".join(args)
+        self.args, rargs = parser.parse_known_args(args)
         if self.args.debug:
             set_level("DEBUG")
         else:
@@ -85,6 +99,14 @@ class CLI:
         self.command = " ".join(rargs).strip()
         self.command_parser = CommandParser(self.config)
         self.renderer = Renderer(self.config)
+
+    def _create_parser(self) -> argparse.ArgumentParser:
+        parser = argparse.ArgumentParser(
+            description=__description__,
+            formatter_class=RichHelpFormatter)
+        for option, kwargs in self.options.items():
+            parser.add_argument(*option, **kwargs)
+        return parser
 
     def _xdg_path(
         self, key: Literal["data", "config"]
@@ -128,14 +150,6 @@ class CLI:
                 config |= yaml.safe_load(f)
         return format_config(config)
 
-    def _create_parser(self) -> argparse.ArgumentParser:
-        parser = argparse.ArgumentParser(
-            description=__description__,
-            formatter_class=RichHelpFormatter)
-        for option, kwargs in self.options.items():
-            parser.add_argument(*option, **kwargs)
-        return parser
-
     def _process_action(self, book: TaskBook, command: str) -> ActionResult:
         selection, group, sort, action = self.command_parser.parse(command)
         debug(f"Selection: {selection}")
@@ -161,20 +175,46 @@ class CLI:
         before_todos = [todo for todo in before_todos if todo.id in ids]
         return EditResult(before_todos, after_todos)
 
+    def undo(self, db_path: str) -> int:
+        message = undo(db_path)
+        command, _, _, *updates = message.splitlines()
+        text = self.config.message.undo.format(command)
+        text = "\n" + textwrap.indent(text, "  ")
+        self.rich_console.print(text)
+        updates = textwrap.dedent("\n".join(updates))
+        self.rich_console.print(Panel.fit(updates))
+        return 0
+
+    def history(self, db_path: str) -> int:
+        from rich.table import Table
+        table = Table(box=SIMPLE_HEAVY)
+        table.add_column("Time")
+        table.add_column("Commit")
+        for item in history(db_path):
+            dt = item["date"].replace(tzinfo=None)  # type: ignore
+            dt = timedelta_format(datetime.now() - dt, num_components=1)
+            message = item["message"].splitlines()[0]  # type: ignore
+            table.add_row(dt, message)
+        self.rich_console.print(table)
+        return 0
+
+    def re_index(self, book: TaskBook) -> EditResult:
+        old_todos = copy.deepcopy(book.todos)
+        book.re_index()
+        return EditResult(old_todos, book.todos)
+
     def main(self) -> int:
         db_path = self._db_path()
         if self.args.undo:
-            message = undo(db_path)
-            command, _, _, *updates = message.splitlines()
-            text = self.config.message.undo.format(command)
-            text = "\n" + textwrap.indent(text, "  ")
-            self.rich_console.print(text)
-            updates = textwrap.dedent("\n".join(updates))
-            self.rich_console.print(Panel.fit(updates))
-            return 0
+            return self.undo(db_path)
+        if self.args.history:
+            return self.history(db_path)
         todos = load(db_path)
         book = TaskBook(self.config, todos)
-        result = self._process_action(book, self.command)
+        if self.args.re_index:
+            result = self.re_index(book)
+        else:
+            result = self._process_action(book, self.command)
         if self.args.json:
             print(json.dumps(result.to_dict()))
             return 0
@@ -192,8 +232,13 @@ class CLI:
             self.rich_console.print(text)
         if not isinstance(result, (AddResult, EditResult)):
             return 0
-        message = self.command + "\n\n" + text
-        save(message, book.todos, db_path, self.config.file.backup)
+        message = []
+        if self._text_flags:
+            message.append(self._text_flags)
+        if self.command:
+            message.append(self.command)
+        message += ["\n", text]
+        save(" ".join(message), book.todos, db_path, self.config.file.backup)
         return 0
 
 

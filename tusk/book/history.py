@@ -1,6 +1,7 @@
 import os
 import json
-from typing import List
+from typing import List, Dict
+from datetime import datetime
 
 from git import InvalidGitRepositoryError, GitCommandError
 from git.repo import Repo
@@ -37,6 +38,16 @@ def undo(path: str) -> str:
     except GitCommandError as e:
         error(f"Failed to undo changes: {e}")
     return str(message)
+
+
+def history(path: str) -> List[Dict[str, str | datetime]]:
+    return [
+        {
+            'hash': c.hexsha,
+            'message': str(c.message),
+            'date': c.committed_datetime,
+        } for c in _repo(path).iter_commits()
+    ]
 
 
 def save(
