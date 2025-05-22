@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import yaml
@@ -13,7 +14,7 @@ from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
 from . import __name__ as _NAME, __version__
-from .common import format_config, set_level, debug, error, strip_rich
+from .common import format_config, set_level, debug, error
 from .parser import CommandParser
 from .book import load, save, undo, TaskBook
 from .render.cli import Renderer
@@ -22,7 +23,7 @@ from .render.utils import ActionResult, ViewResult, AddResult, EditResult
 
 class CLI:
     options = {
-        ('-v', '--verbose'): {
+        ('-d', '--debug'): {
             'action': 'store_true',
             'help': 'Enable debug output. '
         },
@@ -35,10 +36,6 @@ class CLI:
                 f'"$XDG_CONFIG_HOME/{_NAME}/config.toml" or '
                 f'"~/.config/{_NAME}/config.toml".',
         },
-        ('-u', '--undo'): {
-            'action': 'store_true',
-            'help': 'Undo the last run.'
-        },
         ('-db', '--db-path'): {
             'type': str,
             'default': None,
@@ -49,6 +46,14 @@ class CLI:
                 f'"$XDG_DATA_HOME/{_NAME}/book.json" or '
                 f'"~/.config/{_NAME}/book.json".',
         },
+        ('-j', '--json'): {
+            'action': 'store_true',
+            'help': 'Output the result in JSON format. '
+        },
+        ('-u', '--undo'): {
+            'action': 'store_true',
+            'help': 'Undo the last run.'
+        },
     }
 
     def __init__(self) -> None:
@@ -56,7 +61,7 @@ class CLI:
         parser = self._create_parser()
         self.rich_console = Console()
         self.args, rargs = parser.parse_known_args()
-        if self.args.verbose:
+        if self.args.debug:
             set_level("DEBUG")
         else:
             set_level("INFO")
@@ -146,6 +151,9 @@ class CLI:
         todos = load(db_path)
         book = TaskBook(self.config, todos)
         result = self._process_action(book, self.command)
+        if self.args.json:
+            print(json.dumps(result.to_dict()))
+            return 0
         text = self.renderer.render_result(result)
         text = "\n" + textwrap.indent(text, "  ").rstrip()
         if self.config.pager.enable and isinstance(result, ViewResult):

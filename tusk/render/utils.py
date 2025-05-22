@@ -7,24 +7,48 @@ from ..book.item import TodoItem
 
 
 @dataclass
-class ViewResult:
+class ActionResult:
+    def _todos_to_list(self, todos: List[TodoItem]) -> List[dict]:
+        return [todo.to_dict() for todo in todos]
+
+    def to_dict(self) -> dict:
+        raise NotImplementedError
+
+
+@dataclass
+class ViewResult(ActionResult):
     grouped_todos: Dict[GroupBy, List[TodoItem]]
     group: GroupBy
     show_all: bool
 
+    def to_dict(self) -> dict:
+        return {
+            "grouped_todos": {
+                group: self._todos_to_list(todos)
+                for group, todos in self.grouped_todos.items()
+            },
+            "group": self.group,
+        }
+
 
 @dataclass
-class AddResult:
+class AddResult(ActionResult):
     item: TodoItem
 
+    def to_dict(self) -> dict:
+        return self.item.to_dict()
+
 
 @dataclass
-class EditResult:
+class EditResult(ActionResult):
     before: List[TodoItem]
     after: List[TodoItem]
 
-
-ActionResult = Union[ViewResult, AddResult, EditResult]
+    def to_dict(self) -> dict:
+        return {
+            "before": self._todos_to_list(self.before),
+            "after": self._todos_to_list(self.after),
+        }
 
 
 SECONDS = {
