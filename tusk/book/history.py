@@ -15,11 +15,23 @@ from .item import TodoItem
 def _get_repo(path: str) -> Generator[Repo, None, None]:
     path = os.path.splitext(path)[0] + ".git"
     bare_path = os.path.join(path, ".git")
-    if os.path.exists(bare_path):
-        bare_repo = Repo(bare_path)
+    work_path = os.path.join(path, "work")
+    
+    # Initialize bare repo if needed
+    if not os.path.exists(bare_path):
+        Repo.init(bare_path, bare=True)
+    
+    # Initialize working dir if needed
+    if not os.path.exists(work_path):
+        work_repo = Repo.clone_from(bare_path, work_path)
     else:
-        bare_repo = Repo.init(bare_path, bare=True)
-    yield bare_repo
+        work_repo = Repo(work_path)
+    
+    yield work_repo
+    
+    # Push changes back to bare repo
+    if work_repo.head.is_valid():
+        work_repo.git.push('origin', 'HEAD')
 
 
 def load(path: Optional[str]) -> List[TodoItem]:
@@ -36,7 +48,8 @@ def undo(path: str) -> str:
     try:
         with _get_repo(path) as repo:
             message = repo.head.commit.message
-            repo.index.checkout('HEAD~1')
+            repo.git.reset('--hard', 'HEAD~1')
+            repo.git.push('origin', 'HEAD', force=True)
     except GitCommandError as e:
         error(f"Failed to undo changes: {e}")
     return str(message)
