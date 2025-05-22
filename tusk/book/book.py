@@ -31,9 +31,13 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     ) -> TodoItem:
         if tags is None:
             tags = []
-        todo = TodoItem(
-            self.next_id, title, description, project, tags,
-            status, priority, deadline, created_at)
+        todo = TodoItem(self.next_id, title, description)
+        todo.project = self.project(todo, project)
+        if tags:
+            todo.tags = self.tags(todo, tags)
+        todo.status = self.status(todo, status)
+        todo.priority = self.priority(todo, priority)
+        todo.deadline = self.deadline(todo, deadline)
         self.todos.append(todo)
         self.next_id += 1
         return todo
@@ -93,7 +97,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     def project(self, todo: TodoItem, project: str) -> str:
         return project
 
-    def tags(self, todo: TodoItem, tags: str) -> List[str]:
+    def tags(self, todo: TodoItem, tags: List[str]) -> List[str]:
         new_tags: List[str] = list(todo.tags)
         for tag in tags:
             if tag.startswith("+"):
