@@ -127,6 +127,8 @@ class CommandParser(NodeVisitor, CommonMixin):
         parsed = self._visit_chain(node, visited_children)
         if "!" in parsed.get("title", ""):
             parsed["priority"] = "high"
+        if parsed.get("priority") == "":
+            parsed["priority"] = "high"
         return parsed
 
     def visit_selection_chain(self, node, visited_children):
