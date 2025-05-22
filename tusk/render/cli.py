@@ -25,7 +25,7 @@ class Renderer:
                 continue
             stats[status] = len([t for t in todos if t.status == status])
         total = stats["done"] + stats["pending"]
-        progress = stats["pending"] / total if total > 0 else None
+        progress = stats["done"] / total if total > 0 else None
         return stats | {"progress": progress}
 
     def render_stats(self, todos: List[TodoItem]) -> str:
