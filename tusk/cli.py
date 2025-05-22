@@ -39,13 +39,13 @@ class CLI:
             'action': 'store_true',
             'help': 'Undo the last run.'
         },
-        ('-db', '--db-file'): {
+        ('-db', '--db-path'): {
             'type': str,
             'default': None,
             'help':
                 'The database file to use. '
                 'If not provided, it reads from '
-                f'`config.db_file` in the configuration file or '
+                f'`config.db_path` in the configuration file or '
                 f'"$XDG_DATA_HOME/{_NAME}/book.json" or '
                 f'"~/.config/{_NAME}/book.json".',
         },
@@ -77,14 +77,14 @@ class CLI:
             raise ValueError(f"Invalid key: {key}")
         return os.path.join(folder, _NAME)
 
-    def _db_file(self) -> str:
-        db_file = self.args.db_file
-        if db_file:
-            return db_file
-        db_file = self.config.file.db
-        if db_file is not None:
-            return db_file
-        return os.path.join(self._xdg_path("data"), "book.json")
+    def _db_path(self) -> str:
+        db_path = self.args.db_path
+        if db_path:
+            return db_path
+        db_path = self.config.file.db
+        if db_path is not None:
+            return db_path
+        return os.path.join(self._xdg_path("data"), "book")
 
     def _init_config(self) -> Box:
         if self.args.rc_file:
@@ -135,15 +135,15 @@ class CLI:
         return EditResult(before_todos, after_todos)
 
     def main(self) -> int:
-        db_file = self._db_file()
+        db_path = self._db_path()
         if self.args.undo:
-            message = undo(db_file)
+            message = undo(db_path)
             command, _, _, *updates = message.splitlines()
             text = ["", f"  Undid command `{command}`"]
             self.rich_console.print("\n".join(text))
             self.rich_console.print(Panel.fit("\n".join(updates)))
             return 0
-        todos = load(db_file)
+        todos = load(db_path)
         book = TaskBook(self.config, todos)
         result = self._process_action(book, self.command)
         text = self.renderer.render_result(result)
@@ -157,7 +157,7 @@ class CLI:
         if not isinstance(result, (AddResult, EditResult)):
             return 0
         message = self.command + "\n\n" + text
-        save(message, book.todos, db_file, self.config.file.backup)
+        save(message, book.todos, db_path, self.config.file.backup)
         return 0
 
 

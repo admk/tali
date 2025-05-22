@@ -1,55 +1,39 @@
 import os
 import json
-from typing import List, Optional, Generator
+from typing import List
 
-from contextlib import contextmanager
-import tempfile
 from git import GitCommandError, InvalidGitRepositoryError
 from git.repo import Repo
 
-from ..common import error, info, debug
+from ..common import error
 from .item import TodoItem
 
 
-@contextmanager
-def _get_repo(path: str) -> Generator[Repo, None, None]:
-    path = os.path.splitext(path)[0] + ".git"
-    bare_path = os.path.join(path, ".git")
-    work_path = os.path.join(path, "work")
-    
-    # Initialize bare repo if needed
-    if not os.path.exists(bare_path):
-        Repo.init(bare_path, bare=True)
-    
-    # Initialize working dir if needed
-    if not os.path.exists(work_path):
-        work_repo = Repo.clone_from(bare_path, work_path)
-    else:
-        work_repo = Repo(work_path)
-    
-    yield work_repo
-    
-    # Push changes back to bare repo
-    if work_repo.head.is_valid():
-        work_repo.git.push('origin', 'HEAD')
+_MAIN_FILE = "main"
 
 
-def load(path: Optional[str]) -> List[TodoItem]:
-    if path is None:
+def _repo(path: str) -> Repo:
+    os.makedirs(path, exist_ok=True)
+    try:
+        return Repo(path)
+    except InvalidGitRepositoryError:
+        return Repo.init(path)
+
+
+def load(path: str) -> List[TodoItem]:
+    main_file = os.path.join(path, _MAIN_FILE)
+    if not os.path.exists(main_file):
         return []
-    if not os.path.exists(path):
-        return []
-    with open(path, "r") as f:
+    with open(main_file, "r") as f:
         return [TodoItem.from_dict(todo) for todo in json.load(f)]
 
 
 def undo(path: str) -> str:
     """Restore the most recent version from git history."""
     try:
-        with _get_repo(path) as repo:
+        with _repo(path) as repo:
             message = repo.head.commit.message
-            repo.git.reset('--hard', 'HEAD~1')
-            repo.git.push('origin', 'HEAD', force=True)
+            repo.index.checkout('HEAD~')
     except GitCommandError as e:
         error(f"Failed to undo changes: {e}")
     return str(message)
@@ -62,18 +46,16 @@ def save(
     Save the list of todos to a file using git for version control.
     Commits changes if backup is enabled.
     """
-    folder = os.path.dirname(path)
-    if folder:
-        os.makedirs(folder, exist_ok=True)
-    with open(path, "w") as f:
+    main_file = os.path.join(path, _MAIN_FILE)
+    with open(main_file, "w") as f:
         data = [
             todo.to_dict() for todo in todos
             if not todo.status == "delete"]
         json.dump(data, f, indent=4)
     if backup:
         try:
-            with _get_repo(path) as repo:
-                repo.index.add(os.path.basename(path))
+            with _repo(path) as repo:
+                repo.index.add(_MAIN_FILE)
                 repo.index.commit(commit_message)
         except GitCommandError as e:
             error(f"Failed to commit changes: {e}")
