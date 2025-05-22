@@ -2,7 +2,7 @@ import os
 import json
 from typing import List
 
-from git import GitCommandError, InvalidGitRepositoryError
+from git import InvalidGitRepositoryError, GitCommandError
 from git.repo import Repo
 
 from ..common import error
@@ -31,9 +31,9 @@ def load(path: str) -> List[TodoItem]:
 def undo(path: str) -> str:
     """Restore the most recent version from git history."""
     try:
-        with _repo(path) as repo:
-            message = repo.head.commit.message
-            repo.index.checkout('HEAD~')
+        repo = _repo(path)
+        message = repo.head.commit.message
+        repo.git.checkout('HEAD~1')
     except GitCommandError as e:
         error(f"Failed to undo changes: {e}")
     return str(message)
