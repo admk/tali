@@ -1,7 +1,7 @@
 import re
 import sys
 import logging
-from typing import Any, NoReturn, Callable
+from typing import Any, NoReturn, Callable, Dict
 
 from box import Box
 from rich.logging import RichHandler
@@ -64,10 +64,12 @@ def format_config_value(value: int | str, config: Box) -> int | str:
     return re.sub(r"{\.([^}]+)}", replace, value)
 
 
-def format_config(config: Box) -> Box:
+def format_config(config: Dict[str, Any]) -> Box:
+    box_config: Box = Box(config, box_dots=True)
     while True:
+        format_value = lambda x: format_config_value(x, box_config)
         formatted = box_recursive_apply(
-            config, lambda x: format_config_value(x, config), box_dots=True)
-        if formatted == config:
+            box_config, format_value, box_dots=True)
+        if formatted == box_config:
             return formatted
-        config = formatted
+        box_config = formatted

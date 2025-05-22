@@ -126,7 +126,7 @@ class CLI:
         if rc_file:
             with open(rc_file, "r") as f:
                 config |= yaml.safe_load(f)
-        return format_config(Box(config, box_dots=True))
+        return format_config(config)
 
     def _create_parser(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
