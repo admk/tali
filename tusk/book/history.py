@@ -11,10 +11,20 @@ from .item import TodoItem
 
 def _get_repo(path: str) -> Repo:
     dir_path = os.path.dirname(path) or "."
+    bare_path = os.path.join(dir_path, ".tusk.git")
+    
+    # Check if we should use existing bare repo
+    if os.path.exists(bare_path):
+        return Repo(bare_path)
+    
+    # Check if working dir is already a git repo
     try:
-        return Repo(dir_path)
+        working_repo = Repo(dir_path, search_parent_directories=True)
+        # Create bare clone for tusk history
+        return working_repo.clone(bare_path, bare=True)
     except InvalidGitRepositoryError:
-        return Repo.init(dir_path)
+        # No existing git repo, init new bare repo
+        return Repo.init(bare_path, bare=True)
 
 
 def load(path: Optional[str]) -> List[TodoItem]:
