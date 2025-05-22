@@ -56,6 +56,7 @@ def save(
         try:
             with _repo(path) as repo:
                 repo.index.add(_MAIN_FILE)
-                repo.index.commit(commit_message)
+                if repo.is_dirty():
+                    repo.index.commit(commit_message)
         except GitCommandError as e:
             error(f"Failed to commit changes: {e}")
