@@ -15,6 +15,7 @@ token:
   deadline: '^'
   sort: '='
   description: ':'
+  stdin: '-'
 alias:
   status:
     a: archive

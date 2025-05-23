@@ -98,10 +98,17 @@ class CLI:
         else:
             set_level("INFO")
         self.config = self._init_config()
-        debug("Config:")
-        debug(pretty_repr(self.config.to_dict()))
-        command = [shlex.quote(a) if " " in a else a for a in self.args.command]
+        debug(f"Config: {pretty_repr(self.config.to_dict())}")
+        # command = [shlex.quote(a) if " " in a else a for a in self.args.command]
+        command = []
+        for a in self.args.command:
+            if " " in a:
+                a = shlex.quote(a)
+            elif a == self.config.token.stdin and not sys.stdin.isatty():
+                a = sys.stdin.read()
+            command.append(a)
         self.command = " ".join(command).strip()
+        debug(f"Command: {self.command!r}")
         self.command_parser = CommandParser(self.config)
         self.renderer = Renderer(self.config)
 
