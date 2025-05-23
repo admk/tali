@@ -2,8 +2,8 @@ file:
   db: null
   backup: true
 pager:
-  enable: true
-  command: less -R
+  enable: false
+  command: null
   styles: true
 token:
   id_range: '..'

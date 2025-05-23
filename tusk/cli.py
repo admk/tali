@@ -13,6 +13,7 @@ from datetime import datetime
 from box import Box
 from rich.box import SIMPLE_HEAVY
 from rich.panel import Panel
+from rich.pretty import pretty_repr
 from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
@@ -95,6 +96,8 @@ class CLI:
         else:
             set_level("INFO")
         self.config = self._init_config()
+        debug("Config:")
+        debug(pretty_repr(self.config.to_dict()))
         rargs = [shlex.quote(a) if " " in a else a for a in rargs]
         self.command = " ".join(rargs).strip()
         self.command_parser = CommandParser(self.config)
@@ -143,11 +146,11 @@ class CLI:
         default_rc_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "config.yaml")
         with open(default_rc_file, "r") as f:
-            config = yaml.safe_load(f)
+            config: Box = Box(yaml.safe_load(f), box_dots=True)
         rc_file = rc_file if os.path.exists(rc_file) else None
         if rc_file:
             with open(rc_file, "r") as f:
-                config |= yaml.safe_load(f)
+                config.merge_update(yaml.safe_load(f))
         return format_config(config)
 
     def _process_action(self, book: TaskBook, command: str) -> ActionResult:

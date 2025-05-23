@@ -74,12 +74,11 @@ def format_config_value(value: int | str, config: Box) -> int | str:
     return re.sub(r"{\.([^}]+)}", replace, value)
 
 
-def format_config(config: Dict[str, Any]) -> Box:
-    box_config: Box = Box(config, box_dots=True)
+def format_config(config: Box) -> Box:
     while True:
-        format_value = lambda x: format_config_value(x, box_config)
+        format_value = lambda x: format_config_value(x, config)
         formatted = box_recursive_apply(
-            box_config, format_value, box_dots=True)
-        if formatted == box_config:
+            config, format_value, box_dots=True)
+        if formatted == config:
             return formatted
-        box_config = formatted
+        config = formatted
