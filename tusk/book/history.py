@@ -45,7 +45,7 @@ def history(path: str) -> List[Dict[str, str | datetime]]:
         {
             'hash': c.hexsha,
             'message': str(c.message),
-            'date': c.committed_datetime,
+            'ts': c.committed_datetime,
         } for c in _repo(path).iter_commits()
     ]
 

@@ -89,7 +89,7 @@ class CLI:
         args = args[1:]
         parser = self._create_parser()
         self.rich_console = Console()
-        self._text_flags = " ".join(args)
+        self._text_args = " ".join(a for a in args if a.startswith("-"))
         self.args, rargs = parser.parse_known_args(args)
         if self.args.debug:
             set_level("DEBUG")
@@ -146,7 +146,7 @@ class CLI:
         default_rc_file = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "config.yaml")
         with open(default_rc_file, "r") as f:
-            config: Box = Box(yaml.safe_load(f), box_dots=True)
+            config = Box(yaml.safe_load(f), box_dots=True)
         rc_file = rc_file if os.path.exists(rc_file) else None
         if rc_file:
             with open(rc_file, "r") as f:
@@ -180,7 +180,7 @@ class CLI:
 
     def undo(self, db_path: str) -> int:
         message = undo(db_path)
-        command, _, _, *updates = message.splitlines()
+        command, _, *updates = message.splitlines()
         text = self.config.message.undo.format(command)
         text = "\n" + textwrap.indent(text, "  ")
         self.rich_console.print(text)
@@ -191,10 +191,10 @@ class CLI:
     def history(self, db_path: str) -> int:
         from rich.table import Table
         table = Table(box=SIMPLE_HEAVY)
-        table.add_column("Time")
+        table.add_column("Time", justify="right")
         table.add_column("Commit")
         for item in history(db_path):
-            dt = item["date"].replace(tzinfo=None)  # type: ignore
+            dt = item["ts"].replace(tzinfo=None)  # type: ignore
             dt = timedelta_format(datetime.now() - dt, num_components=1)
             message = item["message"].splitlines()[0]  # type: ignore
             table.add_row(dt, message)
@@ -235,13 +235,11 @@ class CLI:
             self.rich_console.print(text)
         if not isinstance(result, (AddResult, EditResult)):
             return 0
-        message = []
-        if self._text_flags:
-            message.append(self._text_flags)
-        if self.command:
-            message.append(self.command)
-        message += ["\n", text]
-        save(" ".join(message), book.todos, db_path, self.config.file.backup)
+        message = [self.command, text]
+        if self._text_args:
+            args = f"\n  [bright_black]args: {self._text_args}[/bright_black]"
+            message.append(args)
+        save("\n".join(message), book.todos, db_path, self.config.file.backup)
         return 0
 
 
@@ -249,5 +247,5 @@ def main() -> None:
     sys.exit(CLI().main())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

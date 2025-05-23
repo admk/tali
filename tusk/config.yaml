@@ -30,10 +30,10 @@ alias:
 message:
   progress: '{} of all tasks complete.'
   empty: ':dizzy: [italic yellow]Nothing to show.[/italic yellow]'
-  add: '🪄 [italic]Added 1 item.[/italic]'
+  add: '🪄 [italic green]Added 1 item.[/italic green]'
   no_edit: ':thinking_face: [italic yellow]Nothing to update.[/italic yellow]'
-  edit: ':crystal_ball: [italic]Updated {} {}.[/italic]'
-  undo: ':hourglass_flowing_sand: Undid command `{}` with change:'
+  edit: ':crystal_ball: [italic cyan]Updated {} {}.[/italic cyan]'
+  undo: ':hourglass_flowing_sand: [italic blue]Undid command `{}` with change:[/italic blue]'
 group:
   by: project
   format:
@@ -97,9 +97,7 @@ item:
       86400: '[magenta]{}[/magenta]'
       3600: '[yellow]{}[/yellow]'
       0: '[red]{}[/red]'
-    timedelta: {
-      'y': 'y', 'M': 'M', 'w': 'w', 'd': 'd',
-      'h': 'h', 'm': 'm', 's': 's'}
+    timedelta: {y: y, M: M, w: w, d: d, h: h, m: m, s: s}
     num_components: 1
     datetime: '%y-%b-%-d'
   created_at:
