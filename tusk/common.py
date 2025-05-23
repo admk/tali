@@ -2,7 +2,7 @@ import os
 import re
 import sys
 import logging
-from typing import Any, NoReturn, Callable, Dict, Generator
+from typing import Any, NoReturn, Callable, Generator, Sequence, TypeVar, List
 from contextlib import contextmanager
 
 from box import Box
@@ -10,6 +10,13 @@ from rich.logging import RichHandler
 from rich.traceback import install
 
 install()
+
+
+T = TypeVar('T')
+
+
+def flatten(l: Sequence[Sequence[T]]) -> List[T]:
+    return [item for sublist in l for item in sublist]
 
 
 @contextmanager

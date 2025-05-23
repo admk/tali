@@ -2,7 +2,7 @@
 selection_chain = selection (ws selection)*
 selection = shared / sort / group / word
 action_chain = action (ws action)*
-action = shared / word
+action = description / shared / word
 
 # components
 sort = sort_token group
@@ -16,6 +16,7 @@ tag = tag_token pm? tag_name
 deadline = deadline_token word
 status = status_token word?
 priority = priority_token word?
+description = description_token ws word (ws word)*
 
 # literals
 word = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+"
@@ -27,6 +28,7 @@ deadline_token = "{deadline}"
 priority_token = "{priority}"
 status_token = "{status}"
 sort_token = "{sort}"
+description_token = "{description}"
 task_id = ~r"\d+"
 project_name = ~r"[a-zA-Z0-9_\-/]+"
 tag_name = ~r"[a-zA-Z0-9_\-]+"

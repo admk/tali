@@ -65,10 +65,12 @@ class CommandParser(NodeVisitor, CommonMixin):
             action = self._parse_mode("action", text[2:], pos)
         else:
             if text.endswith(f" {separator}"):
-                # a hack for separator at the end
                 text = text[:-len(f" {separator}")]
+                # a separator at the end launches the editor
+                action = {"editor": True}
+            else:
+                action = None
             selection = self._parse_mode("selection", text, pos)
-            action = None
         if selection is not None:
             group: Optional[GroupBy] = \
                 selection.pop("group", None)  # type: ignore
@@ -107,8 +109,8 @@ class CommandParser(NodeVisitor, CommonMixin):
                 parsed["group"] = value
             elif kind == "sort":
                 parsed["sort"] = value
-            elif kind == "delete":
-                parsed["delete"] = True
+            elif kind == "description":
+                parsed["description"] = value
             else:
                 raise ValueError(f"Unknown kind {kind!r}.")
         if "ids" in parsed:
@@ -138,6 +140,14 @@ class CommandParser(NodeVisitor, CommonMixin):
                 del parsed[group]
                 parsed["group"] = group
         return parsed
+
+    def visit_group(self, node, visited_children):
+        group = node.children[0].expr_name.replace("_token", "")
+        return "group", group
+
+    def visit_sort(self, node, visited_children):
+        sort = node.children[1].children[0].expr_name.replace("_token", "")
+        return "sort", sort
 
     def visit_task_range(self, node, visited_children):
         first, last = visited_children
@@ -169,16 +179,9 @@ class CommandParser(NodeVisitor, CommonMixin):
         priority = priority[0] if priority else ""
         return "priority", priority
 
-    def visit_group(self, node, visited_children):
-        group = node.children[0].expr_name.replace("_token", "")
-        return "group", group
-
-    def visit_sort(self, node, visited_children):
-        sort = node.children[1].children[0].expr_name.replace("_token", "")
-        return "sort", sort
-
-    def visit_delete_token(self, node, visited_children):
-        return "delete", None
+    def visit_description(self, node, visited_children):
+        text = node.text.strip().lstrip(self.config.token.description).lstrip()
+        return "description", text
 
     visit_task_id = CommonMixin._visit_int
     visit_word = visit_project_name = visit_tag_name = visit_pm = \

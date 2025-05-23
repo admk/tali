@@ -18,7 +18,8 @@ from rich.console import Console
 from rich_argparse import RichHelpFormatter
 
 from . import __name__ as _NAME, __version__, __description__
-from .common import format_config, set_level, debug, error, os_env_swap
+from .common import (
+    format_config, set_level, debug, warn, error, os_env_swap, flatten)
 from .parser import CommandParser
 from .book import load, save, undo, history, TaskBook
 from .render.cli import Renderer
@@ -89,8 +90,9 @@ class CLI:
         args = args[1:]
         parser = self._create_parser()
         self.rich_console = Console()
-        self._text_args = " ".join(a for a in args if a.startswith("-"))
-        self.args, rargs = parser.parse_known_args(args)
+        options = flatten(list(self.options.keys()))
+        self._text_args = " ".join(a for a in args if a in options)
+        self.args = parser.parse_args(args)
         if self.args.debug:
             set_level("DEBUG")
         else:
@@ -98,8 +100,8 @@ class CLI:
         self.config = self._init_config()
         debug("Config:")
         debug(pretty_repr(self.config.to_dict()))
-        rargs = [shlex.quote(a) if " " in a else a for a in rargs]
-        self.command = " ".join(rargs).strip()
+        command = [shlex.quote(a) if " " in a else a for a in self.args.command]
+        self.command = " ".join(command).strip()
         self.command_parser = CommandParser(self.config)
         self.renderer = Renderer(self.config)
 
@@ -109,6 +111,9 @@ class CLI:
             formatter_class=RichHelpFormatter)
         for option, kwargs in self.options.items():
             parser.add_argument(*option, **kwargs)
+        parser.add_argument(
+            'command', nargs=argparse.REMAINDER,
+            default=None, help='Command to run.')
         return parser
 
     def _xdg_path(
