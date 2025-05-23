@@ -178,6 +178,8 @@ class CLI:
             item = book.add(title, **action)  # type: ignore
             return AddResult(item)
         before_todos = book.select(selection)[None]
+        if action.pop("editor", False):
+            warn(f"Editor action is not supported yet.")
         after_todos = book.action(before_todos, action)
         ids = [todo.id for todo in after_todos]
         before_todos = [todo for todo in before_todos if todo.id in ids]
