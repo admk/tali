@@ -1,6 +1,5 @@
 import os
-
-from datetime import time, datetime, timedelta
+from datetime import time, date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 from parsimonious.grammar import Grammar
@@ -18,8 +17,6 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         'friday': 4, 'saturday': 5, 'sunday': 6,
     }
     month_map = {
-        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7,
-        'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
         'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5,
         'june': 6, 'july': 7, 'august': 8, 'september': 9,
         'october': 10, 'november': 11, 'december': 12,
@@ -30,9 +27,9 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         'hour': 'hours', 'h': 'hours', 'minute': 'minutes', 'm': 'minutes',
     }
 
-    def __init__(self, reference_dt=None):
+    def __init__(self, now=None):
         super().__init__()
-        self.reference_dt = reference_dt or datetime.now()
+        self.now = now or datetime.now()
         root = os.path.dirname(__file__)
         with open(os.path.join(root, 'datetime.grammar'), 'r') as f:
             self.grammar = Grammar(f.read())
@@ -49,77 +46,41 @@ class DateTimeParser(NodeVisitor, CommonMixin):
 
     def visit_relative_datetime(self, node, visited_children):
         _, count_units = visited_children
-        if not isinstance(count_units[0], list):
-            count_units = [count_units]  # A hack to undo generic_visit
-        delta = timedelta()
-        for count, unit, _ in count_units:
-            count = int(count) if count else 1
-            if count <= 0:
-                raise ValueError("Count must be positive.")
-            unit = self.unit_map[unit]
-            if unit in ('years', 'months'):
-                reldelta = relativedelta(**{unit: count})  # type: ignore
-                new_date = self.reference_dt + reldelta
-                delta = new_date - self.reference_dt
-            else:
-                delta += timedelta(**{unit: count})
-        return self.reference_dt + delta
+        return relativedelta(**{u: c for c, u in count_units})
+
+    def visit_count_unit(self, node, visited_children):
+        ordinal, unit, _ = visited_children
+        count = int(ordinal[0]) if ordinal else 1
+        unit = self.unit_map[unit]
+        return count, unit
+
+    def _visit_date_time(self, date, time):
+        time = time or datetime.max.time()
+        if date:
+            return datetime.combine(date, time)
+        date = self.now.date()
+        dt = datetime.combine(date, time)
+        if dt < self.now:
+            dt += relativedelta(days=1)
+        return dt
 
     def visit_date_time(self, node, visited_children):
         date, _, time = visited_children
-        date = date or self.reference_dt.date()
-        if time is None:
-            time = datetime.max.time()
-        dt = datetime.combine(date, time)
-        if dt <= self.reference_dt:
-            dt += timedelta(days=1)
-        return dt
+        time = time[0] if time else None
+        return self._visit_date_time(date, time)
 
     def visit_time_date(self, node, visited_children):
         time, _, date = visited_children
-        return self.visit_date_time(node, [date, _, time])
+        date = date[0] if date else None
+        return self._visit_date_time(date, time)
 
-    def visit_date(self, node, visited_children):
-        return self._visit_any_of_or_none(node, visited_children)
-
-    def visit_absolute_date(self, node, visited_children):
-        year, month, _, day = visited_children
-        if year:
-            year = int(year[0])
-            if year < 100:
-                year += 2000 if year < self.reference_dt.year % 100 else 1900
-        else:
-            year = self.reference_dt.year
-        month = self.month_map[month.lower()]
-        day = int(day)
-        result = self._datetime(year, month, day).date()
-        if result < self.reference_dt.date():
-            result = self._datetime(year + 1, month, day).date()
-        return result
-
-    def visit_named_date(self, node, visited_children):
-        text = node.text.lower()
-        if text == 'today':
-            return self.reference_dt.date()
-        elif text == 'tomorrow':
-            return self.reference_dt.date() + timedelta(days=1)
-        raise ValueError(f"Unknown named date: {text}")
-
-    def visit_end_date(self, node, visited_children):
-        ordinal, end, _ = visited_children
-        count = int(ordinal) if ordinal else 1
-        if end in self.weekday_map:
-            return self._end_weekday(self.weekday_map[end.lower()], count)
-        elif end in self.month_map:
-            return self._end_month(self.month_map[end.lower()], count)
-        return self._end_unit(self.unit_map[end], count)
+    visit_date = CommonMixin._visit_any_of_or_none
 
     def visit_time(self, node, visited_children):
         hour, minute, _, ampm = visited_children
-        hour = int(hour)
-        minute = int(minute[1]) if minute else 0
+        minute = minute[0][1] if minute and minute[0] else 0
         if ampm:
-            ampm = ampm.lower()
+            ampm = ampm[0].lower()
             if ampm == 'pm' and hour < 12:
                 hour += 12
             elif ampm == 'am' and hour == 12:
@@ -128,51 +89,92 @@ class DateTimeParser(NodeVisitor, CommonMixin):
             raise ValueError("Invalid time")
         return time(hour, minute)
 
+    def visit_absolute_date(self, node, visited_children):
+        year, month, _, day = visited_children
+        month = self.month_map[month.lower()]
+        if not year:
+            year = self.now.year
+            dt = self._datetime(year, month, day)
+            if dt < self.now:
+                dt += relativedelta(years=1)
+            return dt
+        year = year[0]
+        if year < 100:
+            year += 2000
+        return self._datetime(year, month, day)
+
+    def visit_end_date(self, node, visited_children):
+        ordinal, end, _ = visited_children
+        count = ordinal[0] if ordinal else 1
+        if end in self.weekday_map:
+            return self._end_weekday(self.weekday_map[end.lower()], count)
+        elif end in self.month_map:
+            return self._end_month(self.month_map[end.lower()], count)
+        return self._end_unit(self.unit_map[end], count)
+
     def _end_weekday(self, weekday, count):
-        days_ahead = (weekday - self.reference_dt.weekday() + 7) % 7
+        days_ahead = (weekday - self.now.weekday() + 7) % 7
         if days_ahead == 0:
             days_ahead = 7
         days_ahead += (count - 1) * 7
-        return self.reference_dt.date() + timedelta(days=days_ahead)
+        return self.now.date() + timedelta(days=days_ahead)
 
     def _end_month(self, month, count):
-        year = self.reference_dt.year
-        next_year = month == self.reference_dt.month
-        next_year = next_year and self.reference_dt.day > 1
-        next_year = next_year or (month < self.reference_dt.month)
+        year = self.now.year
+        next_year = month == self.now.month
+        next_year = next_year and self.now.day > 1
+        next_year = next_year or (month < self.now.month)
         if next_year:
             year += 1
         year += count - 1
-        last_day = (
-            self._datetime(year, month + 1, 1) - timedelta(days=1)
-        ).day
-        return self._datetime(year, month, last_day).date()
+        last_day = self._datetime(year, month + 1, 1) - timedelta(days=1)
+        return self._datetime(year, month, last_day.day).date()
 
     def _end_unit(self, unit, count):
         count -= 1
         if unit == 'years':
-            year = self.reference_dt.year
+            year = self.now.year
             return self._datetime(year + count, 12, 31).date()
         elif unit == 'months':
-            next_month = self.reference_dt.replace(day=1)
+            next_month = self.now.replace(day=1)
             next_month += relativedelta(months=count)
             last_day = (
                 next_month.replace(day=1) +
                 relativedelta(months=1) -
-                timedelta(days=1)
-            ).day
+                timedelta(days=1)).day
             return next_month.replace(day=last_day).date()
         elif unit == 'weeks':
-            days = 7 * count - (self.reference_dt.weekday() + 1) % 7
-            return self.reference_dt.date() + timedelta(days=days)
+            days = 7 * count + (6 - self.now.weekday())
+            return self.now.date() + timedelta(days=days)
         elif unit == 'days':
-            return self.reference_dt.date() + timedelta(days=count)
+            return self.now.date() + timedelta(days=count)
         raise ValueError(f'Unexpected unit {unit!r}.')
 
+    visit_end = CommonMixin._visit_any_of
+
+    def visit_named_date(self, node, visited_children):
+        if node.text == "today":
+            return self.now.date()
+        if node.text == "tomorrow":
+            return self.now.date() + timedelta(days=1)
+        raise ValueError(f"Unexpected named date {node.text!r}.")
+
+    visit_year = visit_day = visit_day = visit_hour = visit_minute = visit_ordinal = \
+        CommonMixin._visit_int
+
+    def visit_unit(self, node, visited_children):
+        return node.children[0].expr_name.replace('unit_', '')
+
+    def visit_month(self, node, visited_children):
+        return node.children[0].expr_name
+
+    def visit_weekday(self, node, visited_children):
+        return node.children[0].expr_name
+
+    visit_ampm = CommonMixin._visit_str
+
     def generic_visit(self, node, visited_children):
-        if len(visited_children) == 1:
-            return visited_children[0]
-        return visited_children or node.text or None
+        return visited_children
 
 
 if __name__ == "__main__":
@@ -191,9 +193,10 @@ if __name__ == "__main__":
         ('2fri',            datetime(2025, 5, 23, 23, 59, 59, 999999)),
         ('M',               datetime(2025, 5, 31, 23, 59, 59, 999999)),
         ('month',           datetime(2025, 5, 31, 23, 59, 59, 999999)),
-        ('+M',              datetime(2025, 6, 11, 11, 0, 0, 0)),
-        ('+1M',             datetime(2025, 6, 11, 11, 0, 0, 0)),
-        ('+Md',             datetime(2025, 6, 12, 11, 0, 0, 0)),
+        ('+M',              relativedelta(months=1)),  # datetime(2025, 6, 11, 11, 0, 0, 0)),
+        ('+1M',             relativedelta(months=1)),
+        ('+Md',             relativedelta(months=1, days=1)),  # datetime(2025, 6, 12, 11, 0, 0, 0)),
+        ('+M1d',            relativedelta(months=1, days=1)),  # datetime(2025, 6, 12, 11, 0, 0, 0)),
         ('3month',          datetime(2025, 7, 31, 23, 59, 59, 999999)),
         ('february 21 8am', datetime(2026, 2, 21, 8, 0, 0)),
         ('feb 21',          datetime(2026, 2, 21, 23, 59, 59, 999999)),
