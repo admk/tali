@@ -1,6 +1,6 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 from dataclasses import dataclass
-from typing import Optional, Union, Dict, List
+from typing import Optional, Dict, List
 
 from ..book.select import GroupBy
 from ..book.item import TodoItem
@@ -17,7 +17,7 @@ class ActionResult:
 
 @dataclass
 class ViewResult(ActionResult):
-    grouped_todos: Dict[GroupBy, List[TodoItem]]
+    grouped_todos: Dict[str, List[TodoItem]]
     group: GroupBy
     show_all: bool
 
@@ -28,6 +28,36 @@ class ViewResult(ActionResult):
                 for group, todos in self.grouped_todos.items()
             },
             "group": self.group,
+        }
+
+
+@dataclass
+class HistoryResult(ActionResult):
+    history: List[Dict[str, str | datetime]]
+
+    def to_dict(self) -> dict:
+        return {
+            "history": [
+                {
+                    "hash": item["hash"],
+                    "message": item["message"],
+                    "timestamp": item["timestamp"].isoformat(),  # type: ignore
+                } for item in self.history
+            ]
+        }
+
+
+@dataclass
+class UndoResult(ActionResult):
+    message: str
+    hexsha: str
+    timestamp: datetime
+
+    def to_dict(self) -> dict:
+        return {
+            "message": self.message,
+            "hexsha": self.hexsha,
+            "timestamp": self.timestamp.isoformat(),
         }
 
 

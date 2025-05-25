@@ -29,15 +29,20 @@ def load(path: str) -> List[TodoItem]:
         return [TodoItem.from_dict(todo) for todo in json.load(f)]
 
 
-def undo(path: str) -> str:
+def undo(path: str) -> Dict[str, str | datetime]:
     """Restore the most recent version from git history."""
     try:
         repo = _repo(path)
-        message = repo.head.commit.message
+        c = repo.head.commit
+        info = {
+            "message": str(c.message),
+            "hexsha": c.hexsha,
+            "timestamp": c.committed_datetime,
+        }
         repo.git.checkout('HEAD~1')
     except GitCommandError as e:
         error(f"Failed to undo changes: {e}")
-    return str(message)
+    return info
 
 
 def history(path: str) -> List[Dict[str, str | datetime]]:
@@ -45,13 +50,14 @@ def history(path: str) -> List[Dict[str, str | datetime]]:
         {
             'hash': c.hexsha,
             'message': str(c.message),
-            'ts': c.committed_datetime,
+            'timestamp': c.committed_datetime,
         } for c in _repo(path).iter_commits()
     ]
 
 
 def save(
-    commit_message: str, todos: List[TodoItem], path: str, backup: bool = True,
+    commit_message: str, todos: List[TodoItem], path: str,
+    backup: bool = True, indent: int = 4,
 ):
     """
     Save the list of todos to a file using git for version control.
@@ -62,7 +68,7 @@ def save(
         data = [
             todo.to_dict() for todo in todos
             if not todo.status == "delete"]
-        json.dump(data, f, indent=4)
+        json.dump(data, f, indent=indent)
     if backup:
         try:
             with _repo(path) as repo:

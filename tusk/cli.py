@@ -7,24 +7,22 @@ import shlex
 import argparse
 import textwrap
 import contextlib
-from typing import Literal, List
-from datetime import datetime
+from typing import Literal, List, Optional
 
 from box import Box
-from rich.box import SIMPLE_HEAVY
-from rich.panel import Panel
 from rich.pretty import pretty_repr
-from rich.console import Console
+from rich.console import RenderableType
 from rich_argparse import RichHelpFormatter
 
 from . import __name__ as _NAME, __version__, __description__
 from .common import (
-    format_config, set_level, debug, warn, error, os_env_swap, flatten)
+    format_config, set_level, debug, warn, error, rich_console,
+    os_env_swap, flatten)
 from .parser import CommandParser
 from .book import load, save, undo, history, TaskBook
 from .render.cli import Renderer
 from .render.utils import (
-    timedelta_format, ActionResult, ViewResult, AddResult, EditResult)
+    ActionResult, ViewResult, HistoryResult, UndoResult, AddResult, EditResult)
 
 
 class CLI:
@@ -89,7 +87,6 @@ class CLI:
         super().__init__()
         args = args[1:]
         parser = self._create_parser()
-        self.rich_console = Console()
         options = flatten(list(self.options.keys()))
         self._text_args = " ".join(a for a in args if a in options)
         self.args = parser.parse_args(args)
@@ -192,53 +189,27 @@ class CLI:
         before_todos = [todo for todo in before_todos if todo.id in ids]
         return EditResult(before_todos, after_todos)
 
-    def undo(self, db_path: str) -> int:
-        message = undo(db_path)
-        command, _, *updates = message.splitlines()
-        text = self.config.message.undo.format(command)
-        text = "\n" + textwrap.indent(text, "  ")
-        self.rich_console.print(text)
-        updates = textwrap.dedent("\n".join(updates))
-        self.rich_console.print(Panel.fit(updates))
-        return 0
+    def undo(self, db_path: str) -> UndoResult:
+        return UndoResult(**undo(db_path))  # type: ignore
 
-    def history(self, db_path: str) -> int:
-        from rich.table import Table
-        table = Table(box=SIMPLE_HEAVY)
-        table.add_column("Time", justify="right")
-        table.add_column("Commit")
-        for item in history(db_path):
-            dt = item["ts"].replace(tzinfo=None)  # type: ignore
-            dt = timedelta_format(datetime.now() - dt, num_components=1)
-            message = item["message"].splitlines()[0]  # type: ignore
-            table.add_row(dt, message)
-        self.rich_console.print(table)
-        return 0
+    def history(self, db_path: str) -> HistoryResult:
+        return HistoryResult(history(db_path))
 
     def re_index(self, book: TaskBook) -> EditResult:
         old_todos = copy.deepcopy(book.todos)
         book.re_index()
         return EditResult(old_todos, book.todos)
 
-    def main(self) -> int:
-        db_path = self._db_path()
-        if self.args.undo:
-            return self.undo(db_path)
-        if self.args.history:
-            return self.history(db_path)
-        todos = load(db_path)
-        book = TaskBook(self.config, todos)
-        if self.args.re_index:
-            result = self.re_index(book)
-        else:
-            result = self._process_action(book, self.command)
+    def _print_result(self, result: ActionResult) -> Optional[str]:
         if self.args.json:
-            print(json.dumps(result.to_dict()))
-            return 0
-        text = self.renderer.render_result(result)
-        text = "\n" + textwrap.indent(text, "  ").rstrip()
+            dump = json.dumps(result.to_dict(), indent=self.config.file.indent)
+            rich_console.print(dump)
+            return dump
+        rendered = self.renderer.render_result(result)
+        if isinstance(rendered, str | RenderableType):
+            rendered = [rendered]
         if self.config.pager.enable and isinstance(result, ViewResult):
-            pager = self.rich_console.pager(styles=self.config.pager.styles)
+            pager = rich_console.pager(styles=self.config.pager.styles)
         else:
             pager = contextlib.nullcontext()
         if self.config.pager.command:
@@ -246,14 +217,34 @@ class CLI:
         else:
             os_env = contextlib.nullcontext()
         with os_env, pager:
-            self.rich_console.print(text)
+            rich_console.print(*rendered, new_line_start=True)
+        return '\n'.join(r for r in rendered if isinstance(r, str))
+
+    def main(self) -> int:
+        db_path = self._db_path()
+        if self.args.undo:
+            self._print_result(self.undo(db_path))
+            return 0
+        if self.args.history:
+            self._print_result(self.history(db_path))
+            return 0
+        todos = load(db_path)
+        book = TaskBook(self.config, todos)
+        if self.args.re_index:
+            result = self.re_index(book)
+        else:
+            result = self._process_action(book, self.command)
+        text = self._print_result(result)
         if not isinstance(result, (AddResult, EditResult)):
             return 0
         message = [self.command, text]
         if self._text_args:
             args = f"\n  [bright_black]args: {self._text_args}[/bright_black]"
             message.append(args)
-        save("\n".join(message), book.todos, db_path, self.config.file.backup)
+        message = "\n".join(message)
+        save(
+            message, book.todos, db_path,
+            self.config.file.backup, self.config.file.indent)
         return 0
 
 

@@ -1,6 +1,7 @@
 file:
   db: null
   backup: true
+  indent: 2
 pager:
   enable: false
   command: null

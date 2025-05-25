@@ -7,9 +7,11 @@ from contextlib import contextmanager
 
 from box import Box
 from rich.logging import RichHandler
-from rich.traceback import install
+from rich.traceback import install as _rich_traceback_install
+from rich.console import Console
 
-install()
+_rich_traceback_install()
+rich_console = Console()
 
 
 T = TypeVar('T')

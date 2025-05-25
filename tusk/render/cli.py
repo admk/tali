@@ -1,16 +1,21 @@
 import operator
+import textwrap
 import functools
 from datetime import date, datetime
 from typing import get_args, Optional, List, Dict, Any
 
 from box import Box
+from rich.panel import Panel
+from rich.console import RenderableType
+from rich.box import SIMPLE_HEAVY
+from rich.table import Table
 
-from ..common import strip_rich
+from ..common import strip_rich, rich_console
 from ..book.item import TodoItem, Status, Priority
 from ..book.select import GroupBy
 from .utils import (
     shorten, timedelta_format, pluralize,
-    ActionResult, ViewResult, AddResult, EditResult)
+    ActionResult, ViewResult, HistoryResult, UndoResult, AddResult, EditResult)
 
 
 class Renderer:
@@ -208,23 +213,54 @@ class Renderer:
             text.append(self.render_stats(all_todos))
         return "\n".join(text)
 
-    def render_result(self, result: ActionResult) -> str:
-        if isinstance(result, ViewResult):
-            return self.render(
-                result.grouped_todos, result.group, result.show_all)
-        if isinstance(result, AddResult):
-            text = [self.config.message.add, "", self.render_item(result.item)]
-        elif isinstance(result, EditResult):
-            if not result.after:
-                text = [self.config.message.no_edit]
-            else:
-                c = len(result.after)
-                message = self.config.message.edit.format(
-                    c, pluralize('item', c))
-                text = [message]
-                text.append("")
-            for btodo, atodo in zip(result.before, result.after):
-                text.append(self.render_item_diff(btodo, atodo))
-        else:
+    def render_result(
+        self, result: ActionResult
+    ) -> str | RenderableType | List[str | RenderableType]:
+        try:
+            render_func = getattr(self, f"render_{type(result).__name__}")
+        except AttributeError:
             raise ValueError(f"Unknown result type: {type(result)}")
+        return render_func(result)
+
+    def render_ViewResult(self, result: ViewResult) -> str:
+        return self.render(
+            result.grouped_todos, result.group, result.show_all)
+
+    def render_AddResult(self, result: AddResult) -> str:
+        return "\n".join(
+            [self.config.message.add, "", self.render_item(result.item)])
+
+    def render_EditResult(self, result: EditResult) -> str:
+        if not result.after:
+            text = [self.config.message.no_edit]
+        else:
+            c = len(result.after)
+            message = self.config.message.edit.format(
+                c, pluralize('item', c))
+            text = [message]
+            text.append("")
+        for btodo, atodo in zip(result.before, result.after):
+            text.append(self.render_item_diff(btodo, atodo))
         return "\n".join(text)
+
+    def render_HistoryResult(
+        self, result: HistoryResult
+    ) -> RenderableType:
+        table = Table(box=SIMPLE_HEAVY)
+        table.add_column("Time", justify="right")
+        table.add_column("Commit")
+        for item in result.history:
+            dt = item["timestamp"].replace(tzinfo=None)  # type: ignore
+            dt = timedelta_format(datetime.now() - dt, num_components=1)
+            message = item["message"].splitlines()[0]  # type: ignore
+            table.add_row(dt, message)
+        return table
+
+    def render_UndoResult(
+        self, result: UndoResult
+    ) -> List[str | RenderableType]:
+        command, _, *updates = result.message.splitlines()
+        text = self.config.message.undo.format(command)
+        text = textwrap.indent(text, "  ")
+        updates = textwrap.dedent("\n".join(updates))
+        return [text, Panel.fit(updates)]
