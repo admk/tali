@@ -1,5 +1,6 @@
 import copy
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from typing import get_args, Optional, List, Dict, Any, Tuple
 
 from box import Box
@@ -116,9 +117,14 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         return new_tags
 
     def deadline(
-        self, todo: TodoItem, deadline: Optional[datetime]
+        self, todo: TodoItem, deadline: Optional[datetime | relativedelta]
     ) -> Optional[datetime]:
-        return deadline
+        if not isinstance(deadline, relativedelta):
+            return deadline
+        if not todo.deadline:
+            warn(f"Cannot relative adjust an item without a deadline.")
+            return None
+        return todo.deadline + deadline
 
     def select(
         self, filters: Optional[Dict[FilterBy, FilterValue]],

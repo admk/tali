@@ -6,8 +6,9 @@ time = hour (":" minute)? ws? ampm?
 absolute_date = (year date_sep)? month date_sep day
 date_sep = "-" / "/" / " "
 
-relative_datetime = "+" count_unit+
+relative_datetime = pm count_unit+
 count_unit = ordinal? unit "s"?
+pm = ~r"[+\-]"
 
 end_date = ordinal? end "s"?
 end = unit / weekday / month

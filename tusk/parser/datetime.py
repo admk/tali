@@ -1,5 +1,5 @@
 import os
-from datetime import time, date, datetime, timedelta
+from datetime import time, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 from parsimonious.grammar import Grammar
@@ -45,8 +45,9 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         return self._visit_any_of(node, visited_children)
 
     def visit_relative_datetime(self, node, visited_children):
-        _, count_units = visited_children
-        return relativedelta(**{u: c for c, u in count_units})
+        pm, count_units = visited_children
+        units = {u: -c if pm == "-" else c for c, u in count_units}
+        return relativedelta(**units)
 
     def visit_count_unit(self, node, visited_children):
         ordinal, unit, _ = visited_children
@@ -171,7 +172,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
     def visit_weekday(self, node, visited_children):
         return node.children[0].expr_name
 
-    visit_ampm = CommonMixin._visit_str
+    visit_pm = visit_ampm = CommonMixin._visit_str
 
     def generic_visit(self, node, visited_children):
         return visited_children
