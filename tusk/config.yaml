@@ -36,7 +36,6 @@ alias:
     l: low
     i: ignore
 message:
-  progress: '{} of all tasks complete.'
   empty: ':dizzy: [italic yellow]Nothing to show.[/italic yellow]'
   add: '🪄 [italic green]Added 1 item.[/italic green]'
   no_edit: ':thinking_face: [italic yellow]Nothing to update.[/italic yellow]'
@@ -63,8 +62,6 @@ group:
       done: '[green]{.item.status.format.done} done[/green]'
       note: '[blue]{.item.status.format.note} note[/blue]'
       archive: '[bright_black]{.item.status.format.archive} archived[/bright_black]'
-sort:
-  by: created_at
 item:
   format: '{.group.format.id_range}'
   id:
@@ -116,6 +113,7 @@ item:
   diff:
     format: '[bold red]{{[/bold red][strike bright_black]{}[/strike bright_black] [bold]→[/bold] {}[bold red]}}[/bold red]'
 stats:
+  title: '{} of tasks complete.'
   progress:
     10: '[bold red]{}[/bold red]'
     25: '[bold yellow]{}[/bold yellow]'
