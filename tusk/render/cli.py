@@ -98,7 +98,10 @@ class Renderer:
     ) -> Optional[str]:
         prefix = self.config.token.deadline
         if deadline is None:
-            return "^oo" if header else None
+            return "{prefix}oo" if header else None
+        d = deadline.date() if isinstance(deadline, datetime) else deadline
+        if (datetime.now().date() - d).days / 365 > 1000:
+            return self.config.item.deadline.format[0].format(f"{prefix}-oo")
         if isinstance(deadline, date):
             deadline = datetime.combine(deadline, datetime.max.time())
         remaining_time = deadline - datetime.now()

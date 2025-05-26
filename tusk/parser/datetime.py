@@ -6,6 +6,7 @@ from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 from parsimonious.exceptions import ParseError, VisitationError
 
+from ..common import error
 from .common import CommonMixin
 
 
@@ -154,14 +155,19 @@ class DateTimeParser(NodeVisitor, CommonMixin):
     visit_end = CommonMixin._visit_any_of
 
     def visit_named_date(self, node, visited_children):
-        if node.text == "today":
+        text = node.text.lower()
+        if text == "today":
             return self.now.date()
-        if node.text == "tomorrow":
+        if text == "tomorrow":
             return self.now.date() + timedelta(days=1)
+        if text in ('oo', '+oo'):  # distant future
+            return datetime.max.date()
+        if text == '-oo':  # distant past
+            return datetime.min.date()
         raise ValueError(f"Unexpected named date {node.text!r}.")
 
-    visit_year = visit_day = visit_day = visit_hour = visit_minute = visit_ordinal = \
-        CommonMixin._visit_int
+    visit_year = visit_day = visit_day = visit_hour = visit_minute = \
+        visit_ordinal = CommonMixin._visit_int
 
     def visit_unit(self, node, visited_children):
         return node.children[0].expr_name.replace('unit_', '')
@@ -190,6 +196,7 @@ if __name__ == "__main__":
         ('tomorrow 6pm',    datetime(2025, 5, 12, 18, 0, 0)),
         ('tomorrow',        datetime(2025, 5, 12, 23, 59, 59, 999999)),
         ('2w',              datetime(2025, 5, 18, 23, 59, 59, 999999)),
+        ('mon',             datetime(2025, 5, 12, 23, 59, 59, 999999)),
         ('2tue',            datetime(2025, 5, 20, 23, 59, 59, 999999)),
         ('2fri',            datetime(2025, 5, 23, 23, 59, 59, 999999)),
         ('M',               datetime(2025, 5, 31, 23, 59, 59, 999999)),

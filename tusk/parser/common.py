@@ -1,5 +1,4 @@
 class CommonMixin:
-
     def _visit_any_of_or_none(self, node, visited_children):
         for c in visited_children:
             if c is not None:
@@ -20,3 +19,6 @@ class CommonMixin:
 
     def _visit_noop(self, node, visited_children):
         return None
+
+    def _visit_expr_name(self, node, visited_children):
+        return node.expr_name

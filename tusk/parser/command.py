@@ -131,6 +131,11 @@ class CommandParser(NodeVisitor, CommonMixin):
             parsed["priority"] = "high"
         if parsed.get("priority") == "":
             parsed["priority"] = "high"
+        if "deadline" in parsed:
+            dt = parsed["deadline"]
+            years = (dt - datetime.now()).days / 365
+            if years >= 1000:
+                parsed["deadline"] = None
         return parsed
 
     def visit_selection_chain(self, node, visited_children):
