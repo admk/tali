@@ -6,6 +6,10 @@ pager:
   enable: false
   command: null
   styles: true
+select:
+  default: null
+  group_by: project
+  sort_by: created_at
 token:
   id_range: '..'
   status: ','
@@ -39,7 +43,6 @@ message:
   undo: ':hourglass_flowing_sand: [italic blue]Command `{}` undone with change:[/italic blue]'
   redo: ':hourglass_flowing_sand: [italic blue]Command `{}` redone with change:[/italic blue]'
 group:
-  by: project
   format:
     id_range: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'
     status: '{id}{title}{project}{tags}{priority}{deadline}{description}'

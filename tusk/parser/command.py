@@ -49,10 +49,13 @@ class CommandParser(NodeVisitor, CommonMixin):
         Optional[GroupBy], Optional[SortBy],
         Optional[Dict[str, str | List[str]]],
     ]:
-        if not text.strip():
-            return None, None, None, None
         separator = self.config.token.separator
+        if not text:
+            return None, None, None, None
+        if text == separator:
+            return None, None, None, {"editor": True}
         if f" {separator} " in text:
+            # filter and update
             commands = text.split(f" {separator} ")
             try:
                 selection, action = commands
@@ -61,16 +64,17 @@ class CommandParser(NodeVisitor, CommonMixin):
             selection = self._parse_mode("selection", selection, pos)
             action = self._parse_mode("action", action, pos)
         elif text.startswith(f"{separator} "):
+            # add new item
             selection = None
             action = self._parse_mode("action", text[2:], pos)
-        else:
-            if text.endswith(f" {separator}"):
-                text = text[:-len(f" {separator}")]
-                # a separator at the end launches the editor
-                action = {"editor": True}
-            else:
-                action = None
+        elif text.endswith(f" {separator}"):
+            text = text[:-len(f" {separator}")]
             selection = self._parse_mode("selection", text, pos)
+            # a separator at the end launches the editor
+            action = {"editor": True}
+        else:
+            selection = self._parse_mode("selection", text, pos)
+            action = None
         if selection is not None:
             group: Optional[GroupBy] = \
                 selection.pop("group", None)  # type: ignore

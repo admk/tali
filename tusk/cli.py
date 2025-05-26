@@ -168,13 +168,15 @@ class CLI:
         return format_config(config)
 
     def _process_action(self, book: TaskBook, command: str) -> ActionResult:
+        if not command.strip():
+            command = self.config.select.default or ''
         selection, group, sort, action = self.command_parser.parse(command)
         debug(f"Selection: {selection}")
         debug(f"Group: {group}")
         debug(f"Sort: {sort}")
         debug(f"Action: {action}")
-        group = group or self.config.group.by
-        sort = sort or self.config.sort.by
+        group = group or self.config.select.group_by
+        sort = sort or self.config.select.sort_by
         if not action:
             grouped_todos = book.select(selection, group, sort)  # type: ignore
             return ViewResult(
