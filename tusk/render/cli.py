@@ -15,7 +15,8 @@ from ..book.item import TodoItem, Status, Priority
 from ..book.select import GroupBy
 from .utils import (
     shorten, timedelta_format, pluralize,
-    ActionResult, ViewResult, HistoryResult, UndoResult, AddResult, EditResult)
+    ActionResult, ViewResult, HistoryResult, CommitResult,
+    AddResult, EditResult)
 
 
 class Renderer:
@@ -246,9 +247,7 @@ class Renderer:
             text.append(self.render_item_diff(btodo, atodo))
         return "\n".join(text)
 
-    def render_HistoryResult(
-        self, result: HistoryResult
-    ) -> RenderableType:
+    def render_HistoryResult(self, result: HistoryResult) -> RenderableType:
         table = Table(box=SIMPLE_HEAVY)
         table.add_column("Time", justify="right")
         table.add_column("Commit")
@@ -259,11 +258,11 @@ class Renderer:
             table.add_row(dt, message)
         return table
 
-    def render_UndoResult(
-        self, result: UndoResult
+    def render_CommitResult(
+        self, result: CommitResult
     ) -> List[str | RenderableType]:
         command, _, *updates = result.message.splitlines()
-        text = self.config.message.undo.format(command)
+        text = getattr(self.config.message, result.action).format(command)
         text = textwrap.indent(text, "  ")
         updates = textwrap.dedent("\n".join(updates))
         return [text, Panel.fit(updates)]

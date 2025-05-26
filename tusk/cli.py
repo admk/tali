@@ -19,10 +19,11 @@ from .common import (
     format_config, set_level, debug, warn, error, rich_console,
     os_env_swap, flatten)
 from .parser import CommandParser
-from .book import load, save, undo, history, TaskBook
+from .book import load, save, undo, redo, history, TaskBook
 from .render.cli import Renderer
 from .render.utils import (
-    ActionResult, ViewResult, HistoryResult, UndoResult, AddResult, EditResult)
+    ActionResult, ViewResult, HistoryResult, CommitResult,
+    AddResult, EditResult)
 
 
 class CLI:
@@ -73,11 +74,15 @@ class CLI:
             'action': 'store_true',
             'help': 'Undo the last run.'
         },
+        ('-r', '--redo'): {
+            'action': 'store_true',
+            'help': 'Redo the last undone run.'
+        },
         ('-H', '--history'): {
             'action': 'store_true',
             'help': 'Show the history of the database.'
         },
-        ('-r', '--re-index'): {
+        ('-R', '--re-index'): {
             'action': 'store_true',
             'help': 'Re-index all items.'
         },
@@ -189,8 +194,11 @@ class CLI:
         before_todos = [todo for todo in before_todos if todo.id in ids]
         return EditResult(before_todos, after_todos)
 
-    def undo(self, db_path: str) -> UndoResult:
-        return UndoResult(**undo(db_path))  # type: ignore
+    def history_action(
+        self, db_path: str, action: Literal["undo", "redo"]
+    ) -> CommitResult:
+        func = undo if action == "undo" else redo
+        return CommitResult(action=action, **func(db_path))  # type: ignore
 
     def history(self, db_path: str) -> HistoryResult:
         return HistoryResult(history(db_path))
@@ -222,8 +230,11 @@ class CLI:
 
     def main(self) -> int:
         db_path = self._db_path()
-        if self.args.undo:
-            self._print_result(self.undo(db_path))
+        if self.args.undo or self.args.redo:
+            if self.args.undo and self.args.redo:
+                error("Cannot use both --undo and --redo at the same time.")
+            action = "undo" if self.args.undo else "redo"
+            self._print_result(self.history_action(db_path, action))
             return 0
         if self.args.history:
             self._print_result(self.history(db_path))

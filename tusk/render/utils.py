@@ -48,13 +48,15 @@ class HistoryResult(ActionResult):
 
 
 @dataclass
-class UndoResult(ActionResult):
+class CommitResult(ActionResult):
+    action: str
     message: str
     hexsha: str
     timestamp: datetime
 
     def to_dict(self) -> dict:
         return {
+            "action": self.action,
             "message": self.message,
             "hexsha": self.hexsha,
             "timestamp": self.timestamp.isoformat(),

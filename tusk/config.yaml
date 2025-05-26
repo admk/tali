@@ -36,7 +36,8 @@ message:
   add: '🪄 [italic green]Added 1 item.[/italic green]'
   no_edit: ':thinking_face: [italic yellow]Nothing to update.[/italic yellow]'
   edit: ':crystal_ball: [italic cyan]Updated {} {}.[/italic cyan]'
-  undo: ':hourglass_flowing_sand: [italic blue]Undid command `{}` with change:[/italic blue]'
+  undo: ':hourglass_flowing_sand: [italic blue]Command `{}` undone with change:[/italic blue]'
+  redo: ':hourglass_flowing_sand: [italic blue]Command `{}` redone with change:[/italic blue]'
 group:
   by: project
   format:
