@@ -6,6 +6,7 @@ from typing import get_args, Optional, List, Dict, Any, Tuple
 from box import Box
 
 from ..common import debug, warn, error
+from .result import AddResult, EditResult, ViewResult
 from .item import TodoItem, Status, Priority
 from .select import (
     FilterMixin, GroupMixin, SortMixin, FilterBy, FilterValue, GroupBy, SortBy)
@@ -28,7 +29,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         project: str = "inbox", tags: Optional[List[str]] = None,
         status: Status = "pending", priority: Priority = "normal",
         deadline: Optional[datetime] = None,
-    ) -> TodoItem:
+    ) -> AddResult:
         if tags is None:
             tags = []
         todo = TodoItem(self.next_id, title)
@@ -41,7 +42,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         todo.deadline = self.deadline(todo, deadline)
         self.todos.append(todo)
         self.next_id += 1
-        return todo
+        return AddResult(todo)
 
     def id(self, todo: TodoItem, id: int) -> int:
         return id
@@ -138,24 +139,41 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     def select(
         self, filters: Optional[Dict[FilterBy, FilterValue]],
         group_by: GroupBy = "id_range", sort_by: SortBy = "id_range",
-    ) -> Dict[Any, List[TodoItem]]:
+    ) -> ViewResult:
         todos = self.todos
         if filters is not None:
             todos = self.filter(todos, filters)
         gtodos = self.group(todos, group_by)
         for group, todos in gtodos.items():
             gtodos[group] = self.sort(todos, sort_by)
-        return gtodos
+        return ViewResult(gtodos, group_by, sort_by)
+
+    def _update_and_return(
+        self, before: List[TodoItem], after: List[TodoItem]
+    ) -> EditResult:
+        before_id_todos = {t.id: t for t in before}
+        after_id_todos = {t.id: t for t in after}
+        all_id_todos = {
+            t.id: t for t in self.todos if t.id not in before_id_todos}
+        all_id_todos |= after_id_todos
+        self.todos = list(sorted(all_id_todos.values(), key=lambda t: t.id))
+        updates = []
+        for b, a in zip(before, after):
+            if b != a:
+                updates.append((b, a))
+        before, after = zip(*updates) if updates else ([], [])
+        result = EditResult(before, after)
+        debug(f"Result: {result}")
+        return result
 
     def action(
         self, todos: List[TodoItem],
         actions: Optional[Dict[str, str | List[str]]],
-    ) -> List[TodoItem]:
+    ) -> EditResult:
         if actions is None:
-            return todos
-        id_todos = {t.id: t for t in todos}
-        new_id_todos = {}
-        for id, todo in copy.deepcopy(id_todos).items():
+            return EditResult(todos, todos)
+        after = copy.deepcopy(todos)
+        for todo in after:
             for action, value in actions.items():
                 try:
                     value = getattr(self, action)(todo, value)
@@ -164,12 +182,10 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                 else:
                     debug(f"Setting {action!r} to {value!r} for {todo.id}.")
                     setattr(todo, action, value)
-            if todo != id_todos[id]:
-                new_id_todos[id] = todo
-        all_todos = {t.id: t for t in self.todos} | new_id_todos
-        self.todos = list(sorted(all_todos.values(), key=lambda t: t.id))
-        return list(sorted(new_id_todos.values(), key=lambda t: t.id))
+        return self._update_and_return(todos, after)
 
-    def re_index(self) -> None:
-        for i, todo in enumerate(self.todos):
+    def re_index(self) -> EditResult:
+        after = copy.deepcopy(self.todos)
+        for i, todo in enumerate(after):
             todo.id = self.id(todo, i + 1)
+        return self._update_and_return(self.todos, after)

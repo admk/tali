@@ -10,6 +10,7 @@ select:
   default: null
   group_by: project
   sort_by: created_at
+  stats: true
 token:
   id_range: '..'
   status: ','
@@ -40,8 +41,8 @@ message:
   add: '🪄 [italic green]Added 1 item.[/italic green]'
   no_edit: ':thinking_face: [italic yellow]Nothing to update.[/italic yellow]'
   edit: ':crystal_ball: [italic cyan]Updated {} {}.[/italic cyan]'
-  undo: ':hourglass_flowing_sand: [italic blue]Command `{}` undone with change:[/italic blue]'
-  redo: ':hourglass_flowing_sand: [italic blue]Command `{}` redone with change:[/italic blue]'
+  undo: ':hourglass_flowing_sand: [italic blue]Commit `{}` undone with change:[/italic blue]'
+  redo: ':hourglass_flowing_sand: [italic blue]Commit `{}` redone with change:[/italic blue]'
 group:
   format:
     id_range: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'

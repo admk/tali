@@ -13,10 +13,10 @@ from rich.table import Table
 from ..common import strip_rich, rich_console
 from ..book.item import TodoItem, Status, Priority
 from ..book.select import GroupBy
-from .utils import (
-    shorten, timedelta_format, pluralize,
-    ActionResult, ViewResult, HistoryResult, CommitResult,
-    AddResult, EditResult)
+from ..book.result import (
+    ActionResult, ViewResult, AddResult, EditResult,
+    HistoryResult, SwitchResult)
+from .utils import shorten, timedelta_format, pluralize
 
 
 class Renderer:
@@ -228,7 +228,7 @@ class Renderer:
 
     def render_ViewResult(self, result: ViewResult) -> str:
         return self.render(
-            result.grouped_todos, result.group, result.show_all)
+            result.grouped_todos, result.group_by, self.config.select.stats)
 
     def render_AddResult(self, result: AddResult) -> str:
         return "\n".join(
@@ -258,11 +258,10 @@ class Renderer:
             table.add_row(dt, message)
         return table
 
-    def render_CommitResult(
-        self, result: CommitResult
+    def render_SwitchResult(
+        self, result: SwitchResult
     ) -> List[str | RenderableType]:
-        command, _, *updates = result.message.splitlines()
-        text = getattr(self.config.message, result.action).format(command)
-        text = textwrap.indent(text, "  ")
-        updates = textwrap.dedent("\n".join(updates))
-        return [text, Panel.fit(updates)]
+        inner = self.render_result(result.action_result)
+        format = getattr(self.config.message, result.action)
+        text: str = format.format(result.message)
+        return [text, Panel.fit(inner)]

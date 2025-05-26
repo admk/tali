@@ -1,13 +1,14 @@
 import re
 import os
 import json
-from typing import List, Dict
+from typing import List, Literal
 from datetime import datetime
 
-from git import InvalidGitRepositoryError, GitCommandError
+from git import InvalidGitRepositoryError, GitCommandError, Commit as GitCommit
 from git.repo import Repo
 
 from ..common import debug, error
+from .result import Commit, ActionResult, HistoryResult, SwitchResult
 from .item import TodoItem
 
 
@@ -30,58 +31,71 @@ def load(path: str) -> List[TodoItem]:
         return [TodoItem.from_dict(todo) for todo in json.load(f)]
 
 
-def checkout(path: str, commit_hash: str) -> Dict[str, str | datetime]:
+def to_commit(
+    commit: GitCommit
+) -> Commit:
+    message, _, *data = str(commit.message).split("\n")
+    action_result = ActionResult.from_dict(json.loads("\n".join(data)))
+    return Commit(
+        message, commit.hexsha, commit.committed_datetime,
+        commit.hexsha == commit.repo.head.commit.hexsha, action_result)
+
+
+def checkout(path: str, commit_hash: str) -> Commit:
     repo = _repo(path)
     c = repo.head.commit
-    info = {
-        "message": str(c.message),
-        "hexsha": c.hexsha,
-        "timestamp": c.committed_datetime,
-    }
     repo.git.checkout(commit_hash)
     debug(f"Checked out commit {commit_hash} in {path}")
-    return info
+    return to_commit(c)
 
 
-def undo(path: str) -> Dict[str, str | datetime]:
+def _undo_redo(
+    path: str, action: Literal["undo", "redo"]
+) -> SwitchResult:
     """Restore the previous version from git history."""
     repo = _repo(path)
-    commits = list(repo.iter_commits('main'))
+    commits = list(repo.iter_commits("main"))
+    before = repo.head.commit
     try:
-        index = commits.index(repo.head.commit)
+        index = commits.index(before)
     except ValueError:
         raise ValueError("Current HEAD commit not found in main branch.")
-    if index + 1 >= len(commits):
-        error("No history to undo.")
-    return checkout(path, commits[index + 1].hexsha)
+    if action == "undo":
+        if index + 1 >= len(commits):
+            error("No history to undo.")
+        index += 1
+        action_result = to_commit(before).action_result
+        message = str(before.message)
+    elif action == "redo":
+        if index == 0:
+            error("No history to redo.")
+        index -= 1
+        action_result = to_commit(commits[index]).action_result
+        message = str(commits[index].message)
+    else:
+        raise ValueError(f"Unknown action: {action}")
+    checkout(path, commits[index].hexsha)
+    result = SwitchResult(action, message, action_result)
+    debug(f"{action.capitalize()} result: {result}")
+    return result
 
 
-def redo(path: str) -> Dict[str, str | datetime]:
-    """Redo the last undone commit."""
-    repo = _repo(path)
-    commits = list(repo.iter_commits('main'))
-    try:
-        index = commits.index(repo.head.commit)
-    except ValueError:
-        raise ValueError("Current HEAD commit not found in main branch.")
-    if index == 0:
-        error("No history to redo.")
-    return checkout(path, commits[index - 1].hexsha)
+def undo(path: str) -> SwitchResult:
+    return _undo_redo(path, "undo")
 
 
-def history(path: str) -> List[Dict[str, str | datetime]]:
-    return [
-        {
-            "hash": c.hexsha,
-            "message": str(c.message),
-            "timestamp": c.committed_datetime,
-        } for c in _repo(path).iter_commits()
-    ]
+def redo(path: str) -> SwitchResult:
+    return _undo_redo(path, "redo")
+
+
+def history(path: str) -> HistoryResult:
+    return HistoryResult(
+        [to_commit(c) for c in _repo(path).iter_commits("main")])
 
 
 def save(
-    commit_message: str, todos: List[TodoItem], path: str,
-    backup: bool = True, indent: int = 4,
+    commit_message: str, todos: List[TodoItem], action_result: ActionResult,
+    path: str, backup: bool = True, indent: int = 4,
 ):
     """
     Save the list of todos to a file using git for version control.
@@ -101,7 +115,9 @@ def save(
         repo.git.checkout("-b", "main")
     try:
         repo.index.add(_MAIN_FILE)
-        if repo.is_dirty():
-            repo.index.commit(commit_message)
+        if not repo.is_dirty():
+            return
+        result = json.dumps(action_result.to_dict(), indent=indent)
+        repo.index.commit(commit_message + "\n\n" + result)
     except GitCommandError as e:
         error(f"Failed to commit changes: {e}")

@@ -19,11 +19,10 @@ from .common import (
     format_config, set_level, debug, warn, error, rich_console,
     os_env_swap, flatten)
 from .parser import CommandParser
-from .book import load, save, undo, redo, history, TaskBook
+from .book import (
+    load, save, undo, redo, history, TaskBook,
+    ActionResult, ViewResult, RequiresSave)
 from .render.cli import Renderer
-from .render.utils import (
-    ActionResult, ViewResult, HistoryResult, CommitResult,
-    AddResult, EditResult)
 
 
 class CLI:
@@ -178,37 +177,30 @@ class CLI:
         group = group or self.config.select.group_by
         sort = sort or self.config.select.sort_by
         if not action:
-            grouped_todos = book.select(selection, group, sort)  # type: ignore
-            return ViewResult(
-                grouped_todos, group, bool(not selection))  # type: ignore
+            return book.select(selection, group, sort)
         if selection is None:
             try:
                 title = action.pop("title")
             except KeyError:
                 error("Missing title.")
-            item = book.add(title, **action)  # type: ignore
-            return AddResult(item)
-        before_todos = book.select(selection)[None]
+            return book.add(title, **action)  # type: ignore
+        before_todos = book.select(selection).grouped_todos[None]
         if action.pop("editor", False):
             warn(f"Editor action is not supported yet.")
-        after_todos = book.action(before_todos, action)
-        ids = [todo.id for todo in after_todos]
-        before_todos = [todo for todo in before_todos if todo.id in ids]
-        return EditResult(before_todos, after_todos)
+        return book.action(before_todos, action)
 
     def history_action(
         self, db_path: str, action: Literal["undo", "redo"]
-    ) -> CommitResult:
+    ) -> ActionResult:
         func = undo if action == "undo" else redo
-        return CommitResult(action=action, **func(db_path))  # type: ignore
+        return func(db_path)
 
-    def history(self, db_path: str) -> HistoryResult:
-        return HistoryResult(history(db_path))
+    def history(self, db_path: str) -> ActionResult:
+        return history(db_path)
 
-    def re_index(self, book: TaskBook) -> EditResult:
+    def re_index(self, book: TaskBook) -> ActionResult:
         old_todos = copy.deepcopy(book.todos)
-        book.re_index()
-        return EditResult(old_todos, book.todos)
+        return book.re_index()
 
     def _print_result(self, result: ActionResult) -> Optional[str]:
         if self.args.json:
@@ -244,19 +236,14 @@ class CLI:
         todos = load(db_path)
         book = TaskBook(self.config, todos)
         if self.args.re_index:
-            result = self.re_index(book)
+            action_result = self.re_index(book)
         else:
-            result = self._process_action(book, self.command)
-        text = self._print_result(result)
-        if not isinstance(result, (AddResult, EditResult)):
+            action_result = self._process_action(book, self.command)
+        self._print_result(action_result)
+        if not isinstance(action_result, RequiresSave):
             return 0
-        message = [self.command, text]
-        if self._text_args:
-            args = f"\n  [bright_black]args: {self._text_args}[/bright_black]"
-            message.append(args)
-        message = "\n".join(message)
         save(
-            message, book.todos, db_path,
+            self.command, book.todos, action_result, db_path,
             self.config.file.backup, self.config.file.indent)
         return 0
 
