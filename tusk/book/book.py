@@ -5,7 +5,7 @@ from typing import get_args, Optional, List, Dict, Any, Tuple
 
 from box import Box
 
-from ..common import warn, error
+from ..common import debug, warn, error
 from .item import TodoItem, Status, Priority
 from .select import (
     FilterMixin, GroupMixin, SortMixin, FilterBy, FilterValue, GroupBy, SortBy)
@@ -28,11 +28,11 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         project: str = "inbox", tags: Optional[List[str]] = None,
         status: Status = "pending", priority: Priority = "normal",
         deadline: Optional[datetime] = None,
-        created_at: Optional[datetime] = None,
     ) -> TodoItem:
         if tags is None:
             tags = []
-        todo = TodoItem(self.next_id, title, description)
+        todo = TodoItem(self.next_id, title)
+        todo.description = self.description(todo, description)
         todo.project = self.project(todo, project)
         if tags:
             todo.tags = self.tags(todo, tags)
@@ -48,6 +48,15 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
 
     def title(self, todo: TodoItem, title: str) -> str:
         return title
+
+    def description(
+        self, todo: TodoItem, description: Optional[str]
+    ) -> Optional[str]:
+        if description:
+            description = description.strip()
+            if description:
+                return description
+        return None
 
     def status(self, todo: TodoItem, status: str) -> Status:
         if status:
@@ -153,6 +162,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                 except ValueError as e:
                     warn(e)
                 else:
+                    debug(f"Setting {action!r} to {value!r} for {todo.id}.")
                     setattr(todo, action, value)
             if todo != id_todos[id]:
                 new_id_todos[id] = todo

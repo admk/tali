@@ -16,7 +16,7 @@ tag = tag_token pm? tag_name
 deadline = deadline_token word
 status = status_token word?
 priority = priority_token word?
-description = description_token ws word (ws word)*
+description = description_token (ws word (ws word)*)?
 
 # literals
 word = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+"

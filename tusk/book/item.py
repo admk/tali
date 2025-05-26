@@ -11,6 +11,7 @@ Priority = Literal["high", "normal", "low"]
 class TodoItem:
     id: int
     title: str
+    description: Optional[str]
     project: str
     tags: List[str]
     status: Status
