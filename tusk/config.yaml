@@ -6,11 +6,11 @@ pager:
   enable: false
   command: null
   styles: true
-select:
+view:
   default: null
   group_by: project
   sort_by: created_at
-  stats: true
+  stats: all
 token:
   id_range: '..'
   status: ','
@@ -42,6 +42,8 @@ message:
   edit: ':crystal_ball: [italic cyan]Updated {} {}.[/italic cyan]'
   undo: ':hourglass_flowing_sand: [italic blue]Commit `{}` undone with change:[/italic blue]'
   redo: ':hourglass_flowing_sand: [italic blue]Commit `{}` redone with change:[/italic blue]'
+  undo_add: ':boom: [italic red]Removed 1 item[/italic red]'
+  undo_edit: '{.message.edit}'
 group:
   format:
     id_range: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'

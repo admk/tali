@@ -1,22 +1,24 @@
 import operator
-import textwrap
 import functools
 from datetime import date, datetime
-from typing import get_args, Optional, List, Dict, Any
+from typing import get_args, Optional, Any, List, Dict, Literal
 
 from box import Box
 from rich.panel import Panel
-from rich.console import RenderableType
+from rich.console import RenderableType, Group
 from rich.box import SIMPLE_HEAVY
 from rich.table import Table
 
-from ..common import strip_rich, rich_console
+from ..common import strip_rich
 from ..book.item import TodoItem, Status, Priority
 from ..book.select import GroupBy
 from ..book.result import (
     ActionResult, ViewResult, AddResult, EditResult,
     HistoryResult, SwitchResult)
 from .utils import shorten, timedelta_format, pluralize
+
+
+RenderStats = Literal[True, False, "all"]
 
 
 class Renderer:
@@ -46,7 +48,7 @@ class Renderer:
                 if isinstance(k, int) and progress * 100 <= k:
                     progress_format = v
             progress_str = progress_format.format(progress_str)
-            text.append(self.config.message.progress.format(progress_str))
+            text.append(self.config.stats.title.format(progress_str))
         stats_text = []
         for key, value in self.config.stats.status.items():
             stats_text.append(value.format(stats[key]))
@@ -215,6 +217,8 @@ class Renderer:
         if grouped_todos and render_stats:
             all_todos = functools.reduce(operator.add, grouped_todos.values())
             text.append(self.render_stats(all_todos))
+        else:
+            text = text[:-1]  # remove last empty line
         return "\n".join(text)
 
     def render_result(
@@ -227,8 +231,9 @@ class Renderer:
         return render_func(result)
 
     def render_ViewResult(self, result: ViewResult) -> str:
-        return self.render(
-            result.grouped_todos, result.group_by, self.config.select.stats)
+        render_stats = self.config.view.stats
+        render_stats = result.is_all if render_stats == "all" else render_stats
+        return self.render(result.grouped_todos, result.group_by, render_stats)
 
     def render_AddResult(self, result: AddResult) -> str:
         return "\n".join(
@@ -260,8 +265,27 @@ class Renderer:
 
     def render_SwitchResult(
         self, result: SwitchResult
-    ) -> List[str | RenderableType]:
-        inner = self.render_result(result.action_result)
+    ) -> List[RenderableType]:
         format = getattr(self.config.message, result.action)
-        text: str = format.format(result.message)
-        return [text, Panel.fit(inner)]
+        text = format.format(result.message)
+        ar = result.action_result
+        panel = []
+        if isinstance(ar, AddResult) and result.action == "undo":
+            after = TodoItem.from_dict(ar.item.to_dict())
+            after.status = "delete"
+            panel = [
+                self.config.message.undo_add, "",
+                self.render_item_diff(ar.item, after)]
+        if isinstance(ar, AddResult) and result.action == "redo":
+            panel = [
+                self.config.message.add, "",
+                self.render_item(ar.item)]
+        if isinstance(ar, EditResult):
+            message = self.config.message.undo_edit.format(
+                len(ar.after), pluralize('item', len(ar.after)))
+            panel = [message, ""]
+            for btodo, atodo in zip(ar.before, ar.after):
+                if result.action == "undo":
+                    btodo, atodo = atodo, btodo
+                panel.append(self.render_item_diff(btodo, atodo))
+        return [text, Panel.fit(Group(*panel))]

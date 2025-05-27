@@ -5,13 +5,13 @@ import json
 import yaml
 import shlex
 import argparse
-import textwrap
 import contextlib
-from typing import Literal, List, Optional
+from typing import Literal, List
 
 from box import Box
 from rich.pretty import pretty_repr
-from rich.console import RenderableType
+from rich.padding import Padding
+from rich.console import RenderableType, Group
 from rich_argparse import RichHelpFormatter
 
 from . import __name__ as _NAME, __version__, __description__
@@ -168,14 +168,14 @@ class CLI:
 
     def _process_action(self, book: TaskBook, command: str) -> ActionResult:
         if not command.strip():
-            command = self.config.select.default or ''
+            command = self.config.view.default or ''
         selection, group, sort, action = self.command_parser.parse(command)
         debug(f"Selection: {selection}")
         debug(f"Group: {group}")
         debug(f"Sort: {sort}")
         debug(f"Action: {action}")
-        group = group or self.config.select.group_by
-        sort = sort or self.config.select.sort_by
+        group = group or self.config.view.group_by
+        sort = sort or self.config.view.sort_by
         if not action:
             return book.select(selection, group, sort)
         if selection is None:
@@ -202,7 +202,7 @@ class CLI:
         old_todos = copy.deepcopy(book.todos)
         return book.re_index()
 
-    def _print_result(self, result: ActionResult) -> Optional[str]:
+    def _print_result(self, result: ActionResult):
         if self.args.json:
             dump = json.dumps(result.to_dict(), indent=self.config.file.indent)
             rich_console.print(dump)
@@ -219,8 +219,8 @@ class CLI:
         else:
             os_env = contextlib.nullcontext()
         with os_env, pager:
-            rich_console.print(*rendered, new_line_start=True)
-        return '\n'.join(r for r in rendered if isinstance(r, str))
+            rendered = Padding(Group(*rendered), (0, 0, 0, 2))
+            rich_console.print(rendered, new_line_start=True)
 
     def main(self) -> int:
         db_path = self._db_path()

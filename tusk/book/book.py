@@ -140,13 +140,14 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         self, filters: Optional[Dict[FilterBy, FilterValue]],
         group_by: GroupBy = "id_range", sort_by: SortBy = "id_range",
     ) -> ViewResult:
-        todos = self.todos
+        filtered_todos = self.todos
         if filters is not None:
-            todos = self.filter(todos, filters)
-        gtodos = self.group(todos, group_by)
+            filtered_todos = self.filter(self.todos, filters)
+        gtodos = self.group(filtered_todos, group_by)
         for group, todos in gtodos.items():
             gtodos[group] = self.sort(todos, sort_by)
-        return ViewResult(gtodos, group_by, sort_by)
+        is_all = len(filtered_todos) == len(self.todos)
+        return ViewResult(gtodos, group_by, sort_by, is_all)
 
     def _update_and_return(
         self, before: List[TodoItem], after: List[TodoItem]

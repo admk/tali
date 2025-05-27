@@ -62,6 +62,7 @@ class ViewResult(ActionResult):
     grouped_todos: Dict[GroupKey, List[TodoItem]]
     group_by: GroupBy
     sort_by: SortBy
+    is_all: bool
 
     def to_dict(self) -> dict:
         return {
@@ -72,6 +73,7 @@ class ViewResult(ActionResult):
             },
             "group_by": self.group_by,
             "sort_by": self.sort_by,
+            "is_all": self.is_all,
         }
 
 
@@ -141,6 +143,7 @@ class SwitchResult(ActionResult):
         return {
             "type": "SwitchResult",
             "action": self.action,
+            "message": self.message,
             "action_result": self.action_result.to_dict(),
         }
 

@@ -75,6 +75,7 @@ def _undo_redo(
     else:
         raise ValueError(f"Unknown action: {action}")
     checkout(path, commits[index].hexsha)
+    message = message.split("\n", 1)[0]
     result = SwitchResult(action, message, action_result)
     debug(f"{action.capitalize()} result: {result}")
     return result
