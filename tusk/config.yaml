@@ -12,7 +12,7 @@ view:
   sort_by: created_at
   stats: all
 token:
-  id_range: '..'
+  id: '..'
   status: ','
   separator: '.'
   project: '/'
@@ -20,6 +20,7 @@ token:
   priority: '!'
   deadline: '^'
   sort: '='
+  query: '?'
   description: ':'
   stdin: '-'
 alias:
@@ -46,13 +47,13 @@ message:
   undo_edit: '{.message.edit}'
 group:
   format:
-    id_range: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'
+    id: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'
     status: '{id}{title}{project}{tags}{priority}{deadline}{description}'
     project: '{id}{status}{title}{tags}{priority}{deadline}{description}'
     tag: '{id}{status}{title}{project}{priority}{deadline}{description}'
     priority: '{id}{status}{title}{project}{tags}{deadline}{description}'
     deadline: '{id}{status}{title}{project}{tags}{priority}{description}'
-    created_at: '{.group.format.id_range}'
+    created_at: '{.group.format.id}'
   header:
     format: '[bold]{group}[/bold] [bright_black]{progress}[/bright_black]'
     priority:
@@ -65,7 +66,7 @@ group:
       note: '[blue]{.item.status.format.note} note[/blue]'
       archive: '[bright_black]{.item.status.format.archive} archived[/bright_black]'
 item:
-  format: '{.group.format.id_range}'
+  format: '{.group.format.id}'
   id:
     format: '[bright_black]{:>4}.[/bright_black]'
   status:

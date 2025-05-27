@@ -2,6 +2,7 @@ from datetime import datetime
 from dataclasses import dataclass
 from typing import List, Dict, Literal
 
+from ..common import flatten
 from .item import TodoItem
 from .select import GroupBy, SortBy, GroupKey
 
@@ -64,6 +65,9 @@ class ViewResult(ActionResult):
     sort_by: SortBy
     is_all: bool
 
+    def flatten(self) -> List[TodoItem]:
+        return flatten(list(self.grouped_todos.values()))
+
     def to_dict(self) -> dict:
         return {
             "type": "ViewResult",
@@ -75,6 +79,12 @@ class ViewResult(ActionResult):
             "sort_by": self.sort_by,
             "is_all": self.is_all,
         }
+
+
+@dataclass
+class QueryResult(ActionResult):
+    keys: List[str]
+    values: List[List[str | datetime]]
 
 
 class RequiresSave:

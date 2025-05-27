@@ -46,14 +46,14 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def parse(self, text: str, pos: int = 0) -> Tuple[
         Optional[Dict[FilterBy, FilterValue]],
-        Optional[GroupBy], Optional[SortBy],
-        Optional[Dict[str, str | List[str]]],
+        Optional[GroupBy], Optional[SortBy], Optional[List[str]],
+        Optional[Dict[str, bool | str | List[str]]],
     ]:
         separator = self.config.token.separator
         if not text:
-            return None, None, None, None
+            return None, None, None, None, None
         if text == separator:
-            return None, None, None, {"editor": True}
+            return None, None, None, None, {"editor": True}
         if f" {separator} " in text:
             # filter and update
             commands = text.split(f" {separator} ")
@@ -76,45 +76,40 @@ class CommandParser(NodeVisitor, CommonMixin):
             selection = self._parse_mode("selection", text, pos)
             action = None
         if selection is not None:
-            group: Optional[GroupBy] = \
-                selection.pop("group", None)  # type: ignore
-            sort: Optional[SortBy] = \
-                selection.pop("sort", None)  # type: ignore
+            group = selection.pop("group", None)
+            sort = selection.pop("sort", None)
+            query = selection.pop("query", None)
         else:
-            group = sort = None
-        return selection, group, sort, action  # type: ignore
+            group = sort = query = None
+        return selection, group, sort, query, action  # type: ignore
 
     def _visit_chain(self, node, visited_children):
         item, items = visited_children
         items = [item] + [i for _, i in items]
         parsed = {}
+        kinds = {
+            "unique": [
+                "project", "status", "priority",
+                "group", "sort", "description"],
+            "list": ["ids", "tag", "deadline", "title", "query"],
+        }
         for item in items:
             if isinstance(item, tuple):
                 kind, value = item
             elif isinstance(item, str):
-                kind, value = "text", item
+                kind, value = "title", item
             else:
                 raise ValueError(f"Unknown item {item!r}.")
-            if kind == "ids":
-                parsed.setdefault("ids", []).extend(value)
-            elif kind == "project":
-                parsed["project"] = value
-            elif kind == "tag":
-                parsed.setdefault("tags", []).append(value)
-            elif kind == "status":
-                parsed["status"] = value
-            elif kind == "priority":
-                parsed["priority"] = value
-            elif kind == "deadline":
-                parsed.setdefault("deadline", []).append(value)
-            elif kind == "text":
-                parsed.setdefault("title", []).append(value)
-            elif kind == "group":
-                parsed["group"] = value
-            elif kind == "sort":
-                parsed["sort"] = value
-            elif kind == "description":
-                parsed["description"] = value
+            if kind in kinds["unique"]:
+                if kind in parsed:
+                    error(f"Duplicate {kind!r} in command.")
+                parsed[kind] = value
+            elif kind in kinds["list"]:
+                kind_list = parsed.setdefault(kind, [])
+                if isinstance(value, list):
+                    kind_list.extend(value)
+                else:
+                    kind_list.append(value)
             else:
                 raise ValueError(f"Unknown kind {kind!r}.")
         if "ids" in parsed:
@@ -127,6 +122,8 @@ class CommandParser(NodeVisitor, CommonMixin):
             except (ParseError, VisitationError) as e:
                 error(f"Invalid date time syntax. {e}")
             parsed["deadline"] = dt
+        if "tag" in parsed:
+            parsed["tags"] = parsed.pop("tag")
         return parsed
 
     def visit_action_chain(self, node, visited_children):
@@ -149,6 +146,17 @@ class CommandParser(NodeVisitor, CommonMixin):
                 del parsed[group]
                 parsed["group"] = group
         return parsed
+
+    def visit_query(self, node, visited_children):
+        name = node.children[1].children[0].expr_name
+        if name == "group":
+            query = visited_children[1][0][1]
+        elif name == "query_token":
+            query = "title"
+        else:
+            raise ParseError(
+                f"Unexpected query type: {node.children[1].expr_name}")
+        return "query", query
 
     def visit_group(self, node, visited_children):
         group = node.children[0].expr_name.replace("_token", "")

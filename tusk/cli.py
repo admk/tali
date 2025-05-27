@@ -185,15 +185,20 @@ class CLI:
     def _process_action(self, book: TaskBook, command: str) -> ActionResult:
         if not command.strip():
             command = self.config.view.default or ''
-        selection, group, sort, action = self.command_parser.parse(command)
+        selection, group, sort, query, action = \
+            self.command_parser.parse(command)
         debug(f"Selection: {selection}")
         debug(f"Group: {group}")
         debug(f"Sort: {sort}")
+        debug(f"Query: {query}")
         debug(f"Action: {action}")
         group = group or self.config.view.group_by
         sort = sort or self.config.view.sort_by
         if not action:
-            return book.select(selection, group, sort)
+            result = book.select(selection, group, sort)
+            if query:
+                result = book.query(result.flatten(), query)
+            return result
         if selection is None:
             try:
                 title = action.pop("title")

@@ -4,6 +4,7 @@ from typing import (
 
 from box import Box
 
+from ..common import error
 from ..book.item import TodoItem, Status, Priority
 
 
@@ -11,9 +12,9 @@ FilterBy = Literal[
     "title", "project", "tag", "status", "priority", "deadline", "created_at"]
 ActBy = Literal["add", "delete"] | FilterBy
 GroupBy = Literal[
-    "id_range", "project", "tag", "status", "priority", "deadline", "created_at"]
+    "id", "project", "tag", "status", "priority", "deadline", "created_at"]
 SortBy = Literal[
-    "id_range", "status", "title", "project", "tags", "priority",
+    "id", "status", "title", "project", "tags", "priority",
     "deadline", "created_at"]
 FilterValue = str | Tuple[datetime, datetime]
 GroupKey = Optional[str | datetime | date]
@@ -85,34 +86,34 @@ class FilterMixin(SelectMixin):
 
 
 class SortMixin(SelectMixin):
-    def sort_id_range(self, todo: TodoItem) -> int:
+    def sort_by_id(self, todo: TodoItem) -> int:
         return todo.id
 
-    def sort_status(self, todo: TodoItem) -> int:
+    def sort_by_status(self, todo: TodoItem) -> int:
         return list(self.config.group.header.status).index(todo.status)
 
-    def sort_title(self, todo: TodoItem) -> str:
+    def sort_by_title(self, todo: TodoItem) -> str:
         return todo.title
 
-    def sort_project(self, todo: TodoItem) -> str:
+    def sort_by_project(self, todo: TodoItem) -> str:
         return todo.project
 
-    def sort_tags(self, todo: TodoItem) -> Tuple[str, ...]:
+    def sort_by_tags(self, todo: TodoItem) -> Tuple[str, ...]:
         return tuple(sorted(todo.tags))
 
-    def sort_priority(self, todo: TodoItem) -> int:
+    def sort_by_priority(self, todo: TodoItem) -> int:
         return list(self.config.group.header.priority).index(todo.priority)
 
-    def sort_deadline(self, todo: TodoItem) -> datetime:
+    def sort_by_deadline(self, todo: TodoItem) -> datetime:
         return todo.deadline or datetime(9999, 12, 31)
 
-    def sort_created_at(self, todo: TodoItem) -> datetime:
+    def sort_by_created_at(self, todo: TodoItem) -> datetime:
         return todo.created_at
 
-    def sort(
+    def sort_by(
         self, todos: List[TodoItem], mode: SortBy,
     ) -> List[TodoItem]:
-        return sorted(todos, key=getattr(self, f"sort_{mode}"))
+        return sorted(todos, key=getattr(self, f"sort_by_{mode}"))
 
 
 class GroupMixin(SortMixin):
@@ -120,20 +121,20 @@ class GroupMixin(SortMixin):
         self, name: str
     ) -> Tuple[GroupFunc, Optional[SortFunc]]:
         gfunc = lambda todo: getattr(todo, name)
-        sfunc = getattr(self, f"sort_{name}")
+        sfunc = getattr(self, f"sort_by_{name}")
         return gfunc, sfunc
 
     def group_by_all(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         return lambda _: None, None
 
-    group_by_id_range = group_by_all
+    group_by_id = group_by_all
 
     def group_by_project(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         return self._group_by_value("project")
 
     def group_by_tag(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         gfunc = lambda todo: todo.tags if todo.tags else "_untagged"
-        return gfunc, self.sort_tags
+        return gfunc, self.sort_by_tags
 
     def group_by_status(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         return self._group_by_value("status")
@@ -165,7 +166,10 @@ class GroupMixin(SortMixin):
         sfunc = lambda todo: todo.created_at
         return gfunc, sfunc
 
-    def group(
+    def group_by_description(self):
+        error("Grouping by description is not supported.")
+
+    def group_by(
         self, todos: List[TodoItem], group_by: GroupBy,
     ) -> Dict[GroupKey, List[TodoItem]]:
         group_func, group_sort_func = getattr(self, f"group_by_{group_by}")()

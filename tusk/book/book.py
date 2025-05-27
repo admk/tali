@@ -6,7 +6,7 @@ from typing import get_args, Optional, List, Dict, Any, Tuple
 from box import Box
 
 from ..common import debug, warn, error
-from .result import AddResult, EditResult, ViewResult
+from .result import AddResult, EditResult, ViewResult, QueryResult
 from .item import TodoItem, Status, Priority
 from .select import (
     FilterMixin, GroupMixin, SortMixin, FilterBy, FilterValue, GroupBy, SortBy)
@@ -138,16 +138,22 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
 
     def select(
         self, filters: Optional[Dict[FilterBy, FilterValue]],
-        group_by: GroupBy = "id_range", sort_by: SortBy = "id_range",
+        group_by: GroupBy = "id", sort_by: SortBy = "id",
     ) -> ViewResult:
         filtered_todos = self.todos
         if filters is not None:
             filtered_todos = self.filter(self.todos, filters)
-        gtodos = self.group(filtered_todos, group_by)
+        gtodos = self.group_by(filtered_todos, group_by)
         for group, todos in gtodos.items():
-            gtodos[group] = self.sort(todos, sort_by)
+            gtodos[group] = self.sort_by(todos, sort_by)
         is_all = len(filtered_todos) == len(self.todos)
         return ViewResult(gtodos, group_by, sort_by, is_all)
+
+    def query(self, todos: List[TodoItem], query: List[str]) -> QueryResult:
+        values = []
+        for todo in todos:
+            values.append([getattr(todo, key) for key in query])
+        return QueryResult(query, values)
 
     def _update_and_return(
         self, before: List[TodoItem], after: List[TodoItem]
@@ -169,7 +175,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
 
     def action(
         self, todos: List[TodoItem],
-        actions: Optional[Dict[str, str | List[str]]],
+        actions: Optional[Dict[str, bool | str | List[str]]],
     ) -> EditResult:
         if actions is None:
             return EditResult(todos, todos)

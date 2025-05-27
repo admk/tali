@@ -13,7 +13,7 @@ from ..common import strip_rich
 from ..book.item import TodoItem, Status, Priority
 from ..book.select import GroupBy
 from ..book.result import (
-    ActionResult, ViewResult, AddResult, EditResult,
+    ActionResult, ViewResult, QueryResult, AddResult, EditResult,
     HistoryResult, SwitchResult)
 from .utils import shorten, timedelta_format, pluralize
 
@@ -139,7 +139,7 @@ class Renderer:
     def _render_header(
         self, group_by: GroupBy, value: Any
     ) -> str | None:
-        if group_by == "id_range":
+        if group_by == "id":
             return None
         if group_by == "project":
             return self._render_project(value)
@@ -169,7 +169,7 @@ class Renderer:
         return {k: " " + v if v else "" for k, v in fields.items()}
 
     def render_item(
-        self, todo: TodoItem, group_by: GroupBy = "id_range"
+        self, todo: TodoItem, group_by: GroupBy = "id"
     ) -> str:
         fields = self._render_fields(todo)
         format = self.config.group.format[group_by]
@@ -203,7 +203,7 @@ class Renderer:
         for group, gtodos in grouped_todos.items():
             if not gtodos:
                 continue
-            if group_by != "id_range":
+            if group_by != "id":
                 stats = self._get_stats(gtodos)
                 progress = f"[{stats['done']}/{len(gtodos)}]"
                 group = self._render_header(group_by, group)
@@ -234,6 +234,10 @@ class Renderer:
         render_stats = self.config.view.stats
         render_stats = result.is_all if render_stats == "all" else render_stats
         return self.render(result.grouped_todos, result.group_by, render_stats)
+
+    def render_QueryResult(self, result: QueryResult) -> str:
+        values = [", ".join([repr(v) for v in row]) for row in result.values]
+        return "\n".join(values)
 
     def render_AddResult(self, result: AddResult) -> str:
         return "\n".join(
