@@ -34,8 +34,10 @@ class FilterMixin(SelectMixin):
 
     def filter_by_project(self, todos, project: str) -> bool:
         separator = self.config.token.project
-        todo_splits = todos.project.split(separator)
         splits = project.split(separator)
+        todo_splits = todos.project.split(separator)
+        suffix_len = max(len(splits) - len(todo_splits), 0)
+        todo_splits += [None] * suffix_len
         return all(p == q for p, q in zip(splits, todo_splits))
 
     def filter_by_tags(self, todo: TodoItem, tags: List[str]) -> bool:
