@@ -1,4 +1,6 @@
 import os
+from os.path import basename
+import re
 import sys
 import copy
 import json
@@ -6,7 +8,7 @@ import yaml
 import shlex
 import argparse
 import contextlib
-from typing import Literal, List
+from typing import Literal, Optional, List
 
 from box import Box
 from rich.pretty import pretty_repr
@@ -47,22 +49,22 @@ class CLI:
                 `~/.config/{_NAME}/config.toml`.
                 """
         },
-        ('-db', '--db-path'): {
+        ('-db', '--db-dir'): {
             'type': str,
             'default': None,
             'help':
                 f"""
-                The database to use.
+                The database folder to use.
                 If unspecified,
                 it will search in the following order:
 
-                1. The `.tusk` directory located
+                1. The `.tusk/` directory located
                 in the nearest ancestral folder
                 relative to the current working directory.
-                2. The path specified by `config.db_path`
+                2. The path specified by `config.db_dir`
                     in the configuration file.
-                3. `$XDG_DATA_HOME/{_NAME}/book.json`.
-                4. `~/.config/{_NAME}/book.json`.
+                3. `$XDG_DATA_HOME/{_NAME}/book/`.
+                4. `~/.config/{_NAME}/book/`.
                 """,
         },
         ('-j', '--json'): {
@@ -99,7 +101,7 @@ class CLI:
         else:
             set_level("INFO")
         self.config = self._init_config()
-        debug(f"Config: {pretty_repr(self.config.to_dict())}")
+        debug(f"Resolved config: {pretty_repr(self.config.to_dict())}")
         # command = [shlex.quote(a) if " " in a else a for a in self.args.command]
         command = []
         for a in self.args.command:
@@ -124,47 +126,61 @@ class CLI:
             default=None, help='Command to run.')
         return parser
 
-    def _xdg_path(
-        self, key: Literal["data", "config"]
-    ) -> str:
-        if key == "data":
-            folder = os.environ.get("XDG_DATA_HOME", "~/.local/share")
-        elif key == "config":
-            folder = os.environ.get("XDG_CONFIG_HOME", "~/.config")
-        else:
-            raise ValueError(f"Invalid key: {key}")
-        return os.path.join(folder, _NAME)
-
-    def _db_path(self) -> str:
-        db_path = self.args.db_path
-        if db_path:
-            return db_path
+    def _project_root(self, name: Optional[str] = None) -> Optional[str]:
         cwd = os.getcwd()
         while True:
-            db_path = os.path.join(cwd, ".tusk")
-            if os.path.exists(db_path):
-                return db_path
+            path = os.path.join(cwd, ".tusk")
+            if os.path.exists(path):
+                return os.path.join(path, name) if name is not None else path
             cwd = os.path.dirname(cwd)
             if cwd == "/":
                 break
-        if self.config.file.db is not None:
-            return db_path
-        return os.path.join(self._xdg_path("data"), "book")
+        return None
+
+    def _config_paths(self) -> List[str]:
+        base_name = "config.yaml"
+        default_file = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), base_name)
+        xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "~/.config")
+        xdg_file = os.path.join(xdg_config_home, _NAME, base_name)
+        root_file = self._project_root(base_name)
+        paths = [default_file, xdg_file, root_file, self.args.rc_file]
+        return [p for p in paths if p is not None and os.path.exists(p)]
 
     def _init_config(self) -> Box:
-        if self.args.rc_file:
-            rc_file = self.args.rc_file
-        else:
-            rc_file = os.path.join(self._xdg_path("config"), "config.yaml")
-        default_rc_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "config.yaml")
-        with open(default_rc_file, "r") as f:
-            config = Box(yaml.safe_load(f), box_dots=True)
-        rc_file = rc_file if os.path.exists(rc_file) else None
-        if rc_file:
-            with open(rc_file, "r") as f:
-                config.merge_update(yaml.safe_load(f))
+        config: Optional[Box] = None
+        for path in self._config_paths():
+            with open(path, "r") as f:
+                try:
+                    d = yaml.safe_load(f)
+                    debug(f"Loaded config from {path!r}.")
+                except yaml.YAMLError as e:
+                    error(f"Error parsing config file {path!r}: {e}")
+            if config is None:
+                config = Box(d, box_dots=True)
+            else:
+                config.merge_update(d)
+        if config is None:
+            error("No config file found.")
         return format_config(config)
+
+    def _data_dir(self) -> str:
+        xdg_data_home = os.environ.get("XDG_DATA_HOME", "~/.local/share")
+        xdg_dir = os.path.join(xdg_data_home, _NAME)
+        paths = [
+            self.args.db_dir, self.config.file.db,
+            self._project_root(), xdg_dir]
+        paths = [p for p in paths if p is not None and os.path.exists(p)]
+        if not paths:
+            warn(
+                'No database directory found. '
+                f'Creating a new one at {xdg_dir!r}.')
+        if len(paths) > 1:
+            debug(
+                'Multiple database directories found '
+                f'with precedence: {paths!r}.')
+        debug(f"Using database directory: {paths[0]!r}")
+        return paths[0]
 
     def _process_action(self, book: TaskBook, command: str) -> ActionResult:
         if not command.strip():
@@ -190,16 +206,15 @@ class CLI:
         return book.action(before_todos, action)
 
     def history_action(
-        self, db_path: str, action: Literal["undo", "redo"]
+        self, db_dir: str, action: Literal["undo", "redo"]
     ) -> ActionResult:
         func = undo if action == "undo" else redo
-        return func(db_path)
+        return func(db_dir)
 
-    def history(self, db_path: str) -> ActionResult:
-        return history(db_path)
+    def history(self, db_dir: str) -> ActionResult:
+        return history(db_dir)
 
     def re_index(self, book: TaskBook) -> ActionResult:
-        old_todos = copy.deepcopy(book.todos)
         return book.re_index()
 
     def _print_result(self, result: ActionResult):
@@ -223,17 +238,17 @@ class CLI:
             rich_console.print(rendered, new_line_start=True)
 
     def main(self) -> int:
-        db_path = self._db_path()
+        db_dir = self._data_dir()
         if self.args.undo or self.args.redo:
             if self.args.undo and self.args.redo:
                 error("Cannot use both --undo and --redo at the same time.")
             action = "undo" if self.args.undo else "redo"
-            self._print_result(self.history_action(db_path, action))
+            self._print_result(self.history_action(db_dir, action))
             return 0
         if self.args.history:
-            self._print_result(self.history(db_path))
+            self._print_result(self.history(db_dir))
             return 0
-        todos = load(db_path)
+        todos = load(db_dir)
         book = TaskBook(self.config, todos)
         if self.args.re_index:
             action_result = self.re_index(book)
@@ -243,7 +258,7 @@ class CLI:
         if not isinstance(action_result, RequiresSave):
             return 0
         save(
-            self.command, book.todos, action_result, db_path,
+            self.command, book.todos, action_result, db_dir,
             self.config.file.backup, self.config.file.indent)
         return 0
 
