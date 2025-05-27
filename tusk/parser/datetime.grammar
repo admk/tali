@@ -10,7 +10,7 @@ relative_datetime = pm count_unit+
 count_unit = ordinal? unit "s"?
 
 end_date = ordinal? end "s"?
-end = unit / weekday / month
+end = weekday / month / unit
 
 named_date = "today" / "tomorrow" / "oo" / "+oo" / "-oo"
 
