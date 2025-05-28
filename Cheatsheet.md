@@ -6,7 +6,7 @@
 ```bash
 tusk . Buy milk /grocery                      # Basic task
 tusk . "Team meeting" /work @meeting ^fri ,n  # Note with tag and deadline
-tusk . Fix bug! /dev @urgent ^2h              # High-priority task, due 2 hours from now
+tusk . Fix bug! /dev @urgent ^+2h             # High-priority task, due 2 hours from now
 ```
 - **`.`** separates selection from action,
   empty selection means we are modifying a new task.
@@ -57,7 +57,7 @@ tusk 1 . ^mon             # Next Monday
 tusk 1 . ^2tue            # Tuesday after next
 tusk 1 . ^today           # Due today
 tusk 1 . "^tomorrow 8pm"  # Due tomorrow at 8 PM
-tusk 1 . ^never           # Remove deadline
+tusk 1 . ^oo              # Remove deadline
 tusk 1 . ^"25-8-5 9:00"   # Set specific date and time
 ```
 
@@ -70,15 +70,16 @@ tusk ,done . ,x   # Delete all done tasks
 ### **5. Filter & Search**
 #### **Basic Filters**
 ```bash
-tusk 1..5       # Show tasks 1-5
-tusk /work      # Tasks in "work" project
-tusk @meeting   # Tasks with "@meeting" tag
-tusk !high      # High-priority tasks
-tusk ,pending   # Pending tasks
-tusk ^today     # Due today
-tusk ^w         # Due by the end of this week
-tusk ^+1d       # Due in 24 hours
-tusk ^-1d ^oo   # Due 24 hours ago or later
+tusk 1..5                 # Show tasks 1-5
+tusk /work                # Tasks in "work" project
+tusk @meeting             # Tasks with "@meeting" tag
+tusk !high                # High-priority tasks
+tusk ,pending             # Pending tasks
+tusk ^today               # Due today
+tusk ^w                   # Due by the end of this week
+tusk ^+1d                 # Due in 24 hours
+tusk ^-1d ^oo             # Due 24 hours ago or later
+tusk /work !high ^today   # High-priority work tasks due today
 ```
 #### **Grouping/Sorting**
 ```bash
@@ -91,16 +92,17 @@ tusk =@   # Sort by tag names
 tusk =!   # Sort by priorities
 tusk =^   # Sort by deadlines
 ```
-#### **Advanced Search**
+#### **Advanced Queries**
 ```bash
-tusk /work !high ^today           # High-priority work tasks due today
+tusk 1..5 ?,      # Query the status of tasks with IDs 1 to 5
+tusk !high ?@ ?/  # Query tags and projects of high-priority tasks
 ```
 
 ### **6. Edit Multiple Tasks**
 ```bash
 tusk 1 3 4 6..9 . ,done       # Mark multiple tasks done
 tusk /home . !high            # Set all "home" tasks to high priority
-tusk /old . /new              # Rename project
+tusk /old . /neo              # Rename project
 tusk 1..4 @old . @-old @+new  # Replace @old tag with @new for tasks 1-4 with title starting with "fix" and has tag "@old"
 tusk 2..5 . ,x                # delete tasks 2-5
 ```
@@ -118,4 +120,5 @@ tusk 2..5 . ,x                # delete tasks 2-5
 | `!`    | Priority  | `!high`         |
 | `,x`   | Delete    | `,done . ,x`    |
 | `=`    | Sort-by   | `=/`            |
+| `?`    | Query     | `?:`            |
 

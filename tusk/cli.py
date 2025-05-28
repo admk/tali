@@ -246,7 +246,7 @@ class CLI:
         with os_env, pager:
             rendered = Group(*rendered)
             if not isinstance(result, QueryResult):
-                rendered = Padding(rendered, (1, 0, 0, 2))
+                rendered = Padding(rendered, (1, 0, 0, 2), expand=False)
             rich_console.print(rendered, soft_wrap=True)
 
     def main(self) -> int:

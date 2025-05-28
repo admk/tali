@@ -19,7 +19,7 @@ class CheatSheet:
         "query": ("Query attributes of the item", "{query}{tag}"),
         "description": (
             "Description of the item",
-            "{description} A detailed description."),
+            "1 {separator} {description} detailed description."),
         "stdin": ("Reads from stdin and replace", "{stdin}"),
     }
 

@@ -58,7 +58,7 @@ class Renderer:
 
     def _render_id(self, id: int) -> Optional[str]:
         if self.idempotent:
-            return f"..{id}"
+            return f"{id} {self.config.token.separator}"
         return self.config.item.id.format.format(id)
 
     def _render_status(

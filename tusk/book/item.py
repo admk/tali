@@ -43,6 +43,10 @@ class TodoItem:
         attrs = " ".join(f"{k}={v}" for k, v in self.to_dict().items())
         return f"<{self.__class__.__name__} {attrs}>"
 
+    @property
+    def tag(self) -> List[str]:
+        return self.tags
+
     @staticmethod
     def _datetime_to_str(dt: Optional[datetime]) -> Optional[str]:
         return f"{dt:%Y-%m-%dT%H:%M:%S}" if dt else None
