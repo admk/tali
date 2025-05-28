@@ -1,11 +1,11 @@
 # search & action
 selection_chain = selection (ws selection)*
-selection = shared / sort / group / query / word
+selection = task_range / shared / sort / group / query / word
 action_chain = action (ws action)*
 action = description / shared / word
 
 # components
-shared = task_range / project / tag / priority / status / deadline
+shared = project / tag / priority / status / deadline
 query = query_token (group / query_token)
 sort = sort_token group
 group =
