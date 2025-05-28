@@ -82,6 +82,7 @@ item:
       priority_high: '[bold magenta]{}[/bold magenta]'
       priority_low: '[bright_black]{}[/bright_black]'
     max_length: 0
+    ellipsis: …
   tag:
     format:
       _: '[blue]{.token.tag}[underline]{}[/underline][/blue]'
@@ -112,6 +113,7 @@ item:
   description:
     format: '[italic bright_black]{}[/italic bright_black]'
     max_length: 30
+    ellipsis: …
   diff:
     format: '[bold red]{{[/bold red][strike bright_black]{}[/strike bright_black] [bold]→[/bold] {}[bold red]}}[/bold red]'
 stats:

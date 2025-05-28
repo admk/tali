@@ -22,9 +22,10 @@ RenderStats = Literal[True, False, "all"]
 
 
 class Renderer:
-    def __init__(self, config: Box):
+    def __init__(self, config: Box, idempotent: bool = False):
         super().__init__()
         self.config = config
+        self.idempotent = idempotent
 
     def _get_stats(self, todos: List[TodoItem]):
         stats = {}
@@ -56,6 +57,8 @@ class Renderer:
         return "\n".join(text)
 
     def _render_id(self, id: int) -> Optional[str]:
+        if self.idempotent:
+            return f"..{id}"
         return self.config.item.id.format.format(id)
 
     def _render_status(
@@ -63,13 +66,18 @@ class Renderer:
     ) -> Optional[str]:
         if header:
             return self.config.group.header.status[status]
+        if self.idempotent:
+            return f"{self.config.token.status}{status}"
         return self.config.item.status.format[status]
 
     def _render_title(self, todo: TodoItem) -> Optional[str]:
         title = todo.title
         for token in self.config.token.values():
             title = title.replace(f'\\{token}', token)
-        title = shorten(title, self.config.item.title.max_length)
+        style = self.config.item.title
+        if self.idempotent:
+            return repr(title)
+        title = shorten(title, style.max_length, style.ellipsis)
         for k, v in self.config.item.title.format.items():
             p, q = k.split("_")
             if getattr(todo, p) == q:
@@ -81,6 +89,8 @@ class Renderer:
         tag_formats = self.config.item.tag.format
         for tag in tags:
             key = tag if tag in tag_formats else "_"
+            if self.idempotent:
+                tag = "+" + tag
             text = tag_formats[key].format(tag)
             new_tags.append(text)
         return " ".join([tag for tag in new_tags])
@@ -93,6 +103,8 @@ class Renderer:
     ) -> Optional[str]:
         if header:
             return self.config.group.header.priority[priority]
+        if self.idempotent:
+            return f"{self.config.token.priority}{priority}"
         return self.config.item.priority.format[priority]
 
     def _render_deadline(
@@ -107,6 +119,8 @@ class Renderer:
             return self.config.item.deadline.format[0].format(f"{prefix}-oo")
         if isinstance(deadline, date):
             deadline = datetime.combine(deadline, datetime.max.time())
+        if self.idempotent:
+            return f"{prefix}{deadline:\"%Y-%m-%d %H:%M\"}"
         remaining_time = deadline - datetime.now()
         seconds = abs(remaining_time.total_seconds())
         if abs(seconds) < 365 * 24 * 60 * 60:  # one year
@@ -133,7 +147,10 @@ class Renderer:
     def _render_description(self, description: Optional[str]) -> Optional[str]:
         if description is None:
             return None
-        desc = shorten(description, self.config.item.description.max_length)
+        if self.idempotent:
+            return f"{self.config.token.description} {description}"
+        style = self.config.item.description
+        desc = shorten(description, style.max_length, style.ellipsis)
         return self.config.item.description.format.format(desc)
 
     def _render_header(

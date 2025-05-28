@@ -2,11 +2,11 @@ from datetime import timedelta
 from typing import Optional, Dict
 
 
-def shorten(text: str, max_len: int) -> str:
+def shorten(text: str, max_len: int, ellipsis: str = '…') -> str:
     if max_len <= 0:
         return text
     if len(text) > max_len:
-        return f"{text[:max_len]}…"
+        return f"{text[:max_len - len(ellipsis)]}{ellipsis}"
     return text
 
 

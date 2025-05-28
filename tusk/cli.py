@@ -72,6 +72,10 @@ class CLI:
             'action': 'store_true',
             'help': 'Output the result in JSON format. '
         },
+        ('-i', '--idempotent'): {
+            'action': 'store_true',
+            'help': 'Render output in idempotent format. '
+        },
         ('-u', '--undo'): {
             'action': 'store_true',
             'help': 'Undo the last run.'
@@ -101,6 +105,7 @@ class CLI:
             set_level("DEBUG")
         else:
             set_level("INFO")
+        debug(self.args)
         self.config = self._init_config()
         # debug(f"Resolved config: {pretty_repr(self.config.to_dict())}")
         command = []
@@ -111,7 +116,7 @@ class CLI:
         self.command = " ".join(command).strip()
         debug(f"Command: {self.command!r}")
         self.command_parser = CommandParser(self.config)
-        self.renderer = Renderer(self.config)
+        self.renderer = Renderer(self.config, self.args.idempotent)
 
     def _create_parser(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
@@ -191,6 +196,8 @@ class CLI:
         debug(f"Query: {query}")
         debug(f"Action: {action}")
         group = group or self.config.view.group_by
+        if self.args.idempotent:
+            group = "id"
         sort = sort or self.config.view.sort_by
         if not action:
             result = book.select(selection, group, sort)
