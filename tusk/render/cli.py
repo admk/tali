@@ -236,7 +236,7 @@ class Renderer:
         return self.render(result.grouped_todos, result.group_by, render_stats)
 
     def render_QueryResult(self, result: QueryResult) -> str:
-        values = [", ".join([repr(v) for v in row]) for row in result.values]
+        values = [", ".join([str(v) for v in row]) for row in result.values]
         return "\n".join(values)
 
     def render_AddResult(self, result: AddResult) -> str:

@@ -86,6 +86,14 @@ class QueryResult(ActionResult):
     keys: List[str]
     values: List[List[str | datetime]]
 
+    def to_dict(self) -> dict:
+        return {
+            "keys": self.keys,
+            "values": [
+                v.isoformat() if isinstance(v, datetime) else v
+                for v in self.values],
+        }
+
 
 class RequiresSave:
     pass

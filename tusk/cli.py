@@ -11,7 +11,6 @@ import contextlib
 from typing import Literal, Optional, List
 
 from box import Box
-from rich.pretty import pretty_repr
 from rich.padding import Padding
 from rich.console import RenderableType, Group
 from rich_argparse import RichHelpFormatter
@@ -23,7 +22,7 @@ from .common import (
 from .parser import CommandParser
 from .book import (
     load, save, undo, redo, history, TaskBook,
-    ActionResult, ViewResult, RequiresSave)
+    ActionResult, ViewResult, QueryResult, RequiresSave)
 from .render.cli import Renderer
 
 
@@ -238,8 +237,10 @@ class CLI:
         else:
             os_env = contextlib.nullcontext()
         with os_env, pager:
-            rendered = Padding(Group(*rendered), (0, 0, 0, 2))
-            rich_console.print(rendered, new_line_start=True)
+            rendered = Group(*rendered)
+            if not isinstance(result, QueryResult):
+                rendered = Padding(rendered, (1, 0, 0, 2))
+            rich_console.print(rendered, soft_wrap=True)
 
     def main(self) -> int:
         db_dir = self._data_dir()
