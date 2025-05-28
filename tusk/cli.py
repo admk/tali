@@ -260,9 +260,12 @@ class CLI:
         except subprocess.CalledProcessError as e:
             error(f"Editor command failed: {e}")
         with open(temp_path, "r") as temp_file:
-            edited = temp_file.read()
+            edited = temp_file.read().strip().rstrip("\n")
         os.unlink(temp_path)
-        return [c.strip() for c in edited.splitlines() if c.strip()]
+        before = [b.strip() for b in text.strip().rstrip("\n").splitlines()]
+        edited = [e.strip() for e in edited.splitlines() if e.strip()]
+        edited = [e for e in edited if e not in before]
+        return edited
 
     def history_action(
         self, db_dir: str, action: Literal["undo", "redo"]
