@@ -199,7 +199,7 @@ class Renderer:
     ) -> str:
         text = []
         if not grouped_todos:
-            text.append(self.config.message.empty)
+            return self.config.message.empty
         for group, gtodos in grouped_todos.items():
             if not gtodos:
                 continue
