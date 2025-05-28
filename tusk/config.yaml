@@ -35,7 +35,6 @@ alias:
     h: high
     n: normal
     l: low
-    i: ignore
 message:
   empty: ':dizzy: [italic yellow]Nothing to show.[/italic yellow]'
   add: '🪄 [italic green]Added 1 item.[/italic green]'
