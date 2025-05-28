@@ -1,7 +1,7 @@
 import copy
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from typing import get_args, Optional, List, Dict, Any, Tuple
+from typing import get_args, Optional, Literal, List, Dict, Tuple
 
 from box import Box
 
@@ -42,7 +42,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         todo.deadline = self.deadline(todo, deadline)
         self.todos.append(todo)
         self.next_id += 1
-        return AddResult(todo)
+        return AddResult([todo])
 
     def id(self, todo: TodoItem, id: int) -> int:
         return id
@@ -175,7 +175,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
 
     def action(
         self, todos: List[TodoItem],
-        actions: Optional[Dict[str, bool | str | List[str]]],
+        actions: Optional[Dict[str, Literal["editor"] | str | List[str]]],
     ) -> EditResult:
         if actions is None:
             return EditResult(todos, todos)

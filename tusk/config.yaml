@@ -11,6 +11,8 @@ view:
   group_by: project
   sort_by: created_at
   stats: all
+action:
+  editor: null
 token:
   id: '..'
   status: ','

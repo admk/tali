@@ -39,7 +39,7 @@ class Commit:
     hexsha: str
     timestamp: datetime
     is_head: bool
-    action_result: ActionResult
+    action_results: List[ActionResult]
 
     def to_dict(self) -> dict:
         return {
@@ -47,7 +47,7 @@ class Commit:
             "hexsha": self.hexsha,
             "timestamp": self.timestamp.isoformat(),
             "is_head": self.is_head,
-            "action_result": self.action_result.to_dict(),
+            "action_results": [ar.to_dict() for ar in self.action_results],
         }
 
     @classmethod
@@ -55,7 +55,7 @@ class Commit:
         return cls(
             data["message"], data["hexsha"],
             datetime.fromisoformat(data["timestamp"]), data["is_head"],
-            ActionResult.from_dict(data["action_result"]))
+            [ActionResult.from_dict(ar) for ar in data["action_results"]])
 
 
 @dataclass
@@ -101,17 +101,17 @@ class RequiresSave:
 
 @dataclass
 class AddResult(ActionResult, RequiresSave):
-    item: TodoItem
+    items: List[TodoItem]
 
     def to_dict(self) -> dict:
         return {
             "type": "AddResult",
-            "item": self.item.to_dict(),
+            "items": self._todos_to_list(self.items),
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "AddResult":
-        return cls(TodoItem.from_dict(data["item"]))
+        return cls(cls._todos_from_list(data["items"]))
 
 
 @dataclass
@@ -155,17 +155,17 @@ SwitchAction = Literal["undo", "redo"]
 class SwitchResult(ActionResult):
     action: SwitchAction
     message: str
-    action_result: ActionResult
+    action_results: List[ActionResult]
 
     def to_dict(self) -> dict:
         return {
             "type": "SwitchResult",
             "action": self.action,
             "message": self.message,
-            "action_result": self.action_result.to_dict(),
+            "action_results": [ar.to_dict() for ar in self.action_results],
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "SwitchResult":
-        result = ActionResult.from_dict(data["action_result"])
-        return cls(data["action"], data["message"], result)
+        results = [ActionResult.from_dict(ar) for ar in data["action_results"]]
+        return cls(data["action"], data["message"], results)

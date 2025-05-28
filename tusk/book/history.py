@@ -35,10 +35,11 @@ def to_commit(
     commit: GitCommit
 ) -> Commit:
     message, _, *data = str(commit.message).split("\n")
-    action_result = ActionResult.from_dict(json.loads("\n".join(data)))
+    data = json.loads("\n".join(data))
+    action_results = [ActionResult.from_dict(d) for d in data]
     return Commit(
         message, commit.hexsha, commit.committed_datetime,
-        commit.hexsha == commit.repo.head.commit.hexsha, action_result)
+        commit.hexsha == commit.repo.head.commit.hexsha, action_results)
 
 
 def checkout(path: str, commit_hash: str) -> Commit:
@@ -64,19 +65,19 @@ def _undo_redo(
         if index + 1 >= len(commits):
             error("No history to undo.")
         index += 1
-        action_result = to_commit(before).action_result
+        action_results = to_commit(before).action_results
         message = str(before.message)
     elif action == "redo":
         if index == 0:
             error("No history to redo.")
         index -= 1
-        action_result = to_commit(commits[index]).action_result
+        action_results = to_commit(commits[index]).action_results
         message = str(commits[index].message)
     else:
         raise ValueError(f"Unknown action: {action}")
     checkout(path, commits[index].hexsha)
     message = message.split("\n", 1)[0]
-    result = SwitchResult(action, message, action_result)
+    result = SwitchResult(action, message, action_results)
     debug(f"{action.capitalize()} result: {result}")
     return result
 
@@ -95,13 +96,15 @@ def history(path: str) -> HistoryResult:
 
 
 def save(
-    commit_message: str, todos: List[TodoItem], action_result: ActionResult,
+    commit_message: str, todos: List[TodoItem],
+    action_results: List[ActionResult],
     path: str, backup: bool = True, indent: int = 4,
 ):
     """
     Save the list of todos to a file using git for version control.
     Commits changes if backup is enabled and we're at HEAD.
     """
+    debug(f"Saving todos to {path} with commit message: {commit_message}")
     repo = _repo(path)
     main_file = os.path.join(path, _MAIN_FILE)
     with open(main_file, "w") as f:
@@ -118,7 +121,8 @@ def save(
         repo.index.add(_MAIN_FILE)
         if not repo.is_dirty():
             return
-        result = json.dumps(action_result.to_dict(), indent=indent)
+        result = json.dumps(
+            [ar.to_dict() for ar in action_results], indent=indent)
         repo.index.commit(commit_message + "\n\n" + result)
     except GitCommandError as e:
         error(f"Failed to commit changes: {e}")

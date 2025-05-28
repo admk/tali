@@ -1,3 +1,4 @@
+import copy
 import operator
 import functools
 from datetime import date, datetime
@@ -212,8 +213,12 @@ class Renderer:
 
     def render(
         self, grouped_todos: Dict[Any, List[TodoItem]],
-        group_by: GroupBy, render_stats: bool = True
+        group_by: GroupBy, render_stats: bool = True,
+        idempotent: Optional[bool] = None
     ) -> str:
+        old_idempotent = self.idempotent
+        if idempotent is not None:
+            self.idempotent = idempotent
         text = []
         if not grouped_todos:
             return self.config.message.empty
@@ -231,16 +236,18 @@ class Renderer:
                 item = f"{self.render_item(todo, group_by)}"
                 text.append(item)
             text.append("")
-        if grouped_todos and render_stats:
+        if grouped_todos and render_stats and not self.idempotent:
             all_todos = functools.reduce(operator.add, grouped_todos.values())
             text.append(self.render_stats(all_todos))
         else:
             text = text[:-1]  # remove last empty line
+        if idempotent is not None:
+            self.idempotent = old_idempotent
         return "\n".join(text)
 
     def render_result(
         self, result: ActionResult
-    ) -> str | RenderableType | List[str | RenderableType]:
+    ) -> RenderableType | List[RenderableType]:
         try:
             render_func = getattr(self, f"render_{type(result).__name__}")
         except AttributeError:
@@ -257,8 +264,8 @@ class Renderer:
         return "\n".join(values)
 
     def render_AddResult(self, result: AddResult) -> str:
-        return "\n".join(
-            [self.config.message.add, "", self.render_item(result.item)])
+        items = [self.render_item(item) for item in result.items]
+        return "\n".join([self.config.message.add, ""] + items)
 
     def render_EditResult(self, result: EditResult) -> str:
         if not result.after:
@@ -289,24 +296,25 @@ class Renderer:
     ) -> List[RenderableType]:
         format = getattr(self.config.message, result.action)
         text = format.format(result.message)
-        ar = result.action_result
-        panel = []
-        if isinstance(ar, AddResult) and result.action == "undo":
-            after = TodoItem.from_dict(ar.item.to_dict())
-            after.status = "delete"
-            panel = [
-                self.config.message.undo_add, "",
-                self.render_item_diff(ar.item, after)]
-        if isinstance(ar, AddResult) and result.action == "redo":
-            panel = [
-                self.config.message.add, "",
-                self.render_item(ar.item)]
-        if isinstance(ar, EditResult):
-            message = self.config.message.undo_edit.format(
-                len(ar.after), pluralize('item', len(ar.after)))
-            panel = [message, ""]
-            for btodo, atodo in zip(ar.before, ar.after):
-                if result.action == "undo":
-                    btodo, atodo = atodo, btodo
-                panel.append(self.render_item_diff(btodo, atodo))
-        return [text, Panel.fit(Group(*panel))]
+        panels = []
+        for ar in result.action_results:
+            if isinstance(ar, AddResult) and result.action == "undo":
+                after = copy.deepcopy(ar.items)
+                for a in after:
+                    a.status = "delete"
+                diffs = [
+                    self.render_item_diff(b, a) for b, a in zip(ar.items, after)]
+                panels.append([self.config.message.undo_add, ""] + diffs)
+            if isinstance(ar, AddResult) and result.action == "redo":
+                items = [self.render_item(a) for a in ar.items]
+                panels.append([self.config.message.add, ""] + items)
+            if isinstance(ar, EditResult):
+                message = self.config.message.undo_edit.format(
+                    len(ar.after), pluralize('item', len(ar.after)))
+                panel = [message, ""]
+                for btodo, atodo in zip(ar.before, ar.after):
+                    if result.action == "undo":
+                        btodo, atodo = atodo, btodo
+                    panel.append(self.render_item_diff(btodo, atodo))
+                panels.append(panel)
+        return [text] + [Panel.fit(Group(*panel)) for panel in panels if panel]

@@ -1,10 +1,12 @@
+from operator import add
 import os
 import sys
 import json
 import yaml
-import shlex
 import argparse
+import tempfile
 import contextlib
+import subprocess
 from typing import Literal, Optional, List
 
 from box import Box
@@ -12,9 +14,12 @@ from rich.padding import Padding
 from rich.console import RenderableType, Group
 from rich_argparse import RichHelpFormatter
 
+from tusk.book.item import TodoItem
+from tusk.book.result import EditResult, AddResult
+
 from . import __name__ as _NAME, __version__, __description__
 from .common import (
-    format_config, set_level, debug, warn, error, rich_console,
+    format_config, set_level, debug, strip_rich, warn, error, rich_console,
     os_env_swap, flatten)
 from .parser import CommandParser
 from .book import (
@@ -107,6 +112,7 @@ class CLI:
             set_level("INFO")
         debug(self.args)
         self.config = self._init_config()
+        self.editor = self._init_editor()
         # debug(f"Resolved config: {pretty_repr(self.config.to_dict())}")
         command = []
         for a in self.args.command:
@@ -167,6 +173,10 @@ class CLI:
             error("No config file found.")
         return format_config(config)
 
+    def _init_editor(self) -> str:
+        editor = self.config.action.editor
+        return editor or os.environ.get("EDITOR", "vim")
+
     def _data_dir(self) -> str:
         xdg_data_home = os.environ.get("XDG_DATA_HOME", "~/.local/share")
         xdg_dir = os.path.join(xdg_data_home, _NAME)
@@ -185,7 +195,9 @@ class CLI:
         debug(f"Using database directory: {paths[0]!r}")
         return paths[0]
 
-    def _process_action(self, book: TaskBook, command: str) -> ActionResult:
+    def _process_action(
+        self, book: TaskBook, command: str
+    ) -> List[ActionResult]:
         if not command.strip():
             command = self.config.view.default or ''
         selection, group, sort, query, action = \
@@ -203,17 +215,54 @@ class CLI:
             result = book.select(selection, group, sort)
             if query:
                 result = book.query(result.flatten(), query)
-            return result
-        if selection is None:
+            return [result]
+        if selection is None and action != "editor":  # add new item
             try:
                 title = action.pop("title")
             except KeyError:
                 error("Missing title.")
-            return book.add(title, **action)  # type: ignore
+            return [book.add(title, **action)]  # type: ignore
         before_todos = book.select(selection).grouped_todos[None]
-        if action.pop("editor", False):
-            warn(f"Editor action is not supported yet.")
-        return book.action(before_todos, action)
+        if action != "editor":
+            return [book.action(before_todos, action)]
+        editor_commands = self.editor_action(before_todos)
+        debug(f"Editor commands:\n{editor_commands!r}")
+        edit_result = EditResult([], [])
+        add_result = AddResult([])
+        for command in editor_commands:
+            # FIXME: prevent recursive editor calls
+            results = self._process_action(book, command)
+            for result in results:
+                if isinstance(result, EditResult):
+                    edit_result.before.extend(result.before)
+                    edit_result.after.extend(result.after)
+                if isinstance(result, AddResult):
+                    add_result.items.extend(result.items)
+        results = []
+        if edit_result.before or edit_result.after:
+            results.append(edit_result)
+        if add_result.items:
+            results.append(add_result)
+        return results
+
+    def editor_action(self, todos: List[TodoItem]) -> List[str]:
+        text = self.renderer.render({None: todos}, "id", idempotent=True)
+        text = strip_rich(text)
+        with tempfile.NamedTemporaryFile(
+            suffix=f".{_NAME}.tmp", mode='w+', delete=False
+        ) as temp_file:
+            temp_file.write(text)
+            temp_file.flush()
+            temp_path = temp_file.name
+        try:
+            subprocess.run(
+                f"{self.editor} {temp_file.name}", shell=True, check=True)
+        except subprocess.CalledProcessError as e:
+            error(f"Editor command failed: {e}")
+        with open(temp_path, "r") as temp_file:
+            edited = temp_file.read()
+        os.unlink(temp_path)
+        return [c.strip() for c in edited.splitlines() if c.strip()]
 
     def history_action(
         self, db_dir: str, action: Literal["undo", "redo"]
@@ -227,15 +276,21 @@ class CLI:
     def re_index(self, book: TaskBook) -> ActionResult:
         return book.re_index()
 
-    def _print_result(self, result: ActionResult):
+    def _print_results(self, results: List[ActionResult]):
         if self.args.json:
-            dump = json.dumps(result.to_dict(), indent=self.config.file.indent)
+            dump = json.dumps(
+                [r.to_dict() for r in results], indent=self.config.file.indent)
             rich_console.print(dump)
             return dump
-        rendered = self.renderer.render_result(result)
-        if isinstance(rendered, str | RenderableType):
-            rendered = [rendered]
-        if self.config.pager.enable and isinstance(result, ViewResult):
+        rendered = []
+        for r in results:
+            rr = self.renderer.render_result(r)
+            rr = [rr] if isinstance(rr, str | RenderableType) else rr
+            rr = Group(*rr)
+            if not isinstance(r, QueryResult):
+                rr = Padding(rr, (1, 0, 0, 2), expand=False)
+            rendered.append(rr)
+        if self.config.pager.enable:  # isinstance(r, ViewResult)
             pager = rich_console.pager(styles=self.config.pager.styles)
         else:
             pager = contextlib.nullcontext()
@@ -244,10 +299,7 @@ class CLI:
         else:
             os_env = contextlib.nullcontext()
         with os_env, pager:
-            rendered = Group(*rendered)
-            if not isinstance(result, QueryResult):
-                rendered = Padding(rendered, (1, 0, 0, 2), expand=False)
-            rich_console.print(rendered, soft_wrap=True)
+            rich_console.print(Group(*rendered), soft_wrap=True)
 
     def main(self) -> int:
         db_dir = self._data_dir()
@@ -258,22 +310,22 @@ class CLI:
             if self.args.undo and self.args.redo:
                 error("Cannot use both --undo and --redo at the same time.")
             action = "undo" if self.args.undo else "redo"
-            self._print_result(self.history_action(db_dir, action))
+            self._print_results([self.history_action(db_dir, action)])
             return 0
         if self.args.history:
-            self._print_result(self.history(db_dir))
+            self._print_results([self.history(db_dir)])
             return 0
         todos = load(db_dir)
         book = TaskBook(self.config, todos)
         if self.args.re_index:
-            action_result = self.re_index(book)
+            action_results = [self.re_index(book)]
         else:
-            action_result = self._process_action(book, self.command)
-        self._print_result(action_result)
-        if not isinstance(action_result, RequiresSave):
+            action_results = self._process_action(book, self.command)
+        self._print_results(action_results)
+        if all(not isinstance(ar, RequiresSave) for ar in action_results):
             return 0
         save(
-            self.command, book.todos, action_result, db_dir,
+            self.command, book.todos, action_results, db_dir,
             self.config.file.backup, self.config.file.indent)
         return 0
 

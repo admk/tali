@@ -47,13 +47,13 @@ class CommandParser(NodeVisitor, CommonMixin):
     def parse(self, text: str, pos: int = 0) -> Tuple[
         Optional[Dict[FilterBy, FilterValue]],
         Optional[GroupBy], Optional[SortBy], Optional[List[str]],
-        Optional[Dict[str, bool | str | List[str]]],
+        Optional[Literal["editor"] | Dict[str, str | List[str]]],
     ]:
         separator = self.config.token.separator
         if not text:
             return None, None, None, None, None
         if text == separator:
-            return None, None, None, None, {"editor": True}
+            return None, None, None, None, "editor"
         if f" {separator} " in text:
             # filter and update
             commands = text.split(f" {separator} ")
@@ -71,7 +71,7 @@ class CommandParser(NodeVisitor, CommonMixin):
             text = text[:-len(f" {separator}")]
             selection = self._parse_mode("selection", text, pos)
             # a separator at the end launches the editor
-            action = {"editor": True}
+            action = "editor"
         else:
             selection = self._parse_mode("selection", text, pos)
             action = None
