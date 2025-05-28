@@ -21,6 +21,7 @@ from .book import (
     load, save, undo, redo, history, TaskBook,
     ActionResult, ViewResult, QueryResult, RequiresSave)
 from .render.cli import Renderer
+from .render.cheatsheet import CheatSheet
 
 
 class CLI:
@@ -29,6 +30,10 @@ class CLI:
             'action': 'version',
             'version': f"{_NAME} {__version__}",
             'help': 'Show the version number and exit.'
+        },
+        ('-c', '--cheatsheet'): {
+            'action': 'store_true',
+            'help': 'Print the cheatsheet and exit. '
         },
         ('-d', '--debug'): {
             'action': 'store_true',
@@ -239,6 +244,9 @@ class CLI:
 
     def main(self) -> int:
         db_dir = self._data_dir()
+        if self.args.cheatsheet:
+            rich_console.print(CheatSheet(self.config).render())
+            return 0
         if self.args.undo or self.args.redo:
             if self.args.undo and self.args.redo:
                 error("Cannot use both --undo and --redo at the same time.")
