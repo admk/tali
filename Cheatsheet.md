@@ -76,6 +76,7 @@ tusk @meeting   # Tasks with "@meeting" tag
 tusk !high      # High-priority tasks
 tusk ,pending   # Pending tasks
 tusk ^today     # Due today
+tusk ^w         # Due within this week
 ```
 #### **Grouping/Sorting**
 ```bash
@@ -90,7 +91,6 @@ tusk =^   # Sort by deadlines
 ```
 #### **Advanced Search**
 ```bash
-tusk "fix (bug|issue)" @critical  # Search regex + tag
 tusk /work !high ^today           # High-priority work tasks due today
 ```
 

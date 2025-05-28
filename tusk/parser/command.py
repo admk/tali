@@ -118,10 +118,12 @@ class CommandParser(NodeVisitor, CommonMixin):
             parsed["title"] = " ".join(parsed["title"]).strip()
         if "deadline" in parsed:
             try:
-                dt = self.datetime_parser.parse(" ".join(parsed["deadline"]))
+                dts = [
+                    self.datetime_parser.parse(dt)
+                    for dt in parsed["deadline"]]
             except (ParseError, VisitationError) as e:
                 error(f"Invalid date time syntax. {e}")
-            parsed["deadline"] = dt
+            parsed["deadline"] = dts
         if "tag" in parsed:
             parsed["tags"] = parsed.pop("tag")
         return parsed
@@ -184,7 +186,7 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def visit_deadline(self, node, visited_children):
         _, deadline = visited_children
-        return "deadline", deadline.strip()
+        return "deadline", self._unquote_str(deadline)
 
     def visit_status(self, node, visited_children):
         _, status = visited_children

@@ -1,4 +1,11 @@
 class CommonMixin:
+    def _unquote_str(self, text: str) -> str:
+        if text.startswith('"') and text.endswith('"'):
+            return text[1:-1]
+        if text.startswith("'") and text.endswith("'"):
+            return text[1:-1]
+        return text
+
     def _visit_any_of_or_none(self, node, visited_children):
         for c in visited_children:
             if c is not None:

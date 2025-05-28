@@ -100,9 +100,7 @@ class CLI:
         # debug(f"Resolved config: {pretty_repr(self.config.to_dict())}")
         command = []
         for a in self.args.command:
-            if " " in a:
-                a = shlex.quote(a)
-            elif a == self.config.token.stdin and not sys.stdin.isatty():
+            if a == self.config.token.stdin and not sys.stdin.isatty():
                 a = sys.stdin.read()
             command.append(a)
         self.command = " ".join(command).strip()

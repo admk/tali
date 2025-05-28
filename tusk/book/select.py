@@ -1,6 +1,7 @@
 from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
 from typing import (
-    get_args, Optional, List, Dict, Tuple, Callable, Literal, Any)
+    get_args, Optional, Sequence, List, Dict, Tuple, Callable, Literal, Any)
 
 from box import Box
 
@@ -54,20 +55,30 @@ class FilterMixin(SelectMixin):
         return todo.priority == priority
 
     def _filter_by_date_range(
-        self, date: datetime, date_range: Tuple[datetime, datetime]
+        self, date: datetime, date_range: Sequence[datetime | relativedelta]
     ) -> bool:
         from_date, to_date = date_range
+        if isinstance(from_date, relativedelta):
+            from_date = datetime.now() + from_date
+        if isinstance(to_date, relativedelta):
+            to_date = datetime.now() + to_date
+        if from_date > to_date:
+            from_date, to_date = to_date, from_date
         return from_date <= date <= to_date
 
     def filter_by_deadline(
-        self, todo: TodoItem, date_range: Tuple[datetime, datetime]
+        self, todo: TodoItem, date_range: Sequence[datetime]
     ) -> bool:
         if todo.deadline is None:
             return False
+        if len(date_range) == 1:
+            date_range = (datetime.min, date_range[0])
+        if len(date_range) != 2:
+            error(f'Invalid date range: {date_range!r}.')
         return self._filter_by_date_range(todo.deadline, date_range)
 
     def filter_by_created_at(
-        self, todo: TodoItem, date_range: Tuple[datetime, datetime]
+        self, todo: TodoItem, date_range: Sequence[datetime]
     ) -> bool:
         return self._filter_by_date_range(todo.created_at, date_range)
 
