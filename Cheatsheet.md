@@ -63,14 +63,14 @@ tusk 1 . ^"25-8-5 9:00"   # Set specific date and time
 
 ### **4. Delete Tasks**
 ```bash
-tusk 1..5 . ,x    # Delete tasks 1–5
+tusk 1..5 . ,x    # Delete tasks 1-5
 tusk ,done . ,x   # Delete all done tasks
 ```
 
 ### **5. Filter & Search**
 #### **Basic Filters**
 ```bash
-tusk 1..5       # Show tasks 1–5
+tusk 1..5       # Show tasks 1-5
 tusk /work      # Tasks in "work" project
 tusk @meeting   # Tasks with "@meeting" tag
 tusk !high      # High-priority tasks
@@ -101,8 +101,8 @@ tusk /work !high ^today           # High-priority work tasks due today
 tusk 1 3 4 6..9 . ,done       # Mark multiple tasks done
 tusk /home . !high            # Set all "home" tasks to high priority
 tusk /old . /new              # Rename project
-tusk 1..4 @old . @-old @+new  # Replace @old tag with @new for tasks 1–4 with title starting with "fix" and has tag "@old"
-tusk 2..5 . ,x                # delete tasks 2–5
+tusk 1..4 @old . @-old @+new  # Replace @old tag with @new for tasks 1-4 with title starting with "fix" and has tag "@old"
+tusk 2..5 . ,x                # delete tasks 2-5
 ```
 
 ## **Quick Symbol Guide**
