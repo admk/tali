@@ -53,7 +53,7 @@ class FilterMixin(SelectMixin):
     def filter_by_priority(self, todo: TodoItem, priority: Priority) -> bool:
         return todo.priority == priority
 
-    def _select_by_date_range(
+    def _filter_by_date_range(
         self, date: datetime, date_range: Tuple[datetime, datetime]
     ) -> bool:
         from_date, to_date = date_range
@@ -64,12 +64,12 @@ class FilterMixin(SelectMixin):
     ) -> bool:
         if todo.deadline is None:
             return False
-        return self._select_by_date_range(todo.deadline, date_range)
+        return self._filter_by_date_range(todo.deadline, date_range)
 
     def filter_by_created_at(
         self, todo: TodoItem, date_range: Tuple[datetime, datetime]
     ) -> bool:
-        return self._select_by_date_range(todo.created_at, date_range)
+        return self._filter_by_date_range(todo.created_at, date_range)
 
     def filter(
         self, todos, filters: Dict[FilterBy, FilterValue]

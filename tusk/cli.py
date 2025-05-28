@@ -1,8 +1,5 @@
 import os
-from os.path import basename
-import re
 import sys
-import copy
 import json
 import yaml
 import shlex

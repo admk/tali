@@ -6,8 +6,8 @@ from typing import get_args, Optional, List, Dict, Any, Tuple
 from box import Box
 
 from ..common import debug, warn, error
-from .result import AddResult, EditResult, ViewResult, QueryResult
 from .item import TodoItem, Status, Priority
+from .result import AddResult, EditResult, ViewResult, QueryResult
 from .select import (
     FilterMixin, GroupMixin, SortMixin, FilterBy, FilterValue, GroupBy, SortBy)
 
