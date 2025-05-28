@@ -56,9 +56,9 @@ tusk 1 . ^-6h     # Move earlier by 6 hours
 tusk 1 . ^mon             # Next Monday
 tusk 1 . ^2tue            # Tuesday after next
 tusk 1 . ^today           # Due today
-tusk 1 . ^tomorrow ^8pm   # Due tomorrow at 8 PM
+tusk 1 . "^tomorrow 8pm"  # Due tomorrow at 8 PM
 tusk 1 . ^never           # Remove deadline
-tusk 1 . ^"25-8-5" ^9,00  # Set specific date and time
+tusk 1 . ^"25-8-5 9:00"   # Set specific date and time
 ```
 
 ### **4. Delete Tasks**
@@ -76,12 +76,14 @@ tusk @meeting   # Tasks with "@meeting" tag
 tusk !high      # High-priority tasks
 tusk ,pending   # Pending tasks
 tusk ^today     # Due today
-tusk ^w         # Due within this week
+tusk ^w         # Due by the end of this week
+tusk ^+1d       # Due in 24 hours
+tusk ^-1d ^oo   # Due 24 hours ago or later
 ```
 #### **Grouping/Sorting**
 ```bash
 tusk /    # Group by project
-tusk @    # Group by tag
+tusk @    # Group by tag (can have duplicate items across groups)
 tusk !    # Group by priority
 tusk ^    # Group by deadline
 tusk =/   # Sort by project names
