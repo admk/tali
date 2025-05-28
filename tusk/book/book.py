@@ -192,7 +192,14 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         return self._update_and_return(todos, after)
 
     def re_index(self) -> EditResult:
-        after = copy.deepcopy(self.todos)
-        for i, todo in enumerate(after):
+        before = copy.deepcopy(self.todos)
+        for i, todo in enumerate(self.todos):
             todo.id = self.id(todo, i + 1)
-        return self._update_and_return(self.todos, after)
+        updates = [(b, a) for b, a in zip(before, self.todos) if b != a]
+        if not updates:
+            result = EditResult([], [])
+        else:
+            before, after = zip(*updates)
+            result = EditResult(before, after)
+        debug(f"Result: {result}")
+        return result

@@ -101,8 +101,7 @@ class CLI:
         else:
             set_level("INFO")
         self.config = self._init_config()
-        debug(f"Resolved config: {pretty_repr(self.config.to_dict())}")
-        # command = [shlex.quote(a) if " " in a else a for a in self.args.command]
+        # debug(f"Resolved config: {pretty_repr(self.config.to_dict())}")
         command = []
         for a in self.args.command:
             if " " in a:
