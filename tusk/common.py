@@ -35,30 +35,31 @@ def strip_rich(text: str) -> str:
     return text
 
 
-_handler = RichHandler(show_time=False, show_path=False, rich_tracebacks=True)
+_handler = RichHandler(
+    show_level=False, show_time=False, show_path=False, rich_tracebacks=True)
 logging.basicConfig(
     level=logging.INFO, format="%(message)s", handlers=[_handler])
-log = logging.getLogger("rich")
+logger = logging.getLogger("rich")
 
 
 def set_level(level: int | str) -> None:
-    log.setLevel(level)
+    logger.setLevel(level)
 
 
 def debug(msg: Any, *args, **kwargs) -> None:
-    log.debug(msg, *args, **kwargs)
+    logger.debug(msg, *args, **kwargs)
 
 
 def info(msg: Any, *args, **kwargs) -> None:
-    log.info(msg, *args, **kwargs)
+    logger.info(msg, *args, **kwargs)
 
 
 def warn(msg: Any, *args, **kwargs) -> None:
-    log.warning(msg, *args, **kwargs)
+    logger.warning(msg, *args, **kwargs)
 
 
 def error(msg: Any, *args, **kwargs) -> NoReturn:
-    log.error(msg, *args, **kwargs)
+    logger.error(msg, *args, **kwargs)
     sys.exit(1)
 
 

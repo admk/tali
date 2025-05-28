@@ -40,7 +40,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         try:
             return datetime(*args, **kwargs)
         except ValueError as e:
-            raise ValueError(f"Invalid date/time format") from e
+            raise ValueError(f"Invalid datetime format: {e}") from e
 
     def visit_datetime_expression(self, node, visited_children):
         return self._visit_any_of(node, visited_children)
@@ -100,7 +100,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
             if dt < self.now:
                 dt += relativedelta(years=1)
             return dt
-        year = year[0]
+        year = year[0][0]
         if year < 100:
             year += 2000
         return self._datetime(year, month, day)
@@ -129,7 +129,9 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         if next_year:
             year += 1
         year += count - 1
-        last_day = self._datetime(year, month + 1, 1) - timedelta(days=1)
+        last_day = (
+            self._datetime(year, month, 1) +
+            relativedelta(months=1) - timedelta(days=1))
         return self._datetime(year, month, last_day.day).date()
 
     def _end_unit(self, unit, count):

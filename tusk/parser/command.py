@@ -8,7 +8,7 @@ from parsimonious.nodes import NodeVisitor, VisitationError
 
 from box import Box
 
-from ..common import debug, error
+from ..common import debug, error, logger, logging
 from ..book.select import GroupBy, SortBy, FilterBy, FilterValue
 from .common import CommonMixin
 from .datetime import DateTimeParser
@@ -122,7 +122,9 @@ class CommandParser(NodeVisitor, CommonMixin):
                     self.datetime_parser.parse(dt)
                     for dt in parsed["deadline"]]
             except (ParseError, VisitationError) as e:
-                error(f"Invalid date time syntax. {e}")
+                if logger.isEnabledFor(logging.DEBUG):
+                    raise e
+                error(f"Invalid date time syntax: {e}")
             parsed["deadline"] = dts
         if "tag" in parsed:
             parsed["tags"] = parsed.pop("tag")
@@ -135,10 +137,11 @@ class CommandParser(NodeVisitor, CommonMixin):
         if parsed.get("priority") == "":
             parsed["priority"] = "high"
         if "deadline" in parsed:
-            dt = parsed["deadline"]
+            if len(parsed["deadline"]) > 1:
+                error("Multiple deadlines are not allowed.")
+            dt = parsed["deadline"][0]
             years = (dt - datetime.now()).days / 365
-            if years >= 1000:
-                parsed["deadline"] = None
+            parsed["deadline"] = None if years >= 1000 else dt
         return parsed
 
     def visit_selection_chain(self, node, visited_children):
