@@ -10,7 +10,9 @@ view:
   default: null
   group_by: project
   sort_by: created_at
-  stats: all
+  stats:
+    enable: default   # always / never / default / all
+    count: filtered   # filtered / all
 action:
   editor: null
 token:
@@ -56,39 +58,39 @@ group:
     deadline: '{id}{status}{title}{project}{tags}{priority}{description}'
     created_at: '{.group.format.id}'
   header:
-    format: '[bold]{group}[/bold] [bright_black]{progress}[/bright_black]'
+    format: '[bold]{group}[/bold] [dim]{progress}[/dim]'
     priority:
       high: '[magenta]{.item.priority.format.high} high[/magenta]'
       normal: '. normal'
-      low: '[bright_black]{.item.priority.format.low} low[/bright_black]'
+      low: '[dim]{.item.priority.format.low} low[/dim]'
     status:
       pending: '[yellow]{.item.status.format.pending} pending[/yellow]'
       done: '[green]{.item.status.format.done} done[/green]'
       note: '[blue]{.item.status.format.note} note[/blue]'
-      archive: '[bright_black]{.item.status.format.archive} archived[/bright_black]'
+      archive: '[dim]{.item.status.format.archive} archived[/dim]'
 item:
   format: '{.group.format.id}'
   id:
-    format: '[bright_black]{:>4}.[/bright_black]'
+    format: '[dim]{:>4}.[/dim]'
   status:
     format:
       pending: '[bold yellow]☐[/bold yellow]'
       done: '[bold green]✔[/bold green]'
       note: '[bold blue]•[/bold blue]'
       delete: '[bold red]✘[/bold red]'
-      archive: '[bold bright_black]-[/bold bright_black]'
+      archive: '[bold dim]-[/bold dim]'
   title:
     format:
-      status_done: '[strike bright_black]{}[/strike bright_black]'
-      status_archive: '[strike bright_black]{}[/strike bright_black]'
+      status_done: '[strike dim]{}[/strike dim]'
+      status_archive: '[strike dim]{}[/strike dim]'
       priority_high: '[bold magenta]{}[/bold magenta]'
-      priority_low: '[bright_black]{}[/bright_black]'
+      priority_low: '[dim]{}[/dim]'
     max_length: 0
     ellipsis: …
   tag:
     format:
       _: '[blue]{.token.tag}[underline]{}[/underline][/blue]'
-      _untagged: '[italic bright_black]Untagged[/italic bright_black]'
+      _untagged: '[italic dim]Untagged[/italic dim]'
       star: '[bold yellow]★[/bold yellow]'
   project:
     default: /inbox
@@ -96,30 +98,32 @@ item:
   priority:
     format:
       high: '[bold magenta]{.token.priority}[/bold magenta]'
-      low: '[bright_black]_[/bright_black]'
+      low: '[dim]_[/dim]'
       normal: ''
   deadline:
     format:
       _: '[blue]{}[/blue]'
-      status_done: '[bright_black]{}[/bright_black]'
+      status_done: '[dim]{}[/dim]'
       2592000: '[green]{}[/green]'
       604800: '[cyan]{}[/cyan]'
       86400: '[magenta]{}[/magenta]'
       3600: '[yellow]{}[/yellow]'
       0: '[red]{}[/red]'
     timedelta: {y: y, M: M, w: w, d: d, h: h, m: m, s: s}
-    num_components: 1
+    num_components: 2
     datetime: '%y-%b-%-d'
   created_at:
-    format: '[bright_black]{:%y-%b-%-d %H:%M}[/bright_black]'
+    format: '[dim]{:%y-%b-%-d %H:%M}[/dim]'
   description:
-    format: '[italic bright_black]{}[/italic bright_black]'
+    format: '[italic dim]{}[/italic dim]'
     max_length: 30
     ellipsis: …
   diff:
-    format: '[bold red]{{[/bold red][strike bright_black]{}[/strike bright_black] [bold]→[/bold] {}[bold red]}}[/bold red]'
+    format: '[bold red]{{[/bold red][strike dim]{}[/strike dim] [bold]→[/bold] {}[bold red]}}[/bold red]'
 stats:
-  title: '{} of tasks complete.'
+  title:
+    all: '{} of all tasks complete.'
+    filtered: '{} of filtered tasks complete.'
   progress:
     10: '[bold red]{}[/bold red]'
     25: '[bold yellow]{}[/bold yellow]'
@@ -132,4 +136,5 @@ stats:
     pending: '[yellow]{.item.status.format.pending} {}[/yellow] pending'
     done: '[green]{.item.status.format.done} {}[/green] done'
     note: '[blue]{.item.status.format.note} {}[/blue] notes'
-    archive: '[bright_black]{.item.status.format.archive} {}[/bright_black] archived'
+    archive: '[dim]{.item.status.format.archive} {}[/dim] archived'
+    hidden: '[dim]◌ {}[/dim] hidden'
