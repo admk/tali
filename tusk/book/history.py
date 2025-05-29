@@ -7,7 +7,7 @@ from datetime import datetime
 from git import InvalidGitRepositoryError, GitCommandError, Commit as GitCommit
 from git.repo import Repo
 
-from ..common import debug, error
+from ..common import logger
 from .result import Commit, ActionResult, HistoryResult, SwitchResult
 from .item import TodoItem
 
@@ -46,7 +46,7 @@ def checkout(path: str, commit_hash: str) -> Commit:
     repo = _repo(path)
     c = repo.head.commit
     repo.git.checkout(commit_hash)
-    debug(f"Checked out commit {commit_hash} in {path}")
+    logger.debug(f"Checked out commit {commit_hash} in {path}")
     return to_commit(c)
 
 
@@ -63,13 +63,13 @@ def _undo_redo(
         raise ValueError("Current HEAD commit not found in main branch.")
     if action == "undo":
         if index + 1 >= len(commits):
-            error("No history to undo.")
+            logger.error("No history to undo.")
         index += 1
         action_results = to_commit(before).action_results
         message = str(before.message)
     elif action == "redo":
         if index == 0:
-            error("No history to redo.")
+            logger.error("No history to redo.")
         index -= 1
         action_results = to_commit(commits[index]).action_results
         message = str(commits[index].message)
@@ -78,7 +78,7 @@ def _undo_redo(
     checkout(path, commits[index].hexsha)
     message = message.split("\n", 1)[0]
     result = SwitchResult(action, message, action_results)
-    debug(f"{action.capitalize()} result: {result}")
+    logger.debug(f"{action.capitalize()} result: {result}")
     return result
 
 
@@ -104,7 +104,7 @@ def save(
     Save the list of todos to a file using git for version control.
     Commits changes if backup is enabled and we're at HEAD.
     """
-    debug(f"Saving todos to {path} with commit message: {commit_message}")
+    logger.debug(f"Saving todos to {path} with commit message: {commit_message}")
     repo = _repo(path)
     main_file = os.path.join(path, _MAIN_FILE)
     with open(main_file, "w") as f:
@@ -125,4 +125,4 @@ def save(
             [ar.to_dict() for ar in action_results], indent=indent)
         repo.index.commit(commit_message + "\n\n" + result)
     except GitCommandError as e:
-        error(f"Failed to commit changes: {e}")
+        logger.error(f"Failed to commit changes: {e}")

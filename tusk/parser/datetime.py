@@ -6,7 +6,6 @@ from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 from parsimonious.exceptions import ParseError, VisitationError
 
-from ..common import error
 from .common import CommonMixin
 
 

@@ -5,7 +5,7 @@ from typing import (
 
 from box import Box
 
-from ..common import error
+from ..common import logger
 from ..book.item import TodoItem, Status, Priority
 
 
@@ -74,7 +74,7 @@ class FilterMixin(SelectMixin):
         if len(date_range) == 1:
             date_range = (datetime.min, date_range[0])
         if len(date_range) != 2:
-            error(f'Invalid date range: {date_range!r}.')
+            logger.error(f'Invalid date range: {date_range!r}.')
         return self._filter_by_date_range(todo.deadline, date_range)
 
     def filter_by_created_at(
@@ -178,7 +178,7 @@ class GroupMixin(SortMixin):
         return gfunc, sfunc
 
     def group_by_description(self):
-        error("Grouping by description is not supported.")
+        logger.error("Grouping by description is not supported.")
 
     def group_by(
         self, todos: List[TodoItem], group_by: GroupBy,

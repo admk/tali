@@ -5,7 +5,7 @@ from typing import get_args, Optional, Literal, List, Dict, Tuple
 
 from box import Box
 
-from ..common import debug, warn, error
+from ..common import logger
 from .item import TodoItem, Status, Priority
 from .result import AddResult, EditResult, ViewResult, QueryResult
 from .select import (
@@ -63,7 +63,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         if status:
             status = self.config.alias.status.get(status, status)
             if status not in get_args(Status):
-                error(f"Unrecognized status {status!r}.")
+                logger.error(f"Unrecognized status {status!r}.")
             return status
         status_changes: Dict[Status, Status] = {
             "done": "pending",
@@ -72,7 +72,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         try:
             return status_changes[todo.status]
         except KeyError:
-            error(
+            logger.error(
                 "Cannot toggle status of an item "
                 f"with status {todo.status!r}.")
 
@@ -103,7 +103,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         except KeyError:
             pass
         if not new_priority:
-            error(
+            logger.error(
                 "Cannot change priority from "
                 f"{todo.priority!r} to {priority!r}.")
         return new_priority
@@ -132,7 +132,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         if not isinstance(deadline, relativedelta):
             return deadline
         if not todo.deadline:
-            warn(f"Cannot relative adjust an item without a deadline.")
+            logger.warn(
+                f"Cannot relative adjust an item without a deadline.")
             return None
         return todo.deadline + deadline
 
@@ -170,7 +171,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                 updates.append((b, a))
         before, after = zip(*updates) if updates else ([], [])
         result = EditResult(before, after)
-        debug(f"Result: {result}")
+        logger.debug(f"Result: {result}")
         return result
 
     def action(
@@ -185,9 +186,10 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                 try:
                     value = getattr(self, action)(todo, value)
                 except ValueError as e:
-                    warn(e)
+                    logger.warn(e)
                 else:
-                    debug(f"Setting {action!r} to {value!r} for {todo.id}.")
+                    logger.debug(
+                        f"Setting {action!r} to {value!r} for {todo.id}.")
                     setattr(todo, action, value)
         return self._update_and_return(todos, after)
 
@@ -201,5 +203,5 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         else:
             before, after = zip(*updates)
             result = EditResult(before, after)
-        debug(f"Result: {result}")
+        logger.debug(f"Result: {result}")
         return result

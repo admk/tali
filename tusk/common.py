@@ -29,38 +29,41 @@ def os_env_swap(**kwargs) -> Generator[None, None, None]:
     os.environ.update(old_env)
 
 
-def strip_rich(text: str) -> str:
-    text = re.sub(r"\[.*?\]", "", text)
-    text = re.sub(r"\[/.*?\]", "", text)
-    return text
+class Logger:
+    def __init__(self):
+        super().__init__()
+        handler = RichHandler(
+            show_level=False, show_time=False, show_path=False, rich_tracebacks=True)
+        self.logger = logging.getLogger("rich")
+        logging.basicConfig(
+            level=logging.INFO, format="%(message)s", handlers=[handler])
+
+    def is_enabled_for(self, level: int | str) -> bool:
+        if isinstance(level, str):
+            int_level = getattr(logging, level.upper())
+        else:
+            int_level = level
+        return self.logger.isEnabledFor(int_level)
+
+    def set_level(self, level: int | str) -> None:
+        level = level.upper() if isinstance(level, str) else level
+        self.logger.setLevel(level)
+
+    def debug(self, msg: Any, *args, **kwargs) -> None:
+        self.logger.debug(msg, *args, **kwargs)
+
+    def info(self, msg: Any, *args, **kwargs) -> None:
+        self.logger.info(msg, *args, **kwargs)
+
+    def warn(self, msg: Any, *args, **kwargs) -> None:
+        self.logger.warning(msg, *args, **kwargs)
+
+    def error(self, msg: Any, *args, **kwargs) -> NoReturn:
+        self.logger.error(msg, *args, **kwargs)
+        sys.exit(1)
 
 
-_handler = RichHandler(
-    show_level=False, show_time=False, show_path=False, rich_tracebacks=True)
-logging.basicConfig(
-    level=logging.INFO, format="%(message)s", handlers=[_handler])
-logger = logging.getLogger("rich")
-
-
-def set_level(level: int | str) -> None:
-    logger.setLevel(level)
-
-
-def debug(msg: Any, *args, **kwargs) -> None:
-    logger.debug(msg, *args, **kwargs)
-
-
-def info(msg: Any, *args, **kwargs) -> None:
-    logger.info(msg, *args, **kwargs)
-
-
-def warn(msg: Any, *args, **kwargs) -> None:
-    logger.warning(msg, *args, **kwargs)
-
-
-def error(msg: Any, *args, **kwargs) -> NoReturn:
-    logger.error(msg, *args, **kwargs)
-    sys.exit(1)
+logger = Logger()
 
 
 def box_recursive_apply(
@@ -79,7 +82,7 @@ def format_config_value(value: int | str, config: Box) -> int | str:
     def replace(match):
         key = match.group(1).lstrip('.')
         if key not in config:
-            error(f"Config key '{key}' not found.")
+            logger.error(f"Config key '{key}' not found.")
         return str(config[key])
     return re.sub(r"{\.([^}]+)}", replace, value)
 

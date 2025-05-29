@@ -107,12 +107,12 @@ class CLI:
         self._text_args = " ".join(a for a in args if a in options)
         self.args = parser.parse_args(args)
         if self.args.debug:
-            set_level("DEBUG")
+            logger.set_level("debug")
         else:
-            set_level("INFO")
-        debug(self.args)
+            logger.set_level("info")
+        logger.debug(self.args)
         self.config = self._init_config()
-        self.editor = self._init_editor()
+        self.editor_command = self._init_editor_command()
         # debug(f"Resolved config: {pretty_repr(self.config.to_dict())}")
         command = []
         for a in self.args.command:
@@ -120,7 +120,7 @@ class CLI:
                 a = sys.stdin.read()
             command.append(a)
         self.command = " ".join(command).strip()
-        debug(f"Command: {self.command!r}")
+        logger.debug(f"Command: {self.command!r}")
         self.command_parser = CommandParser(self.config)
         self.renderer = Renderer(self.config, self.args.idempotent)
 
@@ -162,20 +162,22 @@ class CLI:
             with open(path, "r") as f:
                 try:
                     d = yaml.safe_load(f)
-                    debug(f"Loaded config from {path!r}.")
+                    logger.debug(f"Loaded config from {path!r}.")
                 except yaml.YAMLError as e:
-                    error(f"Error parsing config file {path!r}: {e}")
+                    logger.error(f"Error parsing config file {path!r}: {e}")
             if config is None:
                 config = Box(d, box_dots=True)
             else:
                 config.merge_update(d)
         if config is None:
-            error("No config file found.")
+            logger.error("No config file found.")
         return format_config(config)
 
-    def _init_editor(self) -> str:
-        editor = self.config.action.editor
-        return editor or os.environ.get("EDITOR", "vim")
+    def _init_editor_command(self) -> str:
+        if self.config.action.editor is not None:
+            return self.config.action.editor
+        editor = os.environ.get("EDITOR", "vim")
+        return f"{editor} {{}}"
 
     def _data_dir(self) -> str:
         xdg_data_home = os.environ.get("XDG_DATA_HOME", "~/.local/share")
@@ -185,28 +187,28 @@ class CLI:
             self._project_root(), xdg_dir]
         paths = [p for p in paths if p is not None and os.path.exists(p)]
         if not paths:
-            warn(
+            logger.warn(
                 'No database directory found. '
                 f'Creating a new one at {xdg_dir!r}.')
         if len(paths) > 1:
-            debug(
+            logger.debug(
                 'Multiple database directories found '
                 f'with precedence: {paths!r}.')
-        debug(f"Using database directory: {paths[0]!r}")
+        logger.debug(f"Using database directory: {paths[0]!r}")
         return paths[0]
 
     def _process_action(
-        self, book: TaskBook, command: str
+        self, book: TaskBook, command: str, nested: bool = False
     ) -> List[ActionResult]:
         if not command.strip():
             command = self.config.view.default or ''
         selection, group, sort, query, action = \
             self.command_parser.parse(command)
-        debug(f"Selection: {selection}")
-        debug(f"Group: {group}")
-        debug(f"Sort: {sort}")
-        debug(f"Query: {query}")
-        debug(f"Action: {action}")
+        logger.debug(f"Selection: {selection}")
+        logger.debug(f"Group: {group}")
+        logger.debug(f"Sort: {sort}")
+        logger.debug(f"Query: {query}")
+        logger.debug(f"Action: {action}")
         group = group or self.config.view.group_by
         if self.args.idempotent:
             group = "id"
@@ -220,18 +222,23 @@ class CLI:
             try:
                 title = action.pop("title")
             except KeyError:
-                error("Missing title.")
+                logger.error("Missing title.")
             return [book.add(title, **action)]  # type: ignore
-        before_todos = book.select(selection).grouped_todos[None]
+        before_todos = book.select(selection).flatten()
         if action != "editor":
             return [book.action(before_todos, action)]
-        editor_commands = self.editor_action(before_todos)
-        debug(f"Editor commands:\n{editor_commands!r}")
+        if nested:
+            logger.warn(
+                "Cannot nest editor action in another editor action. "
+                f"Ignoring command {command!r} "
+                "that tries to launch the editor.")
+            return []
+        editor_actions = self.editor_action(before_todos)
+        logger.debug(f"Editor commands:\n{editor_actions!r}")
         edit_result = EditResult([], [])
         add_result = AddResult([])
-        for command in editor_commands:
-            # FIXME: prevent recursive editor calls
-            results = self._process_action(book, command)
+        for action in editor_actions:
+            results = self._process_action(book, action, True)
             for result in results:
                 if isinstance(result, EditResult):
                     edit_result.before.extend(result.before)
@@ -255,10 +262,10 @@ class CLI:
             temp_file.flush()
             temp_path = temp_file.name
         try:
-            subprocess.run(
-                f"{self.editor} {temp_file.name}", shell=True, check=True)
+            cmd = self.editor_command.format(temp_file.name)
+            subprocess.run(cmd, shell=True, check=True)
         except subprocess.CalledProcessError as e:
-            error(f"Editor command failed: {e}")
+            logger.error(f"Editor command failed: {e}")
         with open(temp_path, "r") as temp_file:
             edited = temp_file.read().strip().rstrip("\n")
         os.unlink(temp_path)
@@ -311,7 +318,8 @@ class CLI:
             return 0
         if self.args.undo or self.args.redo:
             if self.args.undo and self.args.redo:
-                error("Cannot use both --undo and --redo at the same time.")
+                logger.error(
+                    "Cannot use both --undo and --redo at the same time.")
             action = "undo" if self.args.undo else "redo"
             self._print_results([self.history_action(db_dir, action)])
             return 0

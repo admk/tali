@@ -8,7 +8,7 @@ from parsimonious.nodes import NodeVisitor, VisitationError
 
 from box import Box
 
-from ..common import debug, error, logger, logging
+from ..common import logger
 from ..book.select import GroupBy, SortBy, FilterBy, FilterValue
 from .common import CommonMixin
 from .datetime import DateTimeParser
@@ -37,11 +37,11 @@ class CommandParser(NodeVisitor, CommonMixin):
         grammar = getattr(self, f"{mode}_grammar")
         try:
             ast = grammar.parse(text.strip(), pos)
-            debug(f"Parsed {mode} AST:\n{ast}")
+            logger.debug(f"Parsed {mode} AST:\n{ast}")
         except ParseError as e:
             arrow = " " * e.pos + "^ "
             msg = f"{e.text}\n{arrow}\n{e}"
-            error(msg)
+            logger.error(msg)
         return super().visit(ast)
 
     def parse(self, text: str, pos: int = 0) -> Tuple[
@@ -102,7 +102,7 @@ class CommandParser(NodeVisitor, CommonMixin):
                 raise ValueError(f"Unknown item {item!r}.")
             if kind in kinds["unique"]:
                 if kind in parsed:
-                    error(f"Duplicate {kind!r} in command.")
+                    logger.error(f"Duplicate {kind!r} in command.")
                 parsed[kind] = value
             elif kind in kinds["list"]:
                 kind_list = parsed.setdefault(kind, [])
@@ -122,9 +122,9 @@ class CommandParser(NodeVisitor, CommonMixin):
                     self.datetime_parser.parse(dt)
                     for dt in parsed["deadline"]]
             except (ParseError, VisitationError) as e:
-                if logger.isEnabledFor(logging.DEBUG):
+                if logger.is_enabled_for("debug"):
                     raise e
-                error(f"Invalid date time syntax: {e}")
+                logger.error(f"Invalid date time syntax: {e}")
             parsed["deadline"] = dts
         if "tag" in parsed:
             parsed["tags"] = parsed.pop("tag")
@@ -138,7 +138,7 @@ class CommandParser(NodeVisitor, CommonMixin):
             parsed["priority"] = "high"
         if "deadline" in parsed:
             if len(parsed["deadline"]) > 1:
-                error("Multiple deadlines are not allowed.")
+                logger.error("Multiple deadlines are not allowed.")
             dt = parsed["deadline"][0]
             years = (dt - datetime.now()).days / 365
             parsed["deadline"] = None if years >= 1000 else dt
