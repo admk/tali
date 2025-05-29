@@ -76,7 +76,7 @@ class Renderer:
             title = title.replace(f'\\{token}', token)
         style = self.config.item.title
         if self.idempotent:
-            return repr(title)
+            return title
         title = shorten(title, style.max_length, style.ellipsis)
         for k, v in self.config.item.title.format.items():
             p, q = k.split("_")
@@ -120,7 +120,7 @@ class Renderer:
         if isinstance(deadline, date):
             deadline = datetime.combine(deadline, datetime.max.time())
         if self.idempotent:
-            return f"{prefix}{deadline:\"%Y-%m-%d %H:%M\"}"
+            return f"{prefix}{deadline:\"%Y-%b-%d %H:%M\"}"
         remaining_time = deadline - datetime.now()
         seconds = abs(remaining_time.total_seconds())
         if abs(seconds) < 365 * 24 * 60 * 60:  # one year
