@@ -1,4 +1,5 @@
 import copy
+from itertools import count
 import operator
 import functools
 from datetime import date, datetime
@@ -27,34 +28,20 @@ class Renderer:
         self.config = config
         self.idempotent = idempotent
 
-    def _get_stats(self, todos: List[TodoItem]):
+    def _get_stats(
+        self, count_todos: List[TodoItem],
+        all_todos: Optional[List[TodoItem]] = None
+    ) -> Dict[str, int | float]:
         stats = {}
         for status in get_args(Status):
             if status == "delete":
                 continue
-            stats[status] = len([t for t in todos if t.status == status])
+            stats[status] = len([t for t in count_todos if t.status == status])
+        if all_todos is not None:
+            stats["hidden"] = len(all_todos) - len(count_todos)
         total = stats["done"] + stats["pending"]
         progress = stats["done"] / total if total > 0 else None
         return stats | {"progress": progress}
-
-    def render_stats(self, todos: List[TodoItem]) -> str:
-        stats = self._get_stats(todos)
-        text = []
-        progress = stats["progress"]
-        if progress is not None:
-            progress_str = f"{stats['progress']:.0%}"
-            progress_map = self.config.stats.progress
-            progress_format = progress_map._
-            for k, v in progress_map.items():
-                if isinstance(k, int) and progress * 100 <= k:
-                    progress_format = v
-            progress_str = progress_format.format(progress_str)
-            text.append(self.config.stats.title.format(progress_str))
-        stats_text = []
-        for key, value in self.config.stats.status.items():
-            stats_text.append(value.format(stats[key]))
-        text.append(self.config.stats.separator.join(stats_text))
-        return "\n".join(text)
 
     def _render_id(self, id: int) -> Optional[str]:
         if self.idempotent:
@@ -210,6 +197,30 @@ class Renderer:
                 fields[k] = " " + diff_format.format(bv, av)
         return self.config.item.format.format(**fields)[1:]
 
+    def render_stats(
+        self, count_todos: List[TodoItem], all_todos: List[TodoItem]
+    ) -> str:
+        stats = self._get_stats(count_todos, all_todos)
+        text = []
+        progress = stats["progress"]
+        if progress is not None:
+            progress_str = f"{stats['progress']:.0%}"
+            progress_map = self.config.stats.progress
+            progress_format = progress_map._
+            for k, v in progress_map.items():
+                if isinstance(k, int) and progress * 100 <= k:
+                    progress_format = v
+            progress_str = progress_format.format(progress_str)
+            key = "filtered" if stats.get("hidden", 0) > 0 else "all"
+            text.append(self.config.stats.title[key].format(progress_str))
+        stats_text = []
+        for key, value in self.config.stats.status.items():
+            count = stats[key]
+            if count > 0:
+                stats_text.append(value.format(count))
+        text.append(self.config.stats.separator.join(stats_text))
+        return "\n".join(text)
+
     def render(
         self, grouped_todos: Dict[Any, List[TodoItem]],
         group_by: GroupBy, render_stats: bool = True,
@@ -235,11 +246,7 @@ class Renderer:
                 item = f"{self.render_item(todo, group_by)}"
                 text.append(item)
             text.append("")
-        if grouped_todos and render_stats and not self.idempotent:
-            all_todos = functools.reduce(operator.add, grouped_todos.values())
-            text.append(self.render_stats(all_todos))
-        else:
-            text = text[:-1]  # remove last empty line
+        text = text[:-1]  # remove last empty line
         if idempotent is not None:
             self.idempotent = old_idempotent
         return "\n".join(text)
@@ -254,9 +261,7 @@ class Renderer:
         return render_func(result)
 
     def render_ViewResult(self, result: ViewResult) -> str:
-        render_stats = self.config.view.stats
-        render_stats = result.is_all if render_stats == "all" else render_stats
-        return self.render(result.grouped_todos, result.group_by, render_stats)
+        return self.render(result.grouped_todos, result.group_by)
 
     def render_QueryResult(self, result: QueryResult) -> str:
         values = [", ".join([str(v) for v in row]) for row in result.values]

@@ -285,12 +285,29 @@ class CLI:
     def re_index(self, book: TaskBook) -> ActionResult:
         return book.re_index()
 
-    def _print_results(self, results: List[ActionResult]):
-        if self.args.json:
-            dump = json.dumps(
-                [r.to_dict() for r in results], indent=self.config.file.indent)
-            rich_console.print(dump)
-            return dump
+    def _render_stats(
+        self, book: TaskBook, result: ViewResult
+    ) -> Optional[RenderableType]:
+        render_stats = False
+        enable = self.config.view.stats.enable
+        if enable == "always":
+            render_stats = True
+        if enable == "default" and not self.command:
+            render_stats = True
+        if enable == "all" and result.is_all:
+            render_stats = True
+        if not render_stats:
+            return
+        count = self.config.view.stats.count
+        todos = book.todos if count == "all" else result.flatten()
+        if self.args.idempotent or not todos:
+            return
+        stats = self.renderer.render_stats(todos, book.todos)
+        return Padding(stats, (1, 0, 0, 2), expand=False)
+
+    def _render_results(
+        self, results: List[ActionResult]
+    ) -> List[RenderableType]:
         rendered = []
         for r in results:
             rr = self.renderer.render_result(r)
@@ -299,7 +316,10 @@ class CLI:
             if not isinstance(r, QueryResult):
                 rr = Padding(rr, (1, 0, 0, 2), expand=False)
             rendered.append(rr)
-        if self.config.pager.enable:  # isinstance(r, ViewResult)
+        return rendered
+
+    def _print_rendered(self, rendered: List[RenderableType]) -> None:
+        if self.config.pager.enable:
             pager = rich_console.pager(styles=self.config.pager.styles)
         else:
             pager = contextlib.nullcontext()
@@ -309,6 +329,15 @@ class CLI:
             os_env = contextlib.nullcontext()
         with os_env, pager:
             rich_console.print(Group(*rendered), soft_wrap=True)
+
+    def _print_results(self, results: List[ActionResult]) -> None:
+        if self.args.json:
+            dump = json.dumps(
+                [r.to_dict() for r in results], indent=self.config.file.indent)
+            rich_console.print(dump)
+            return
+        rendered = self._render_results(results)
+        self._print_rendered(rendered)
 
     def main(self) -> int:
         db_dir = self._data_dir()
@@ -331,7 +360,16 @@ class CLI:
             action_results = [self.re_index(book)]
         else:
             action_results = self._process_action(book, self.command)
-        self._print_results(action_results)
+        rendered = self._render_results(action_results)
+        if not action_results:
+            self._print_rendered(["No action taken."])
+            return 0
+        fr = action_results[-1]
+        if isinstance(fr, ViewResult):
+            stats = self._render_stats(book, fr)
+            if stats:
+                rendered.append(stats)
+        self._print_rendered(rendered)
         if all(not isinstance(ar, RequiresSave) for ar in action_results):
             return 0
         save(
