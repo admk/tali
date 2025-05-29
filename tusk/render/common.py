@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 from typing import Optional, Dict
 
@@ -12,6 +13,12 @@ def shorten(text: str, max_len: int, ellipsis: str = '…') -> str:
 
 def pluralize(text: str, count: int) -> str:
     return f"{text}s" if count != 1 else text
+
+
+def strip_rich(text: str) -> str:
+    text = re.sub(r"\[.*?\]", "", text)
+    text = re.sub(r"\[/.*?\]", "", text)
+    return text
 
 
 SECONDS = {

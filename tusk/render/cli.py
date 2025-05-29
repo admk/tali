@@ -10,13 +10,12 @@ from rich.console import RenderableType, Group
 from rich.box import SIMPLE_HEAVY
 from rich.table import Table
 
-from ..common import strip_rich
 from ..book.item import TodoItem, Status, Priority
 from ..book.select import GroupBy
 from ..book.result import (
     ActionResult, ViewResult, QueryResult, AddResult, EditResult,
     HistoryResult, SwitchResult)
-from .utils import shorten, timedelta_format, pluralize
+from .common import shorten, strip_rich, timedelta_format, pluralize
 
 
 RenderStats = Literal[True, False, "all"]

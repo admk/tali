@@ -18,14 +18,13 @@ from tusk.book.item import TodoItem
 from tusk.book.result import EditResult, AddResult
 
 from . import __name__ as _NAME, __version__, __description__
-from .common import (
-    format_config, set_level, debug, strip_rich, warn, error, rich_console,
-    os_env_swap, flatten)
+from .common import format_config, logger, rich_console, os_env_swap, flatten
 from .parser import CommandParser
 from .book import (
     load, save, undo, redo, history, TaskBook,
     ActionResult, ViewResult, QueryResult, RequiresSave)
 from .render.cli import Renderer
+from .render.common import strip_rich
 from .render.cheatsheet import CheatSheet
 
 
