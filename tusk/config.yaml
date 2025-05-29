@@ -98,7 +98,7 @@ item:
   priority:
     format:
       high: '[bold magenta]{.token.priority}[/bold magenta]'
-      low: '[dim]_[/dim]'
+      low: '[dim]⌄[/dim]'
       normal: ''
   deadline:
     format:
