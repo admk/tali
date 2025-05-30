@@ -65,7 +65,8 @@ class Renderer:
         title = shorten(title, style.max_length, style.ellipsis)
         for k, v in self.config.item.title.format.items():
             p, q = k.split("_")
-            if getattr(todo, p) == q:
+            a = getattr(todo, p)
+            if q in a if isinstance(a, list) else q == a:
                 return v.format(title)
         return title
 

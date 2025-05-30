@@ -85,6 +85,7 @@ item:
       status_archive: '[strike dim]{}[/strike dim]'
       priority_high: '[bold magenta]{}[/bold magenta]'
       priority_low: '[dim]{}[/dim]'
+      tags_star: '[bold underline yellow]{}[/bold underline yellow]'
     max_length: 0
     ellipsis: …
   tag:
