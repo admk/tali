@@ -39,8 +39,8 @@ class CommandParser(NodeVisitor, CommonMixin):
             ast = grammar.parse(text.strip(), pos)
             logger.debug(f"Parsed {mode} AST:\n{ast}")
         except ParseError as e:
-            arrow = " " * e.pos + "^ "
-            msg = f"{e.text}\n{arrow}\n{e}"
+            arrow = " " * e.pos + "[bold red]⌃[/bold red] "
+            msg = f"Syntax Error:\n  {e.text}\n  {arrow}\n  {e}"
             logger.error(msg)
         return super().visit(ast)
 

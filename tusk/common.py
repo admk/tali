@@ -9,7 +9,8 @@ from contextlib import contextmanager
 from box import Box
 from rich.logging import RichHandler
 from rich.traceback import install as _rich_traceback_install
-from rich.console import Console
+from rich.console import Console, RenderableType
+from rich.panel import Panel
 
 _rich_traceback_install()
 rich_console = Console()
@@ -39,10 +40,17 @@ def os_env_swap(**kwargs) -> Generator[None, None, None]:
 
 
 class Logger:
+    level_symbols = {
+        "debug": "[dim]◦[/dim]",
+        "info": "[blue]•[/blue]",
+        "warning": "[yellow]![/yellow]",
+        "error": "[red]‼[/red]",
+    }
     def __init__(self):
         super().__init__()
         handler = RichHandler(
-            show_level=False, show_time=False, show_path=False, rich_tracebacks=True)
+            show_level=False, show_time=False, show_path=False,
+            markup=True, rich_tracebacks=True)
         self.logger = logging.getLogger("rich")
         logging.basicConfig(
             level=logging.INFO, format="%(message)s", handlers=[handler])
@@ -58,16 +66,23 @@ class Logger:
         level = level.upper() if isinstance(level, str) else level
         self.logger.setLevel(level)
 
-    def debug(self, msg: Any, *args, **kwargs) -> None:
+    def _format_msg(self, level: str, msg: str) -> str:
+        return f"{self.level_symbols[level]} {msg}"
+
+    def debug(self, msg: str, *args, **kwargs) -> None:
+        msg = self._format_msg("debug", msg)
         self.logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg: Any, *args, **kwargs) -> None:
+    def info(self, msg: str, *args, **kwargs) -> None:
+        msg = self._format_msg("info", msg)
         self.logger.info(msg, *args, **kwargs)
 
-    def warn(self, msg: Any, *args, **kwargs) -> None:
+    def warn(self, msg: str, *args, **kwargs) -> None:
+        msg = self._format_msg("warn", msg)
         self.logger.warning(msg, *args, **kwargs)
 
-    def error(self, msg: Any, *args, **kwargs) -> NoReturn:
+    def error(self, msg: str, *args, **kwargs) -> NoReturn:
+        msg = self._format_msg("error", msg)
         self.logger.error(msg, *args, **kwargs)
         sys.exit(1)
 
