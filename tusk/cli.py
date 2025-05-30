@@ -54,6 +54,10 @@ class CLI:
                 `~/.config/{_NAME}/config.toml`.
                 """
         },
+        ('-erc', '--edit-rc'): {
+            'action': 'store_true',
+            'help': 'Launch the editor to edit the configuration file.'
+        },
         ('-db', '--db-dir'): {
             'type': str,
             'default': None,
@@ -109,7 +113,7 @@ class CLI:
             logger.set_level("debug")
         else:
             logger.set_level("info")
-        logger.debug(self.args)
+        logger.debug(repr(self.args))
         self.config = self._init_config()
         self.editor_command = self._init_editor_command()
         # debug(f"Resolved config: {pretty_repr(self.config.to_dict())}")
@@ -130,8 +134,9 @@ class CLI:
         for option, kwargs in self.options.items():
             parser.add_argument(*option, **kwargs)
         parser.add_argument(
-            'command', nargs=argparse.REMAINDER,
-            default=None, help='Command to run.')
+            'command', nargs='*',
+            default=None,
+            help='Command to run. See `--cheatsheet` for details.')
         return parser
 
     def _project_root(self, name: Optional[str] = None) -> Optional[str]:
@@ -342,6 +347,12 @@ class CLI:
         db_dir = self._data_dir()
         if self.args.cheatsheet:
             rich_console.print(CheatSheet(self.config).render())
+            return 0
+        if self.args.edit_rc:
+            config_path = self._config_paths()[-1]
+            subprocess.run(
+                f"{self.editor_command.format(config_path)}",
+                shell=True, check=True)
             return 0
         if self.args.undo or self.args.redo:
             if self.args.undo and self.args.redo:
