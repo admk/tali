@@ -1,6 +1,7 @@
 from operator import add
 import os
 import sys
+from git import config
 import yaml
 import argparse
 import tempfile
@@ -116,7 +117,7 @@ class CLI:
         logger.debug(repr(self.args))
         self.config = self._init_config()
         self.editor_command = self._init_editor_command()
-        # debug(f"Resolved config: {pretty_repr(self.config.to_dict())}")
+        logger.debug(f"Resolved config: {repr(self.config.to_dict())}")
         command = []
         for a in self.args.command:
             if a == self.config.token.stdin and not sys.stdin.isatty():
@@ -256,6 +257,14 @@ class CLI:
             results.append(add_result)
         return results
 
+    def _edit_file(self, path: str) -> None:
+        try:
+            subprocess.run(
+                f"{self.editor_command.format(path)}",
+                shell=True, check=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to edit file: {e!r}")
+
     def editor_action(self, todos: List[TodoItem]) -> List[str]:
         text = self.renderer.render({None: todos}, "id", idempotent=True)
         text = strip_rich(text)
@@ -265,18 +274,13 @@ class CLI:
             temp_file.write(text)
             temp_file.flush()
             temp_path = temp_file.name
-        try:
-            cmd = self.editor_command.format(temp_file.name)
-            subprocess.run(cmd, shell=True, check=True)
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Editor command failed: {e}")
+        self._edit_file(temp_path)
         with open(temp_path, "r") as temp_file:
             edited = temp_file.read().strip().rstrip("\n")
         os.unlink(temp_path)
         before = [b.strip() for b in text.strip().rstrip("\n").splitlines()]
         edited = [e.strip() for e in edited.splitlines() if e.strip()]
-        edited = [e for e in edited if e not in before]
-        return edited
+        return [e for e in edited if e not in before]
 
     def history_action(
         self, db_dir: str, action: Literal["undo", "redo"]
@@ -350,10 +354,7 @@ class CLI:
             return 0
         if self.args.edit_rc:
             config_path = self._config_paths()[-1]
-            subprocess.run(
-                f"{self.editor_command.format(config_path)}",
-                shell=True, check=True)
-            return 0
+            self._edit_file(config_path)
         if self.args.undo or self.args.redo:
             if self.args.undo and self.args.redo:
                 logger.error(

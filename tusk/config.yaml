@@ -89,6 +89,9 @@ item:
       priority_high: '[bold magenta]{}[/bold magenta]'
       priority_low: '[dim]{}[/dim]'
       tags_star: '[bold underline yellow]{}[/bold underline yellow]'
+      tags_fav: '[bold underline magenta]{}[/bold underline magenta]'
+      tags_favorite: '{.item.title.format.tags_fav}'
+      tags_heart: '{.item.title.format.tags_fav}'
     max_length: 0
     ellipsis: …
   tag:
@@ -96,6 +99,9 @@ item:
       _: '[blue]{.token.tag}[underline]{}[/underline][/blue]'
       _untagged: '[italic dim]Untagged[/italic dim]'
       star: '[bold yellow]★[/bold yellow]'
+      fav: '[bold magenta]❤[/bold magenta]'
+      favorite: '{.item.tag.format.fav}'
+      heart: '{.item.tag.format.fav}'
   project:
     default: /inbox
     format: '[bold]{.token.project}{}[/bold]'
