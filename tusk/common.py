@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import json
 import logging
 from typing import Any, NoReturn, Callable, Generator, Sequence, TypeVar, List
 from contextlib import contextmanager
@@ -19,6 +20,14 @@ T = TypeVar('T')
 
 def flatten(l: Sequence[Sequence[T]]) -> List[T]:
     return [item for sublist in l for item in sublist]
+
+
+def json_dumps(obj: Any, indent=2, **kwargs) -> str:
+    return json.dumps(obj, ensure_ascii=False, indent=indent, **kwargs)
+
+
+def json_dump(obj: Any, fp: Any, indent=2, **kwargs) -> None:
+    json.dump(obj, fp, ensure_ascii=False, indent=indent, **kwargs)
 
 
 @contextmanager

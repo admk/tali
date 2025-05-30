@@ -1,7 +1,6 @@
 from operator import add
 import os
 import sys
-import json
 import yaml
 import argparse
 import tempfile
@@ -18,7 +17,8 @@ from tusk.book.item import TodoItem
 from tusk.book.result import EditResult, AddResult
 
 from . import __name__ as _NAME, __version__, __description__
-from .common import format_config, logger, rich_console, os_env_swap, flatten
+from .common import (
+    format_config, logger, rich_console, os_env_swap, flatten, json_dumps)
 from .parser import CommandParser
 from .book import (
     load, save, undo, redo, history, TaskBook,
@@ -288,6 +288,8 @@ class CLI:
     def _render_stats(
         self, book: TaskBook, result: ViewResult
     ) -> Optional[RenderableType]:
+        if self.args.json or self.args.idempotent:
+            return
         render_stats = False
         enable = self.config.view.stats.enable
         if enable == "always":
@@ -308,14 +310,17 @@ class CLI:
     def _render_results(
         self, results: List[ActionResult]
     ) -> List[RenderableType]:
+        if self.args.json:
+            dump = json_dumps(
+                [r.to_dict() for r in results], indent=self.config.file.indent)
+            return [dump]
         rendered = []
         for r in results:
             rr = self.renderer.render_result(r)
             rr = [rr] if isinstance(rr, str | RenderableType) else rr
-            rr = Group(*rr)
             if not isinstance(r, QueryResult):
-                rr = Padding(rr, (1, 0, 0, 2), expand=False)
-            rendered.append(rr)
+                rr = [Padding(r, (1, 0, 0, 2), expand=False) for r in rr]
+            rendered += rr
         return rendered
 
     def _print_rendered(self, rendered: List[RenderableType]) -> None:
@@ -331,13 +336,7 @@ class CLI:
             rich_console.print(Group(*rendered), soft_wrap=True)
 
     def _print_results(self, results: List[ActionResult]) -> None:
-        if self.args.json:
-            dump = json.dumps(
-                [r.to_dict() for r in results], indent=self.config.file.indent)
-            rich_console.print(dump)
-            return
-        rendered = self._render_results(results)
-        self._print_rendered(rendered)
+        self._print_rendered(self._render_results(results))
 
     def main(self) -> int:
         db_dir = self._data_dir()

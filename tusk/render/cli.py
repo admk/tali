@@ -1,7 +1,4 @@
 import copy
-from itertools import count
-import operator
-import functools
 from datetime import date, datetime
 from typing import get_args, Optional, Any, List, Dict, Literal
 
@@ -11,6 +8,7 @@ from rich.console import RenderableType, Group
 from rich.box import SIMPLE_HEAVY
 from rich.table import Table
 
+from ..common import json_dumps
 from ..book.item import TodoItem, Status, Priority
 from ..book.select import GroupBy
 from ..book.result import (
@@ -264,7 +262,11 @@ class Renderer:
         return self.render(result.grouped_todos, result.group_by)
 
     def render_QueryResult(self, result: QueryResult) -> str:
-        values = [", ".join([str(v) for v in row]) for row in result.values]
+        values = []
+        for row in result.values:
+            value = json_dumps([
+                v.isoformat() if isinstance(v, datetime) else v for v in row])
+            values.append(value)
         return "\n".join(values)
 
     def render_AddResult(self, result: AddResult) -> str:

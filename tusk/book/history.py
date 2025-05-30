@@ -7,7 +7,7 @@ from datetime import datetime
 from git import InvalidGitRepositoryError, GitCommandError, Commit as GitCommit
 from git.repo import Repo
 
-from ..common import logger
+from ..common import logger, json_dump, json_dumps
 from .result import Commit, ActionResult, HistoryResult, SwitchResult
 from .item import TodoItem
 
@@ -98,7 +98,7 @@ def history(path: str) -> HistoryResult:
 def save(
     commit_message: str, todos: List[TodoItem],
     action_results: List[ActionResult],
-    path: str, backup: bool = True, indent: int = 4,
+    path: str, backup: bool = True, indent: int = 2,
 ):
     """
     Save the list of todos to a file using git for version control.
@@ -110,7 +110,7 @@ def save(
     with open(main_file, "w") as f:
         data = [
             todo.to_dict() for todo in todos if not todo.status == "delete"]
-        json.dump(data, f, indent=indent)
+        json_dump(data, f, indent=indent)
     if not backup:
         return
     if repo.head.is_detached:
@@ -121,7 +121,7 @@ def save(
         repo.index.add(_MAIN_FILE)
         if not repo.is_dirty():
             return
-        result = json.dumps(
+        result = json_dumps(
             [ar.to_dict() for ar in action_results], indent=indent)
         repo.index.commit(commit_message + "\n\n" + result)
     except GitCommandError as e:
