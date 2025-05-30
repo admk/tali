@@ -68,6 +68,9 @@ group:
       done: '[green]{.item.status.format.done} done[/green]'
       note: '[blue]{.item.status.format.note} note[/blue]'
       archive: '[dim]{.item.status.format.archive} archived[/dim]'
+    deadline:
+      num_components: 1
+      timedelta: {y: y, M: M, w: w, d: d}
 item:
   format: '{.group.format.id}'
   id:

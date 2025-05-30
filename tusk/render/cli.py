@@ -110,10 +110,12 @@ class Renderer:
         remaining_time = deadline - datetime.now()
         seconds = abs(remaining_time.total_seconds())
         if abs(seconds) < 365 * 24 * 60 * 60:  # one year
-            num_components = self.config.item.deadline.num_components
-            timedelta_fmt = self.config.item.deadline.timedelta
+            if header:
+                format = self.config.group.header.deadline
+            else:
+                format = self.config.item.deadline
             text = prefix + timedelta_format(
-                remaining_time, timedelta_fmt, num_components)
+                remaining_time, format.timedelta, format.num_components)
         else:
             dt_fmt = self.config.item.deadline.datetime
             text = f"{prefix}{deadline:{dt_fmt}}"
