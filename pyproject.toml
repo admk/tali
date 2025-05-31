@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tusk"
+name = "tali"
 dynamic = ["version"]
-description = ":crystal_ball::sparkles: Weave productivity spells with symbols that conjures order from chaos."
+description = "tali • The CLI magic for task alchemists:man_mage: • Weave productivity spells:scroll: with symbols that conjures order:notebook: from chaos:cyclone:."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -28,14 +28,14 @@ dependencies = [
 ]
 
 [project.scripts]
-tusk = "tusk.cli:main"
+tali = "tali.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/admk/tusk"
-Issues = "https://github.com/admk/tusk/issues"
+Homepage = "https://github.com/admk/tali"
+Issues = "https://github.com/admk/tali/issues"
 
 [tool.setuptools.packages.find]
-include = ["tusk", "tusk.*"]
+include = ["tali", "tali.*"]
 
 [tool.setuptools.dynamic]
-version = {attr = "tusk.__version__"}
+version = {attr = "tali.__version__"}

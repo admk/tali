@@ -15,8 +15,8 @@ from rich.console import RenderableType, Group
 from rich.table import Table
 from rich_argparse import RichHelpFormatter
 
-from tusk.book.item import TodoItem
-from tusk.book.result import EditResult, AddResult
+from tali.book.item import TodoItem
+from tali.book.result import EditResult, AddResult
 
 from . import __name__ as _NAME, __version__, __description__
 from .common import (
