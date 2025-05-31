@@ -13,6 +13,10 @@ view:
   stats:
     enable: default   # always / never / default / all
     count: filtered   # filtered / all
+  history:
+    max_length: 20
+    num_components: 2
+    timedelta: null
 action:
   editor: null
 token:
@@ -75,7 +79,7 @@ group:
       archive: '[dim]{.item.status.format.archive} archived[/]'
     deadline:
       num_components: 1
-      timedelta: {y: y, M: M, w: w, d: d}
+      timedelta: 'yMwd'
 item:
   format: '{.group.format.id}'
   id:
@@ -120,7 +124,7 @@ item:
       3600: '[yellow]{}[/]'
       0: '[red]{}[/]'
       _: '[blue]{}[/]'
-    timedelta: {y: y, M: M, w: w, d: d, h: h, m: m, s: s}
+    timedelta: null
     num_components: 2
     datetime: '%y-%b-%-d'
   created_at:

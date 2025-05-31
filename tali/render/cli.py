@@ -3,9 +3,9 @@ from datetime import date, datetime
 from typing import get_args, Optional, Any, List, Dict, Literal
 
 from box import Box
+from rich import box
 from rich.panel import Panel
 from rich.console import RenderableType, Group
-from rich.box import SIMPLE_HEAVY
 from rich.table import Table
 
 from ..common import json_dumps
@@ -291,14 +291,17 @@ class Renderer:
         return "\n".join(text)
 
     def render_HistoryResult(self, result: HistoryResult) -> RenderableType:
-        table = Table(box=SIMPLE_HEAVY)
+        max_length = self.config.view.history.max_length
+        timedelta = self.config.view.history.timedelta
+        num_components = self.config.view.history.num_components
+        table = Table(box=box.ROUNDED)
         table.add_column("Time", justify="right")
         table.add_column("Commit")
-        for item in result.history:
-            dt = item["timestamp"].replace(tzinfo=None)  # type: ignore
-            dt = timedelta_format(datetime.now() - dt, num_components=1)
-            message = item["message"].splitlines()[0]  # type: ignore
-            table.add_row(dt, message)
+        for item in result.history[:max_length]:
+            dt = item.timestamp.replace(tzinfo=None)
+            dt = datetime.now() - dt
+            dt = timedelta_format(dt, timedelta, num_components)
+            table.add_row(dt, item.message)
         return table
 
     def render_SwitchResult(

@@ -1,4 +1,3 @@
-import re
 import os
 import json
 from typing import List, Literal
@@ -35,8 +34,13 @@ def to_commit(
     commit: GitCommit
 ) -> Commit:
     message, _, *data = str(commit.message).split("\n")
-    data = json.loads("\n".join(data))
-    action_results = [ActionResult.from_dict(d) for d in data]
+    data = "\n".join(data)
+    try:
+        data = json.loads(data)
+        action_results = [ActionResult.from_dict(d) for d in data]
+    except Exception:
+        logger.warn(f"Failed to parse commit data: {repr(data)}")
+        action_results = []
     return Commit(
         message, commit.hexsha, commit.committed_datetime,
         commit.hexsha == commit.repo.head.commit.hexsha, action_results)

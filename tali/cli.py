@@ -1,18 +1,15 @@
-from operator import add
 import os
 import sys
-from git import config
 import yaml
 import argparse
 import tempfile
 import contextlib
 import subprocess
-from typing import Literal, Optional, List
+from typing import Literal, Optional, List, Sequence
 
 from box import Box
 from rich.padding import Padding
 from rich.console import RenderableType, Group
-from rich.table import Table
 from rich_argparse import RichHelpFormatter
 
 from tali.book.item import TodoItem
@@ -28,9 +25,6 @@ from .book import (
 from .render.cli import Renderer
 from .render.common import strip_rich
 from .render.cheatsheet import CheatSheet
-
-
-Renderable = str | RenderableType | Table
 
 
 class CLI:
@@ -310,7 +304,7 @@ class CLI:
 
     def _render_stats(
         self, book: TaskBook, result: ViewResult
-    ) -> Optional[Renderable]:
+    ) -> Optional[RenderableType]:
         if self.args.json or self.args.idempotent:
             return
         render_stats = False
@@ -332,7 +326,7 @@ class CLI:
 
     def _render_results(
         self, results: List[ActionResult]
-    ) -> List[Renderable]:
+    ) -> List[RenderableType]:
         if self.args.json:
             dump = json_dumps(
                 [r.to_dict() for r in results], indent=self.config.file.indent)
@@ -340,13 +334,13 @@ class CLI:
         rendered = []
         for r in results:
             rr = self.renderer.render_result(r)
-            rr = [rr] if isinstance(rr, Renderable) else rr
+            rr = [rr] if isinstance(rr, RenderableType) else rr
             if not isinstance(r, QueryResult):
                 rr = [Padding(r, (1, 0, 0, 2), expand=False) for r in rr]
             rendered += rr
         return rendered
 
-    def _print_rendered(self, rendered: List[Renderable]) -> None:
+    def _print_rendered(self, rendered: Sequence[RenderableType]) -> None:
         if self.config.pager.enable:
             pager = rich_console.pager(styles=self.config.pager.styles)
         else:
