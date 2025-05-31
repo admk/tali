@@ -267,8 +267,9 @@ class Renderer:
     def render_QueryResult(self, result: QueryResult) -> str:
         values = []
         for row in result.values:
-            value = json_dumps([
-                v.isoformat() if isinstance(v, datetime) else v for v in row])
+            row = [v.isoformat() if isinstance(v, datetime) else v for v in row]
+            row = row[0] if len(row) == 1 else row
+            value = row if isinstance(row, int | str) else json_dumps(row)
             values.append(value)
         return "\n".join(values)
 
