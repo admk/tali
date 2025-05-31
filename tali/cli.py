@@ -207,6 +207,8 @@ class CLI:
             logger.warn(
                 'No database directory found. '
                 f'Creating a new one at {xdg_dir!r}.')
+            os.makedirs(xdg_dir, exist_ok=True)
+            paths.append(xdg_dir)
         if len(paths) > 1:
             logger.debug(
                 'Multiple database directories found '

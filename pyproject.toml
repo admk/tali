@@ -25,6 +25,7 @@ dependencies = [
     "python-box>=7.0",
     "parsimonious>=0.10",
     "rich>=12.5",
+    "rich-argparse",
 ]
 
 [project.scripts]

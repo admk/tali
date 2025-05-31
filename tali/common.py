@@ -43,7 +43,7 @@ class Logger:
     level_symbols = {
         "debug": "[dim]◦[/dim]",
         "info": "[blue]•[/blue]",
-        "warning": "[yellow]![/yellow]",
+        "warn": "[yellow]![/yellow]",
         "error": "[red]‼[/red]",
     }
     def __init__(self):
