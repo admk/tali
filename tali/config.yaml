@@ -35,19 +35,24 @@ alias:
     d: done
     c: done
     x: delete
+  title: {}
+  tag:
+    fav: like
+    favorite: like
+    heart: like
   priority:
     h: high
     n: normal
     l: low
 message:
-  empty: ':dizzy: [italic yellow]Nothing to show.[/italic yellow]'
-  add: '🪄 [italic green]Added 1 item.[/italic green]'
-  no_edit: ':thinking_face: [italic yellow]Nothing to update.[/italic yellow]'
-  edit: ':crystal_ball: [italic cyan]Updated {} {}.[/italic cyan]'
-  undo: ':hourglass_flowing_sand: [italic blue]Commit `{}` undone with change:[/italic blue]'
-  redo: ':hourglass_flowing_sand: [italic blue]Commit `{}` redone with change:[/italic blue]'
-  undo_add: ':boom: [italic red]Removed 1 item[/italic red]'
-  undo_edit: '{.message.edit}'
+  empty: ':dizzy: [italic yellow]Nothing to show.[/]'
+  add: '🪄 [italic green]Added 1 item.[/]'
+  no_edit: ':thinking_face: [italic yellow]Nothing to update.[/]'
+  edit: ':crystal_ball: [italic cyan]Updated {} {}.[/]'
+  undo: ':hourglass_flowing_sand: [italic blue]Commit `{}` undone with change:[/]'
+  redo: ':hourglass_flowing_sand: [italic blue]Commit `{}` redone with change:[/]'
+  undo_add: ':boom: [italic red]Removed 1 item[/]'
+  undo_edit: ':hourglass_flowing_sand: [italic cyan]Updated {} {}.[/]'
 group:
   format:
     id: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'
@@ -58,93 +63,89 @@ group:
     deadline: '{id}{status}{title}{project}{tags}{priority}{description}'
     created_at: '{.group.format.id}'
   header:
-    format: '[bold]{group}[/bold] [dim]{progress}[/dim]'
+    format: '[bold]{group}[/] [dim]{progress}[/]'
     priority:
-      high: '[magenta]{.item.priority.format.high} high[/magenta]'
+      high: '[magenta]{.item.priority.format.high} high[/]'
       normal: '. normal'
-      low: '[dim]{.item.priority.format.low} low[/dim]'
+      low: '[dim]{.item.priority.format.low} low[/]'
     status:
-      pending: '[yellow]{.item.status.format.pending} pending[/yellow]'
-      done: '[green]{.item.status.format.done} done[/green]'
-      note: '[blue]{.item.status.format.note} note[/blue]'
-      archive: '[dim]{.item.status.format.archive} archived[/dim]'
+      pending: '[yellow]{.item.status.format.pending} pending[/]'
+      done: '[green]{.item.status.format.done} done[/]'
+      note: '[blue]{.item.status.format.note} note[/]'
+      archive: '[dim]{.item.status.format.archive} archived[/]'
     deadline:
       num_components: 1
       timedelta: {y: y, M: M, w: w, d: d}
 item:
   format: '{.group.format.id}'
   id:
-    format: '[dim]{:>4}.[/dim]'
+    format: '[dim]{:>4}.[/]'
   status:
     format:
-      pending: '[bold yellow]☐[/bold yellow]'
-      done: '[bold green]✔[/bold green]'
-      note: '[bold blue]•[/bold blue]'
-      delete: '[bold red]✘[/bold red]'
-      archive: '[bold dim]-[/bold dim]'
+      pending: '[bold yellow]☐[/]'
+      done: '[bold green]✔[/]'
+      note: '[bold blue]•[/]'
+      delete: '[bold red]✘[/]'
+      archive: '[bold dim]-[/]'
   title:
     format:
-      status_done: '[strike dim]{}[/strike dim]'
-      status_archive: '[strike dim]{}[/strike dim]'
-      priority_high: '[bold magenta]{}[/bold magenta]'
-      priority_low: '[dim]{}[/dim]'
-      tags_star: '[bold underline yellow]{}[/bold underline yellow]'
-      tags_fav: '[bold underline magenta]{}[/bold underline magenta]'
-      tags_favorite: '{.item.title.format.tags_fav}'
-      tags_heart: '{.item.title.format.tags_fav}'
+      status_done: '[strike dim]{}[/]'
+      status_archive: '[strike dim]{}[/]'
+      priority_high: '[bold magenta]{}[/]'
+      priority_low: '[dim]{}[/]'
+      tags_star: '[bold underline yellow]{}[/]'
+      tags_like: '[bold underline magenta]{}[/]'
     max_length: 0
     ellipsis: …
   tag:
     format:
-      _: '[blue]{.token.tag}[underline]{}[/underline][/blue]'
-      _untagged: '[italic dim]Untagged[/italic dim]'
-      star: '[bold yellow]★[/bold yellow]'
-      fav: '[bold magenta]❤[/bold magenta]'
-      favorite: '{.item.tag.format.fav}'
-      heart: '{.item.tag.format.fav}'
+      _: '[blue]{.token.tag}[underline]{}[/][/]'
+      _untagged: '[italic dim]Untagged[/]'
+      star: '[bold yellow]★[/]'
+      like: '[bold magenta]❤[/]'
   project:
-    default: /inbox
-    format: '[bold]{.token.project}{}[/bold]'
+    default: '{.token.project}inbox'
+    format: '[bold]{.token.project}{}[/]'
   priority:
     format:
-      high: '[bold magenta]{.token.priority}[/bold magenta]'
-      low: '[dim]⌄[/dim]'
+      high: '[bold magenta]{.token.priority}[/]'
+      low: '[dim]⌄[/]'
       normal: ''
   deadline:
     format:
-      _: '[blue]{}[/blue]'
-      status_done: '[dim]{}[/dim]'
-      2592000: '[green]{}[/green]'
-      604800: '[cyan]{}[/cyan]'
-      86400: '[magenta]{}[/magenta]'
-      3600: '[yellow]{}[/yellow]'
-      0: '[red]{}[/red]'
+      status_done: '[dim]{}[/]'
+      2592000: '[green]{}[/]'
+      604800: '[cyan]{}[/]'
+      86400: '[magenta]{}[/]'
+      3600: '[yellow]{}[/]'
+      0: '[red]{}[/]'
+      _: '[blue]{}[/]'
     timedelta: {y: y, M: M, w: w, d: d, h: h, m: m, s: s}
     num_components: 2
     datetime: '%y-%b-%-d'
   created_at:
-    format: '[dim]{:%y-%b-%-d %H:%M}[/dim]'
+    format: '[dim]{:%y-%b-%-d %H:%M}[/]'
   description:
-    format: '[italic dim]{}[/italic dim]'
+    format: '[italic dim]{}[/]'
     max_length: 30
     ellipsis: …
   diff:
-    format: '[bold red]{{[/bold red][strike dim]{}[/strike dim] [bold]→[/bold] {}[bold red]}}[/bold red]'
+    format: '[bold red]{{[/][strike dim]{}[/] [bold]→[/] {}[bold red]}}[/]'
 stats:
   title:
     all: '{} of all tasks complete.'
     filtered: '{} of filtered tasks complete.'
   progress:
-    10: '[bold red]{}[/bold red]'
-    25: '[bold yellow]{}[/bold yellow]'
-    50: '[bold magenta]{}[/bold magenta]'
-    75: '[bold blue]{}[/bold blue]'
-    90: '[bold cyan]{}[/bold cyan]'
-    _: '[bold green]{}[/bold green]'
+    10: '[bold red]{}[/]'
+    25: '[bold yellow]{}[/]'
+    50: '[bold magenta]{}[/]'
+    75: '[bold blue]{}[/]'
+    90: '[bold cyan]{}[/]'
+    _: '[bold green]{}[/]'
   separator: ' · '
   status:
-    pending: '[yellow]{.item.status.format.pending} {}[/yellow] pending'
-    done: '[green]{.item.status.format.done} {}[/green] done'
-    note: '[blue]{.item.status.format.note} {}[/blue] notes'
-    archive: '[dim]{.item.status.format.archive} {}[/dim] archived'
-    hidden: '[dim]◌ {}[/dim] hidden'
+    pending: '[yellow]{.item.status.format.pending} {}[/] pending'
+    done: '[green]{.item.status.format.done} {}[/] done'
+    note: '[blue]{.item.status.format.note} {}[/] notes'
+    archive: '[dim]{.item.status.format.archive} {}[/] archived'
+    hidden: '[dim]◌ {}[/] hidden'
