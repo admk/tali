@@ -49,9 +49,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         return id
 
     def title(self, todo: TodoItem, title: str) -> str:
-        for k, v in self.config.alias.title.items():
-            title = re.sub(k, v, title)
-        return title
+        return self._resolve_alias("title", title.strip())
 
     def description(
         self, todo: TodoItem, description: Optional[str]
@@ -59,12 +57,12 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         if description:
             description = description.strip()
             if description:
-                return description
+                return self._resolve_alias('description', description)
         return None
 
     def status(self, todo: TodoItem, status: str) -> Status:
         if status:
-            status = self.config.alias.status.get(status, status)
+            status = self._resolve_alias("status", status)
             if status not in get_args(Status):
                 logger.error(f"Unrecognized status {status!r}.")
             return status
@@ -79,17 +77,10 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                 "Cannot toggle status of an item "
                 f"with status {todo.status!r}.")
 
-    def priority(self, todo: TodoItem, priority: Priority):
-        new_priority: Optional[Priority] = None
-        priority_map: Dict[str, Priority] = {
-            "h": "high", "high": "high",
-            "n": "normal", "normal": "normal",
-            "l": "low", "low": "low",
-        }
-        try:
-            new_priority = priority_map[priority]
-        except KeyError:
-            pass
+    def priority(self, todo: TodoItem, priority: Priority) -> Priority:
+        new_priority = self._resolve_alias("priority", priority)
+        if new_priority in get_args(Priority):
+            return new_priority
         priority_changes: Dict[Tuple[str, Priority], Priority] = {
             ("", "high"): "normal",
             ("", "normal"): "high",
@@ -104,7 +95,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         try:
             new_priority = priority_changes[priority, todo.priority]
         except KeyError:
-            pass
+            new_priority = None
         if not new_priority:
             logger.error(
                 "Cannot change priority from "
@@ -112,12 +103,12 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         return new_priority
 
     def project(self, todo: TodoItem, project: str) -> str:
-        return project
+        return self._resolve_alias('project', project)
 
     def tags(self, todo: TodoItem, tags: List[str]) -> List[str]:
         new_tags: List[str] = list(todo.tags)
         for tag in tags:
-            tag = self.config.alias.tag.get(tag, tag)
+            tag = self._resolve_alias("tag", tag.strip())
             if tag.startswith("+"):
                 if tag[1:] not in new_tags:
                     new_tags.append(tag[1:])

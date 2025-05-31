@@ -31,23 +31,6 @@ token:
   query: '?'
   description: ':'
   stdin: '-'
-alias:
-  status:
-    a: archive
-    p: pending
-    n: note
-    d: done
-    c: done
-    x: delete
-  title: {}
-  tag:
-    fav: like
-    favorite: like
-    heart: like
-  priority:
-    h: high
-    n: normal
-    l: low
 message:
   empty: ':dizzy: [italic yellow]Nothing to show.[/]'
   add: '🪄 [italic green]Added 1 item.[/]'
@@ -91,7 +74,15 @@ item:
       note: '[bold blue]•[/]'
       delete: '[bold red]✘[/]'
       archive: '[bold dim]-[/]'
+    alias:
+      ^a$: archive
+      ^p$: pending
+      ^n$: note
+      ^d$: done
+      ^c$: done
+      ^x$: delete
   title:
+    alias: {}
     format:
       status_done: '[strike dim]{}[/]'
       status_archive: '[strike dim]{}[/]'
@@ -102,6 +93,9 @@ item:
     max_length: 0
     ellipsis: …
   tag:
+    alias:
+      ^fav(orite)?$: like
+      ^heart$: like
     format:
       _: '[blue]{.token.tag}[underline]{}[/][/]'
       _untagged: '[italic dim]Untagged[/]'
@@ -111,6 +105,10 @@ item:
     default: 'inbox'
     format: '[bold]{.token.project}{}[/]'
   priority:
+    alias:
+      ^h$: high
+      ^n$: normal
+      ^l$: low
     format:
       high: '[bold magenta]{.token.priority}[/]'
       low: '[dim]⌄[/]'

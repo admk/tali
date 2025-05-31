@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from typing import (
@@ -28,6 +29,11 @@ class SelectMixin:
 
 
 class FilterMixin(SelectMixin):
+    def _resolve_alias(self, key: str, value: str) -> str:
+        for k, v in self.config.item[key].get("alias", {}).items():
+            value = re.sub(k, v, value)
+        return value
+
     def filter_by_ids(self, todos, ids: List[int]) -> bool:
         return todos.id in ids
 
@@ -46,10 +52,10 @@ class FilterMixin(SelectMixin):
         return all(t in todo.tags for t in tags) if tags else not todo.tags
 
     def filter_by_status(self, todo: TodoItem, status: Status) -> bool:
-        status = self.config.alias.status.get(status, status)
-        if status not in get_args(Status):
+        new_status = self._resolve_alias('status', status)
+        if new_status not in get_args(Status):
             raise ValueError(f"Unrecognized status {status!r}.")
-        return todo.status == status
+        return todo.status == new_status
 
     def filter_by_priority(self, todo: TodoItem, priority: Priority) -> bool:
         return todo.priority == priority
