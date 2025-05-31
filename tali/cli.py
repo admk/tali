@@ -236,6 +236,8 @@ class CLI:
                 title = action.pop("title")
             except KeyError:
                 logger.error("Missing title.")
+            if "project" not in action:
+                action["project"] = self.config.item.project.default
             return [book.add(title, **action)]  # type: ignore
         before_todos = book.select(selection).flatten()
         if action != "editor":

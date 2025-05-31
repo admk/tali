@@ -108,7 +108,7 @@ item:
       star: '[bold yellow]★[/]'
       like: '[bold magenta]❤[/]'
   project:
-    default: '{.token.project}inbox'
+    default: 'inbox'
     format: '[bold]{.token.project}{}[/]'
   priority:
     format:
