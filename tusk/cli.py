@@ -12,6 +12,7 @@ from typing import Literal, Optional, List
 from box import Box
 from rich.padding import Padding
 from rich.console import RenderableType, Group
+from rich.table import Table
 from rich_argparse import RichHelpFormatter
 
 from tusk.book.item import TodoItem
@@ -29,8 +30,16 @@ from .render.common import strip_rich
 from .render.cheatsheet import CheatSheet
 
 
+Renderable = str | RenderableType | Table
+
+
 class CLI:
     options = {
+        ('-h', '--help'): {
+            'action': 'help',
+            'default': argparse.SUPPRESS,
+            'help': 'Show this help message and exit.',
+        },
         ('-v', '--version'): {
             'action': 'version',
             'version': f"{_NAME} {__version__}",
@@ -68,12 +77,12 @@ class CLI:
                 If unspecified,
                 it will search in the following order:
 
-                1. The `.tusk/` directory located
+                1. The `.{_NAME}/` directory located
                 in the nearest ancestral folder
-                relative to the current working directory.
+                relative to the current working directory;
                 2. The path specified by `config.db_dir`
-                    in the configuration file.
-                3. `$XDG_DATA_HOME/{_NAME}/book/`.
+                    in the configuration file;
+                3. `$XDG_DATA_HOME/{_NAME}/book/`;
                 4. `~/.config/{_NAME}/book/`.
                 """,
         },
@@ -102,6 +111,7 @@ class CLI:
             'help': 'Re-index all items.'
         },
     }
+    epilog = ""
 
     def __init__(self, args: List[str] = sys.argv) -> None:
         super().__init__()
@@ -130,8 +140,10 @@ class CLI:
 
     def _create_parser(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
+            add_help=False,
             description=__description__,
-            formatter_class=RichHelpFormatter)
+            formatter_class=RichHelpFormatter,
+            epilog=self.epilog)
         for option, kwargs in self.options.items():
             parser.add_argument(*option, **kwargs)
         parser.add_argument(
@@ -143,7 +155,7 @@ class CLI:
     def _project_root(self, name: Optional[str] = None) -> Optional[str]:
         cwd = os.getcwd()
         while True:
-            path = os.path.join(cwd, ".tusk")
+            path = os.path.join(cwd, f".{_NAME}")
             if os.path.exists(path):
                 return os.path.join(path, name) if name is not None else path
             cwd = os.path.dirname(cwd)
@@ -296,7 +308,7 @@ class CLI:
 
     def _render_stats(
         self, book: TaskBook, result: ViewResult
-    ) -> Optional[RenderableType]:
+    ) -> Optional[Renderable]:
         if self.args.json or self.args.idempotent:
             return
         render_stats = False
@@ -318,7 +330,7 @@ class CLI:
 
     def _render_results(
         self, results: List[ActionResult]
-    ) -> List[RenderableType]:
+    ) -> List[Renderable]:
         if self.args.json:
             dump = json_dumps(
                 [r.to_dict() for r in results], indent=self.config.file.indent)
@@ -326,13 +338,13 @@ class CLI:
         rendered = []
         for r in results:
             rr = self.renderer.render_result(r)
-            rr = [rr] if isinstance(rr, str | RenderableType) else rr
+            rr = [rr] if isinstance(rr, Renderable) else rr
             if not isinstance(r, QueryResult):
                 rr = [Padding(r, (1, 0, 0, 2), expand=False) for r in rr]
             rendered += rr
         return rendered
 
-    def _print_rendered(self, rendered: List[RenderableType]) -> None:
+    def _print_rendered(self, rendered: List[Renderable]) -> None:
         if self.config.pager.enable:
             pager = rich_console.pager(styles=self.config.pager.styles)
         else:
@@ -350,7 +362,7 @@ class CLI:
     def main(self) -> int:
         db_dir = self._data_dir()
         if self.args.cheatsheet:
-            rich_console.print(CheatSheet(self.config).render())
+            self._print_rendered(CheatSheet(self.config).render())
             return 0
         if self.args.edit_rc:
             config_path = self._config_paths()[-1]
