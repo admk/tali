@@ -66,22 +66,22 @@ class Logger:
         level = level.upper() if isinstance(level, str) else level
         self.logger.setLevel(level)
 
-    def _format_msg(self, level: str, msg: str) -> str:
+    def _format_msg(self, level: str, msg: Any) -> str:
         return f"{self.level_symbols[level]} {msg}"
 
-    def debug(self, msg: str, *args, **kwargs) -> None:
+    def debug(self, msg: Any, *args, **kwargs) -> None:
         msg = self._format_msg("debug", msg)
         self.logger.debug(msg, *args, **kwargs)
 
-    def info(self, msg: str, *args, **kwargs) -> None:
+    def info(self, msg: Any, *args, **kwargs) -> None:
         msg = self._format_msg("info", msg)
         self.logger.info(msg, *args, **kwargs)
 
-    def warn(self, msg: str, *args, **kwargs) -> None:
+    def warn(self, msg: Any, *args, **kwargs) -> None:
         msg = self._format_msg("warn", msg)
         self.logger.warning(msg, *args, **kwargs)
 
-    def error(self, msg: str, *args, **kwargs) -> NoReturn:
+    def error(self, msg: Any, *args, **kwargs) -> NoReturn:
         msg = self._format_msg("error", msg)
         self.logger.error(msg, *args, **kwargs)
         sys.exit(1)

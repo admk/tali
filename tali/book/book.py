@@ -1,3 +1,4 @@
+import re
 import copy
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -48,6 +49,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         return id
 
     def title(self, todo: TodoItem, title: str) -> str:
+        for k, v in self.config.alias.title.items():
+            title = re.sub(k, v, title)
         return title
 
     def description(
@@ -114,6 +117,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     def tags(self, todo: TodoItem, tags: List[str]) -> List[str]:
         new_tags: List[str] = list(todo.tags)
         for tag in tags:
+            tag = self.config.alias.tag.get(tag, tag)
             if tag.startswith("+"):
                 if tag[1:] not in new_tags:
                     new_tags.append(tag[1:])
