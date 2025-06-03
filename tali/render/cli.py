@@ -98,11 +98,18 @@ class Renderer:
         header: bool = False
     ) -> Optional[str]:
         prefix = self.config.token.deadline
+        deadline_format = self.config.item.deadline.format
         if deadline is None:
-            return f"{prefix}oo" if header else None
+            if not header:
+                return None
+            return deadline_format["_"].format(f"{prefix}oo")
+        if deadline == "today":
+            return deadline_format[86400].format(f"{prefix}today")
+        if isinstance(deadline, str):
+            return f"{prefix}{deadline}"
         d = deadline.date() if isinstance(deadline, datetime) else deadline
         if (datetime.now().date() - d).days / 365 > 1000:
-            return self.config.item.deadline.format[0].format(f"{prefix}-oo")
+            return deadline_format[0].format(f"{prefix}-oo")
         if isinstance(deadline, date):
             deadline = datetime.combine(deadline, datetime.max.time())
         if self.idempotent:

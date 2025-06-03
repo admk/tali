@@ -127,8 +127,13 @@ class CLI:
             if a == self.config.token.stdin and not sys.stdin.isatty():
                 a = sys.stdin.read()
             command.append(a)
-        self.command = " ".join(command).strip()
-        logger.debug(f"Command: {self.command!r}")
+        command = " ".join(command).strip()
+        if not command.strip():
+            command = self.config.view.default
+            logger.debug(f"Command (from \".view.default\"): {command!r}")
+        else:
+            logger.debug(f"Command: {command!r}")
+        self.command = command
         self.command_parser = CommandParser(self.config)
         self.renderer = Renderer(self.config, self.args.idempotent)
 
