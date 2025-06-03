@@ -33,12 +33,13 @@ token:
   stdin: '-'
 message:
   empty: ':dizzy: [italic yellow]Nothing to show.[/]'
-  add: '🪄 [italic green]Added 1 item.[/]'
+  add: '🪄 [italic green]Added {} {}.[/]'
   no_edit: ':thinking_face: [italic yellow]Nothing to update.[/]'
   edit: ':crystal_ball: [italic cyan]Updated {} {}.[/]'
   undo: ':hourglass_flowing_sand: [italic blue]Commit `{}` undone with change:[/]'
   redo: ':hourglass_flowing_sand: [italic blue]Commit `{}` redone with change:[/]'
-  undo_add: ':boom: [italic red]Removed 1 item[/]'
+  redo_add: '{.message.add}'
+  undo_add: ':boom: [italic red]Removed {} {}.[/]'
   undo_edit: ':hourglass_flowing_sand: [italic cyan]Updated {} {}.[/]'
 group:
   format:
@@ -52,28 +53,29 @@ group:
   header:
     format: '[bold]{group}[/] [dim]{progress}[/]'
     priority:
-      high: '[magenta]{.item.priority.format.high} high[/]'
+      high: '[magenta]{.item.priority.format.priority:high} high[/]'
       normal: '. normal'
-      low: '[dim]{.item.priority.format.low} low[/]'
+      low: '[dim]{.item.priority.format.priority:low} low[/]'
     status:
-      pending: '[yellow]{.item.status.format.pending} pending[/]'
-      done: '[green]{.item.status.format.done} done[/]'
-      note: '[blue]{.item.status.format.note} note[/]'
-      archive: '[dim]{.item.status.format.archive} archived[/]'
+      pending: '[yellow]{.item.status.format.status:pending} pending[/]'
+      done: '[green]{.item.status.format.status:done} done[/]'
+      note: '[blue]{.item.status.format.status:note} note[/]'
+      archive: '[dim]{.item.status.format.status:archive} archived[/]'
     deadline:
       num_components: 1
       timedelta: 'yMwd'
 item:
   format: '{.group.format.id}'
   id:
-    format: '[dim]{:>4}.[/]'
+    format:
+      _: '[dim]{:>4}.[/]'
   status:
     format:
-      pending: '[bold yellow]☐[/]'
-      done: '[bold green]✔[/]'
-      note: '[bold blue]•[/]'
-      delete: '[bold red]✘[/]'
-      archive: '[bold dim]-[/]'
+      status:pending: '[bold yellow]☐[/]'
+      status:done: '[bold green]✔[/]'
+      status:note: '[bold blue]•[/]'
+      status:delete: '[bold red]✘[/]'
+      status:archive: '[bold dim]-[/]'
     alias:
       ^a$: archive
       ^p$: pending
@@ -84,12 +86,12 @@ item:
   title:
     alias: {}
     format:
-      status_done: '[strike dim]{}[/]'
-      status_archive: '[strike dim]{}[/]'
-      priority_high: '[bold magenta]{}[/]'
-      priority_low: '[dim]{}[/]'
-      tags_star: '[bold underline yellow]{}[/]'
-      tags_like: '[bold underline magenta]{}[/]'
+      tags:star: '[bold underline yellow]{}[/]'
+      tags:like: '[bold underline magenta]{}[/]'
+      priority:high: '[bold magenta]{}[/]'
+      priority:low: '[dim]{}[/]'
+      status:done: '[strike dim]{}[/]'
+      status:archive: '[strike dim]{}[/]'
     max_length: 0
     ellipsis: …
   tag:
@@ -101,6 +103,7 @@ item:
       _untagged: '[italic dim]Untagged[/]'
       star: '[bold yellow]★[/]'
       like: '[bold magenta]❤[/]'
+      status:done: '[strike dim blue]{}[/]'
   project:
     default: 'inbox'
     format: '[bold]{.token.project}{}[/]'
@@ -110,12 +113,12 @@ item:
       ^n$: normal
       ^l$: low
     format:
-      high: '[bold magenta]{.token.priority}[/]'
-      low: '[dim]⌄[/]'
-      normal: ''
+      priority:high: '[bold magenta]{.token.priority}[/]'
+      priority:low: '[dim]⌄[/]'
+      priority:normal: ''
   deadline:
     format:
-      status_done: '[dim]{}[/]'
+      status:done: '[dim]{}[/]'
       2592000: '[green]{}[/]'
       604800: '[cyan]{}[/]'
       86400: '[magenta]{}[/]'
@@ -146,8 +149,8 @@ stats:
     _: '[bold green]{}[/]'
   separator: ' · '
   status:
-    pending: '[yellow]{.item.status.format.pending} {}[/] pending'
-    done: '[green]{.item.status.format.done} {}[/] done'
-    note: '[blue]{.item.status.format.note} {}[/] notes'
-    archive: '[dim]{.item.status.format.archive} {}[/] archived'
+    pending: '[yellow]{.item.status.format.status:pending} {}[/] pending'
+    done: '[green]{.item.status.format.status:done} {}[/] done'
+    note: '[blue]{.item.status.format.status:note} {}[/] notes'
+    archive: '[dim]{.item.status.format.status:archive} {}[/] archived'
     hidden: '[dim]◌ {}[/] hidden'

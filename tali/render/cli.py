@@ -1,6 +1,6 @@
 import copy
 from datetime import date, datetime
-from typing import get_args, Optional, Any, List, Dict, Literal
+from typing import get_args, Optional, Any, List, Dict, Literal, Callable
 
 from box import Box
 from rich import box
@@ -8,7 +8,7 @@ from rich.panel import Panel
 from rich.console import RenderableType, Group
 from rich.table import Table
 
-from ..common import json_dumps
+from ..common import json_dumps, has_prefix
 from ..book.item import TodoItem, Status, Priority
 from ..book.select import GroupBy
 from ..book.result import (
@@ -41,57 +41,95 @@ class Renderer:
         progress = stats["done"] / total if total > 0 else None
         return stats | {"progress": progress}
 
-    def _render_id(self, id: int) -> Optional[str]:
+    def _render_by_format_map(
+        self, todo: Optional[TodoItem], format_map: str | Dict[str, str],
+        text_to_render: str, early_exit: bool = False,
+        match_func: Optional[Callable[[Any, Any], bool]] = None
+    ) -> str:
+        if isinstance(format_map, str):
+            return format_map.format(text_to_render)
+        rendered = format_map.get("_", "{}").format(text_to_render)
+        if todo is None:
+            return rendered
+        for k, v in format_map.items():
+            if ":" not in k:
+                continue
+            p, q = k.split(":")
+            a = getattr(todo, p)
+            if match_func is not None:
+                match = match_func(q, a)
+            elif isinstance(a, list):
+                match = q in a
+            else:
+                match = q == a
+            if not match:
+                continue
+            rendered = v.format(rendered)
+            if early_exit:
+                return rendered
+        return rendered
+
+    def _render_id(self, todo: Optional[TodoItem], id: int) -> Optional[str]:
         if self.idempotent:
             return f"{id} {self.config.token.separator}"
-        return self.config.item.id.format.format(id)
+        return self._render_by_format_map(
+            todo, self.config.item.id.format, str(id))
 
     def _render_status(
-        self, status: Status, header: bool = False
+        self, todo: Optional[TodoItem], status: Status,
     ) -> Optional[str]:
-        if header:
+        if todo is None:
             return self.config.group.header.status[status]
         if self.idempotent:
             return f"{self.config.token.status}{status}"
-        return self.config.item.status.format[status]
+        return self._render_by_format_map(
+            todo, self.config.item.status.format, status)
 
-    def _render_title(self, todo: TodoItem) -> Optional[str]:
-        title = todo.title
+    def _render_title(
+        self, todo: Optional[TodoItem], title: str
+    ) -> Optional[str]:
         for token in self.config.token.values():
             title = title.replace(f'\\{token}', token)
         style = self.config.item.title
         if self.idempotent:
+            for token in self.config.token.values():
+                title = title.replace(token, f"\\{token}")
             return title
         title = shorten(title, style.max_length, style.ellipsis)
-        for k, v in self.config.item.title.format.items():
-            p, q = k.split("_")
-            a = getattr(todo, p)
-            if q in a if isinstance(a, list) else q == a:
-                return v.format(title)
-        return title
+        return self._render_by_format_map(todo, style.format, title)
 
-    def _render_tags(self, tags: List[str]) -> Optional[str]:
+    def _render_tags(
+        self, todo: Optional[TodoItem], tags: List[str]
+    ) -> Optional[str]:
         new_tags = []
         tag_formats = self.config.item.tag.format
         for tag in tags:
-            key = tag if tag in tag_formats else "_"
             if self.idempotent:
                 tag = "+" + tag
-            text = tag_formats[key].format(tag)
+            if tag in tag_formats:
+                text = tag_formats[tag]
+            else:
+                text = self._render_by_format_map(todo, tag_formats, tag)
             new_tags.append(text)
         return " ".join([tag for tag in new_tags])
 
-    def _render_project(self, project: str) -> Optional[str]:
-        return f"{self.config.token.project}{project}"
+    def _render_project(
+        self, todo: Optional[TodoItem], project: str
+    ) -> Optional[str]:
+        token = self.config.token.project
+        return self._render_by_format_map(
+            todo, self.config.item.project.format, project,
+            match_func=lambda q, a: has_prefix(a.split(token), q.split(token)))
 
     def _render_priority(
-        self, priority: Priority, header: bool = False
+        self, todo: Optional[TodoItem], priority: Priority
     ) -> Optional[str]:
-        if header:
+        if todo is None:
             return self.config.group.header.priority[priority]
         if self.idempotent:
             return f"{self.config.token.priority}{priority}"
-        return self.config.item.priority.format[priority]
+        return self._render_by_format_map(
+            todo, self.config.item.priority.format, priority)
 
     def _render_deadline(
         self, deadline: Optional[date | datetime], status: Status,
@@ -103,8 +141,10 @@ class Renderer:
             if not header:
                 return None
             return deadline_format["_"].format(f"{prefix}oo")
+        if deadline == "overdue":
+            return deadline_format[0].format(f"{prefix}{deadline}")
         if deadline == "today":
-            return deadline_format[86400].format(f"{prefix}today")
+            return deadline_format[86400].format(f"{prefix}{deadline}")
         if isinstance(deadline, str):
             return f"{prefix}{deadline}"
         d = deadline.date() if isinstance(deadline, datetime) else deadline
@@ -139,14 +179,17 @@ class Renderer:
     def _render_created_at(self, created_at: datetime) -> Optional[str]:
         return self.config.item.created_at.format.format(created_at)
 
-    def _render_description(self, description: Optional[str]) -> Optional[str]:
+    def _render_description(
+        self, todo: Optional[TodoItem], description: Optional[str]
+    ) -> Optional[str]:
         if description is None:
             return None
         if self.idempotent:
             return f"{self.config.token.description} {description}"
         style = self.config.item.description
         desc = shorten(description, style.max_length, style.ellipsis)
-        return self.config.item.description.format.format(desc)
+        return self._render_by_format_map(
+            todo, self.config.item.description.format, desc)
 
     def _render_header(
         self, group_by: GroupBy, value: Any
@@ -154,13 +197,13 @@ class Renderer:
         if group_by == "id":
             return None
         if group_by == "project":
-            return self._render_project(value)
+            return self._render_project(None, value)
         if group_by == "tag":
-            return self._render_tags([value])
+            return self._render_tags(None, [value])
         if group_by == "priority":
-            return self._render_priority(value, True)
+            return self._render_priority(None, value)
         if group_by == "status":
-            return self._render_status(value, True)
+            return self._render_status(None, value)
         if group_by == "deadline":
             return self._render_deadline(value, "pending", True)
         if group_by == "created_at":
@@ -169,14 +212,14 @@ class Renderer:
 
     def _render_fields(self, todo: TodoItem) -> Dict[str, str]:
         fields = {
-            "id": self._render_id(todo.id),
-            "status": self._render_status(todo.status),
-            "title": self._render_title(todo),
-            "tags": self._render_tags(todo.tags),
-            "priority": self._render_priority(todo.priority),
-            "project": self._render_project(todo.project),
+            "id": self._render_id(todo, todo.id),
+            "status": self._render_status(todo, todo.status),
+            "title": self._render_title(todo, todo.title),
+            "tags": self._render_tags(todo, todo.tags),
+            "priority": self._render_priority(todo, todo.priority),
+            "project": self._render_project(todo, todo.project),
             "deadline": self._render_deadline(todo.deadline, todo.status),
-            "description": self._render_description(todo.description),
+            "description": self._render_description(todo, todo.description),
         }
         return {k: " " + v if v else "" for k, v in fields.items()}
 
@@ -282,7 +325,10 @@ class Renderer:
 
     def render_AddResult(self, result: AddResult) -> str:
         items = [self.render_item(item) for item in result.items]
-        return "\n".join([self.config.message.add, ""] + items)
+        count = len(result.items)
+        message = self.config.message.add.format(
+            count, pluralize('item', count))
+        return "\n".join([message, ""] + items)
 
     def render_EditResult(self, result: EditResult) -> str:
         if not result.after:
@@ -324,10 +370,15 @@ class Renderer:
                     a.status = "delete"
                 diffs = [
                     self.render_item_diff(b, a) for b, a in zip(ar.items, after)]
-                panels.append([self.config.message.undo_add, ""] + diffs)
+                count = len(ar.items)
+                message = self.config.message.undo_add.format(
+                    count, pluralize('item', count))
+                panels.append([message, ""] + diffs)
             if isinstance(ar, AddResult) and result.action == "redo":
                 items = [self.render_item(a) for a in ar.items]
-                panels.append([self.config.message.add, ""] + items)
+                message = self.config.message.redo_add.format(
+                    len(ar.items), pluralize('item', len(ar.items)))
+                panels.append([message, ""] + items)
             if isinstance(ar, EditResult):
                 message = self.config.message.undo_edit.format(
                     len(ar.after), pluralize('item', len(ar.after)))
@@ -337,4 +388,6 @@ class Renderer:
                         btodo, atodo = atodo, btodo
                     panel.append(self.render_item_diff(btodo, atodo))
                 panels.append(panel)
-        return [text] + [Panel.fit(Group(*panel)) for panel in panels if panel]
+        panels = [
+            Panel(Group(*panel), expand=False) for panel in panels if panel]
+        return [text] + panels

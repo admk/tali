@@ -11,8 +11,9 @@ def shorten(text: str, max_len: int, ellipsis: str = '…') -> str:
     return text
 
 
-def pluralize(text: str, count: int) -> str:
-    return f"{text}s" if count != 1 else text
+def pluralize(text: str, count: int, plural: Optional[str] = None) -> str:
+    plural = plural or f"{text}s"
+    return plural if count != 1 else text
 
 
 def strip_rich(text: str) -> str:

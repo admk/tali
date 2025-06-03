@@ -6,7 +6,7 @@ from typing import (
 
 from box import Box
 
-from ..common import logger
+from ..common import logger, has_prefix
 from ..book.item import TodoItem, Status, Priority
 
 
@@ -44,9 +44,7 @@ class FilterMixin(SelectMixin):
         separator = self.config.token.project
         splits = project.split(separator)
         todo_splits = todos.project.split(separator)
-        suffix_len = max(len(splits) - len(todo_splits), 0)
-        todo_splits += [None] * suffix_len
-        return all(p == q for p, q in zip(splits, todo_splits))
+        return has_prefix(todo_splits, splits)
 
     def filter_by_tags(self, todo: TodoItem, tags: List[str]) -> bool:
         return all(t in todo.tags for t in tags) if tags else not todo.tags
@@ -164,10 +162,10 @@ class GroupMixin(SortMixin):
             dt = todo.deadline
             if dt is None or todo.status != "pending":
                 return None
-            delta = dt - datetime.now()
-            if delta.seconds < 0:
+            delta = (dt - datetime.now()).total_seconds()
+            if delta < 0:
                 return "overdue"
-            if delta.days < 1:
+            if delta < 86400:  # 1 day in seconds
                 return "today"
             return dt.date()
         sfunc = lambda todo: todo.deadline or datetime(9999, 12, 31)

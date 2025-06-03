@@ -3,14 +3,14 @@ import re
 import sys
 import json
 import logging
-from typing import Any, NoReturn, Callable, Generator, Sequence, TypeVar, List
+from typing import (
+    Any, NoReturn, Callable, Generator, Sequence, TypeVar, List, Optional)
 from contextlib import contextmanager
 
 from box import Box
 from rich.logging import RichHandler
 from rich.traceback import install as _rich_traceback_install
-from rich.console import Console, RenderableType
-from rich.panel import Panel
+from rich.console import Console
 
 _rich_traceback_install()
 rich_console = Console()
@@ -119,3 +119,11 @@ def format_config(config: Box) -> Box:
         if formatted == config:
             return formatted
         config = formatted
+
+
+def has_prefix(
+    value: Sequence[Optional[str]], prefix: Sequence[Optional[str]]
+) -> bool:
+    suffix_len = max(len(prefix) - len(value), 0)
+    value = list(value) + [None] * suffix_len
+    return all(p == q for p, q in zip(prefix, value))
