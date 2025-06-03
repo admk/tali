@@ -10,12 +10,13 @@ from typing import Literal, Optional, List, Sequence
 from box import Box
 from rich.padding import Padding
 from rich.console import RenderableType, Group
-from rich_argparse import RichHelpFormatter
+from rich_argparse import RawDescriptionRichHelpFormatter
 
 from tali.book.item import TodoItem
 from tali.book.result import EditResult, AddResult
 
-from . import __name__ as _NAME, __version__, __description__
+from . import (
+    __name__ as _NAME, __version__, __description__, __url__, __epilog__)
 from .common import (
     format_config, logger, rich_console, os_env_swap, flatten, json_dumps)
 from .parser import CommandParser
@@ -105,7 +106,7 @@ class CLI:
             'help': 'Re-index all items.'
         },
     }
-    epilog = ""
+    epilog = __epilog__
 
     def __init__(self, args: List[str] = sys.argv) -> None:
         super().__init__()
@@ -141,7 +142,7 @@ class CLI:
         parser = argparse.ArgumentParser(
             add_help=False,
             description=__description__,
-            formatter_class=RichHelpFormatter,
+            formatter_class=RawDescriptionRichHelpFormatter,
             epilog=self.epilog)
         for option, kwargs in self.options.items():
             parser.add_argument(*option, **kwargs)
@@ -218,8 +219,6 @@ class CLI:
     def _process_action(
         self, book: TaskBook, command: str, nested: bool = False
     ) -> List[ActionResult]:
-        if not command.strip():
-            command = self.config.view.default or ''
         selection, group, sort, query, action = \
             self.command_parser.parse(command)
         logger.debug(f"Selection: {selection}")
@@ -338,12 +337,12 @@ class CLI:
             dump = json_dumps(
                 [r.to_dict() for r in results], indent=self.config.file.indent)
             return [dump]
-        rendered = []
+        rendered: List[RenderableType] = [""]
         for r in results:
             rr = self.renderer.render_result(r)
             rr = [rr] if isinstance(rr, RenderableType) else rr
             if not isinstance(r, QueryResult):
-                rr = [Padding(r, (1, 0, 0, 2), expand=False) for r in rr]
+                rr = [Padding(r, (0, 2), expand=False) for r in rr]
             rendered += rr
         return rendered
 
