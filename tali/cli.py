@@ -54,9 +54,14 @@ class CLI:
             'help':
                 f"""
                 The configuration file to use.
-                If not provided, it reads from
-                `$XDG_CONFIG_HOME/{_NAME}/config.toml` or
-                `~/.config/{_NAME}/config.toml`.
+                If unspecified,
+                it will search in the following order:
+
+                1. The `config.toml` file
+                   located in the nearest ancestral `.{_NAME}` folder
+                   relative to the current working directory;
+                2. `$XDG_CONFIG_HOME/{_NAME}/config.toml`;
+                3. `~/.config/{_NAME}/config.toml`.
                 """
         },
         ('-erc', '--edit-rc'): {
@@ -72,9 +77,8 @@ class CLI:
                 If unspecified,
                 it will search in the following order:
 
-                1. The `.{_NAME}/` directory located
-                in the nearest ancestral folder
-                relative to the current working directory;
+                1. The `.{_NAME}/` directory
+                   located in the nearest ancestral folder;
                 2. The path specified by `config.db_dir`
                     in the configuration file;
                 3. `$XDG_DATA_HOME/{_NAME}/book/`;
