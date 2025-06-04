@@ -126,19 +126,7 @@ class CLI:
         logger.debug(repr(self.args))
         self.config = self._init_config()
         self.editor_command = self._init_editor_command()
-        logger.debug(f"Resolved config: {repr(self.config.to_dict())}")
-        command = []
-        for a in self.args.command:
-            if a == self.config.token.stdin and not sys.stdin.isatty():
-                a = sys.stdin.read()
-            command.append(a)
-        command = " ".join(command).strip()
-        if not command.strip():
-            command = self.config.view.default
-            logger.debug(f"Command (from \".view.default\"): {command!r}")
-        else:
-            logger.debug(f"Command: {command!r}")
-        self.command = command
+        self.command = self._init_command()
         self.command_parser = CommandParser(self.config)
         self.renderer = Renderer(self.config, self.args.idempotent)
 
@@ -192,13 +180,29 @@ class CLI:
                 config.merge_update(d)
         if config is None:
             logger.error("No config file found.")
-        return format_config(config)
+        config = format_config(config)
+        logger.debug(f"Resolved config: {repr(config.to_dict())}")
+        return config
 
     def _init_editor_command(self) -> str:
         if self.config.action.editor is not None:
             return self.config.action.editor
         editor = os.environ.get("EDITOR", "vim")
         return f"{editor} {{}}"
+
+    def _init_command(self) -> str:
+        command = []
+        for a in self.args.command:
+            if a == self.config.token.stdin and not sys.stdin.isatty():
+                a = sys.stdin.read()
+            command.append(a)
+        command = " ".join(command).strip()
+        if not command.strip():
+            command = self.config.view.default
+            logger.debug(f"Command (from \".view.default\"): {command!r}")
+        else:
+            logger.debug(f"Command: {command!r}")
+        return command
 
     def _data_dir(self) -> str:
         xdg_data_home = os.environ.get("XDG_DATA_HOME", "~/.local/share")
@@ -321,7 +325,7 @@ class CLI:
         enable = self.config.view.stats.enable
         if enable == "always":
             render_stats = True
-        if enable == "default" and not self.command:
+        if enable == "default" and not self.args.command:
             render_stats = True
         if enable == "all" and result.is_all:
             render_stats = True
