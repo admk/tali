@@ -2,7 +2,7 @@
 
 > **The CLI magic:crystal_ball: for task alchemists** --
 > Weave productivity spells with symbols
-> that conjure order:notebook: from chaos:cyclone:.
+> that conjure order :notebook: from chaos :cyclone:.
 
 [![GitHub](https://img.shields.io/badge/Repo-GitHub-blue)](https://github.com/admk/tali)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
