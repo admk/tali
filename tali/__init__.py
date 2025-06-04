@@ -1,5 +1,5 @@
 __toolname__ = __name__
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = "admk"
 __license__ = "MIT"
 __description__ = " ".join(r"""
