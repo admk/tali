@@ -1,6 +1,6 @@
 # tali 🧙‍♂️
 
-> **The CLI magic:crystal_ball: for task alchemists** --
+> **The CLI magic :crystal_ball: for task alchemists** --
 > Weave productivity spells with symbols
 > that conjure order :notebook: from chaos :cyclone:.
 
