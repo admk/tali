@@ -45,7 +45,8 @@ _DEFAULT_FORMAT = {
 def timedelta_format(
     delta: timedelta,
     fmt: Optional[str | Dict[str, str]] = None,
-    num_components: int = 2
+    num_components: int = 2,
+    skip_zeros: bool = True
 ):
     total_seconds = delta.total_seconds()
     negative = total_seconds < 0
@@ -69,7 +70,9 @@ def timedelta_format(
         if num_components is not None:
             if len(text) >= num_components:
                 continue
-        if count > 0:
+        if skip_zeros:
+            text.append(f'{count}{fmt[k]}')
+        elif count > 0:
             text.append(f'{count}{fmt[k]}')
     sign = "-" if negative else ""
     return f"{sign}{''.join(text) or '0s'}"

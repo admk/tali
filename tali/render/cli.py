@@ -344,15 +344,15 @@ class Renderer:
         return "\n".join(text)
 
     def render_HistoryResult(self, result: HistoryResult) -> RenderableType:
-        max_length = self.config.view.history.max_length
-        timedelta = self.config.view.history.timedelta
-        num_components = self.config.view.history.num_components
+        history_config = self.config.view.history
+        max_length = history_config.max_length
+        timedelta = history_config.timedelta
+        num_components = history_config.num_components
         table = Table(box=box.ROUNDED)
         table.add_column("Time", justify="right")
         table.add_column("Commit")
         for item in result.history[:max_length]:
-            dt = item.timestamp.replace(tzinfo=None)
-            dt = datetime.now() - dt
+            dt = datetime.now() - item.timestamp.replace(tzinfo=None)
             dt = timedelta_format(dt, timedelta, num_components)
             table.add_row(dt, item.message)
         return table
