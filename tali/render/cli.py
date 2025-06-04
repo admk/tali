@@ -150,7 +150,7 @@ class Renderer:
         d = deadline.date() if isinstance(deadline, datetime) else deadline
         if (datetime.now().date() - d).days / 365 > 1000:
             return deadline_format[0].format(f"{prefix}-oo")
-        if isinstance(deadline, date):
+        if type(deadline) is date:
             deadline = datetime.combine(deadline, datetime.max.time())
         if self.idempotent:
             return f"{prefix}{deadline:\"%Y-%b-%d %H:%M\"}"
