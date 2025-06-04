@@ -94,7 +94,7 @@ class CheatSheet:
             (f"{id(1)} {sep} {tag('star')}",
              f"Set as starred {self.config.item.tag.format.star}"),
             (f"{id(1)} {sep} {tag('fav')}",
-             f"Set as favorite {self.config.item.tag.format.fav}"),
+             f"Set as favorite {self.config.item.tag.format.like}"),
             (f"{id(1)} {sep} {priority('h')}",
              f"Set priority to {priority('high', False)}"),
             (f"{id(1)} {sep} {status('x')}",

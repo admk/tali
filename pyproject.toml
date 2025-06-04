@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tali"
+name = "tali-cli"
 dynamic = ["version"]
-description = "tali • The CLI magic for task alchemists:man_mage: • Weave productivity spells:scroll: with symbols that conjures order:notebook: from chaos:cyclone:."
+description = "tali • The CLI magic for task alchemists • Weave productivity spells with symbols that conjures order from chaos."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -22,10 +22,12 @@ classifiers = [
 ]
 dependencies = [
     "GitPython>=3.1",
-    "python-box>=7.0",
+    "PyYAML>=6.0",
     "parsimonious>=0.10",
+    "python-box>=7.0",
+    "python-dateutil>=2.8",
+    "rich-argparse>=1.7",
     "rich>=12.5",
-    "rich-argparse",
 ]
 
 [project.scripts]
@@ -37,6 +39,9 @@ Issues = "https://github.com/admk/tali/issues"
 
 [tool.setuptools.packages.find]
 include = ["tali", "tali.*"]
+
+[tool.setuptools.package-data]
+tali = ["parser/*.grammar", "config.yaml"]
 
 [tool.setuptools.dynamic]
 version = {attr = "tali.__version__"}
