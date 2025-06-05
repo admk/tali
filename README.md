@@ -50,14 +50,17 @@ for fast yet powerful filtering, grouping, sorting and batch operations.
 pip install tali-cli
 
 # Using uv
-uv install tali-cli
+uv tool install tali-cli
 
 # From source
-git clone https://github.com/admk/tali
-cd tali && pip install .
+git clone https://github.com/admk/tali && cd tali && pip install .
 ```
 
-## 🪄 Basic Usage
+- Requires `Python 3.10+`.
+
+## :book: Usage Examples
+
+### 🪄 Basic Usage
 
 ```bash
 tali . "Buy milk" /grocery ^today  # Create a task with project and deadline
@@ -68,12 +71,42 @@ tali 42 . ,x  # Delete task
 tali ^today . @star  # Toggle star tag for all tasks due today
 ```
 
-## :mag_right: Filtering & Querying
+### :mag_right: Filtering & Querying
 
 ```bash
 tali /work !high ^today  # Show high-priority work tasks due today
 tali @ =^  # Group tasks by tag sorted by deadline
 tali 42 ?^  # Query deadline of task 42
+```
+
+### :pencil2: Task Modifications
+
+```bash
+tali 42 . ,done  # Mark task 42 as done
+tali 42 . ,  # Toggle task status
+tali 42 . @star  # Toggle star tag :star:
+tali 42 . @fav  # Toggle favorite tag :heart:
+tali 42 . !h  # Set high priority :bangbang:
+tali 42 . ,x  # Delete task
+tali 42 . : "Details..."  # Add description
+tali 42 . "New title" /newproject ,n  # Edit multiple properties
+```
+
+### :alarm_clock: Deadline Management
+
+```bash
+tali 42 . ^+3d  # Postpone deadline by 3 days
+tali 42 . ^2mon  # Set to Monday after next
+tali 42 . ^M  # Set to end of month
+tali 42 . ^oo  # Remove deadline
+```
+
+### :ledger: Batch Operations
+
+```bash
+tali 1..5 . ,x  # Delete tasks 1-5
+tali @urgent . !high  # Set all @urgent tasks to high priority
+tali /home .  # Edit all tasks in /home project in text editor
 ```
 
 ## :gear: Configuration
@@ -87,41 +120,6 @@ Edit with:
 tali --edit-rc
 ```
 See [config.yaml](tali/config.yaml) for all default configurations.
-
-## :scroll: Command Reference
-
-### Task Creation
-| Command | Description |
-|---------|-------------|
-| `tali . "Buy milk" /grocery ^today` | Create task with project/deadline |
-| `tali . "Meeting" /work ^"tue 4pm" ,n` | Create note |
-| `tali . "Fix bug" /tali !high @urgent` | Tagged high-priority task |
-
-### Task Modifications
-| Command | Description |
-|---------|-------------|
-| `tali 42 . ,` | Toggle pending/done status |
-| `tali 42 . @star` | Toggle star tag :star: |
-| `tali 42 . @fav` | Toggle favorite tag :heart: |
-| `tali 42 . !h` | Set high priority |
-| `tali 42 . ,x` | Delete task |
-| `tali 42 . : "Details..."` | Add description |
-| `tali 42 . "New title" /newproject ,n` | Edit multiple properties |
-
-### Deadline Management
-| Command | Description |
-|---------|-------------|
-| `tali 42 . ^+3d` | Postpone deadline by 3 days |
-| `tali 42 . ^2mon` | Set to Monday after next |
-| `tali 42 . ^M` | Set to end of month |
-| `tali 42 . ^oo` | Remove deadline |
-
-### Batch Operations
-| Command | Description |
-|---------|-------------|
-| `tali 1..5 . ,x` | Delete tasks 1-5 |
-| `tali @urgent . !high` | Set all `@urgent` to high priority |
-| `tali /home .` | Edit all `/home` tasks in text editor |
 
 ## :crystal_ball: Symbol Cheat Sheet
 
