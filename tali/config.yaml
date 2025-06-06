@@ -12,7 +12,7 @@ view:
   sort_by: created_at
   stats:
     enable: default   # always / never / default / all
-    count: filtered   # filtered / all
+    count: all   # filtered / all
   history:
     max_length: 20
     num_components: 2
