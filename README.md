@@ -128,6 +128,38 @@ tali (-r|--redo)  # Redo last undone operation
 tali (-R|--re-index)  # Re-index database
 ```
 
+### 📝 Editor Usage
+
+You can invoke an interactive editor by running:
+```bash
+tali (-e|--edit)  # start an empty editor for task editing
+tali <selection> .  # or edit tasks filtered by <selection>
+```
+
+In the editor,
+you can write task editing or adding commands
+without the `tali` prefix.
+When you save and close the editor:
+- Each line will be treated as a separate command
+- Commands will be executed sequentially
+- Supports recursive prefix sharing for faster editing
+
+Example:
+```
+. /grocery ^today
+  @fruit
+    apples
+    oranges
+  milk
+```
+
+This would be interpreted as:
+```
+. /grocery ^today @fruit apples
+. /grocery ^today @fruit oranges
+. /grocery ^today milk
+```
+
 ## ⚙️ Configuration
 
 Global configuration is stored in `~/.config/tali/config.yaml`
@@ -139,6 +171,8 @@ Edit with:
 tali --edit-rc
 ```
 See [config.yaml](tali/config.yaml) for all default configurations.
+See [Configuration Guide][config_guide]
+for details of how to customize `tali`.
 
 ## 📜 Symbol Cheat Sheet
 
@@ -156,12 +190,6 @@ See [config.yaml](tali/config.yaml) for all default configurations.
 | `:`   | description | Long description                | `: details...`  |
 | `-`   | stdin       | Read from standard input        | `-`             |
 
-## 📚 Documentations
-
-- [Documentation](https://github.com/admk/tali/wiki)
-- [Tutorial](https://github.com/admk/tali/blob/main/TUTORIAL.md)
-- [Configuration Guide](https://github.com/admk/tali/blob/main/CONFIGURATION.md)
-
 ## 🚀 Productivity Tips
 
 - Use `t` as an alias for `tali`.
@@ -173,7 +201,13 @@ See [config.yaml](tali/config.yaml) for all default configurations.
 
 ## 🧙‍♂️ Contribute
 
-- ❓ Need Help? [FAQs](https://github.com/admk/tali/wiki/faqs)
-- 🔮 Report bugs: [Issue Tracker](https://github.com/admk/tali/issues)
-- 📥 Submit PRs: [Pull Requests](https://github.com/admk/tali/pulls)
-- 💬 Discuss: [Discussions](https://github.com/admk/tali/discussions)
+- ❓ Need Help? [FAQs][faqs]
+- 🔮 Report bugs: [Issue Tracker][issues]
+- 📥 Submit PRs: [Pull Requests][prs]
+- 💬 Discuss: [Discussions][discussions]
+
+[config_guide]: https://github.com/admk/tali/blob/main/CONFIGURATION.md
+[faqs]: https://github.com/admk/tali/wiki/faqs
+[issues]: https://github.com/admk/tali/issues
+[prs]: https://github.com/admk/tali/pulls
+[discussions]: https://github.com/admk/tali/discussions
