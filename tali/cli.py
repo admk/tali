@@ -87,11 +87,21 @@ class CLI:
         },
         ('-j', '--json'): {
             'action': 'store_true',
-            'help': 'Output the result in JSON format. '
+            'help': 'Output the result in JSON format.'
+        },
+        ('-s', '--stats'): {
+            'action': 'store_true',
+            'help': 'Show statistics for the current view.'
+        },
+        ('--stats-count', ): {
+            'type': str,
+            'default': None,
+            'choices': ['filtered', 'all'],
+            'help': 'Which items to count for statistics.'
         },
         ('-i', '--idempotent'): {
             'action': 'store_true',
-            'help': 'Render output in idempotent format. '
+            'help': 'Render output in idempotent format.'
         },
         ('-u', '--undo'): {
             'action': 'store_true',
@@ -329,9 +339,11 @@ class CLI:
             render_stats = True
         if enable == "all" and result.is_all:
             render_stats = True
+        if self.args.stats:
+            render_stats = True
         if not render_stats:
             return
-        count = self.config.view.stats.count
+        count = self.args.stats_count or self.config.view.stats.count
         todos = book.todos if count == "all" else result.flatten()
         if self.args.idempotent or not todos:
             return
