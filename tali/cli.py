@@ -12,17 +12,15 @@ from rich.padding import Padding
 from rich.console import RenderableType, Group
 from rich_argparse import RawDescriptionRichHelpFormatter
 
-from tali.book.item import TodoItem
-from tali.book.result import EditResult, AddResult
-
 from . import (
     __name__ as _NAME, __version__, __description__, __url__, __epilog__)
 from .common import (
     format_config, logger, rich_console, os_env_swap, flatten, json_dumps)
-from .parser import CommandParser
 from .book import (
-    load, save, undo, redo, history, TaskBook,
-    ActionResult, ViewResult, QueryResult, RequiresSave)
+    load, save, undo, redo, history, TaskBook, TodoItem,
+    EditResult, AddResult, ActionResult, ViewResult, QueryResult, RequiresSave)
+from .parser import CommandParser
+from .parser.indent import process_prefix_sharing_lines
 from .render.cli import Renderer
 from .render.common import strip_rich
 from .render.cheatsheet import CheatSheet
@@ -83,6 +81,14 @@ class CLI:
                     in the configuration file;
                 3. `$XDG_DATA_HOME/{_NAME}/book/`;
                 4. `~/.config/{_NAME}/book/`.
+                """,
+        },
+        ('-e', '--editor'): {
+            'action': 'store_true',
+            'help':
+                """
+                Start the editor with empty content.
+                This is useful for adding new items.
                 """,
         },
         ('-j', '--json'): {
@@ -270,6 +276,11 @@ class CLI:
                 f"Ignoring command {command!r} "
                 "that tries to launch the editor.")
             return []
+        return self._process_editor_action(before_todos, book)
+
+    def _process_editor_action(
+        self, before_todos: List[TodoItem], book: TaskBook
+    ) -> List[ActionResult]:
         editor_actions = self.editor_action(before_todos)
         logger.debug(f"Editor commands:\n{editor_actions!r}")
         edit_result = EditResult([], [])
@@ -309,9 +320,10 @@ class CLI:
         self._edit_file(temp_path)
         with open(temp_path, "r") as temp_file:
             edited = temp_file.read().strip().rstrip("\n")
+        edited = process_prefix_sharing_lines(edited.splitlines())
         os.unlink(temp_path)
         before = [b.strip() for b in text.strip().rstrip("\n").splitlines()]
-        edited = [e.strip() for e in edited.splitlines() if e.strip()]
+        edited = [e.strip() for e in edited if e.strip()]
         return [e for e in edited if e not in before]
 
     def history_action(
@@ -403,6 +415,8 @@ class CLI:
         book = TaskBook(self.config, todos)
         if self.args.re_index:
             action_results = [self.re_index(book)]
+        elif self.args.editor:
+            action_results = self._process_editor_action([], book)
         else:
             action_results = self._process_action(book, self.command)
         rendered = self._render_results(action_results)
