@@ -6,6 +6,8 @@ pager:
   enable: false
   command: null
   styles: true
+editor:
+  command: null
 view:
   default: null
   group_by: project
@@ -17,8 +19,6 @@ view:
     max_length: 20
     num_components: 2
     timedelta: null
-action:
-  editor: null
 token:
   id: '..'
   status: ','
@@ -88,7 +88,7 @@ item:
     format:
       tags:star: '[bold underline yellow]{}[/]'
       tags:like: '[bold underline magenta]{}[/]'
-      priority:high: '[bold magenta]{}[/]'
+      priority:high: '[bold red]{}[/]'
       priority:low: '[dim]{}[/]'
       status:done: '[strike dim]{}[/]'
       status:archive: '[strike dim]{}[/]'

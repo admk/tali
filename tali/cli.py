@@ -201,8 +201,8 @@ class CLI:
         return config
 
     def _init_editor_command(self) -> str:
-        if self.config.action.editor is not None:
-            return self.config.action.editor
+        if self.config.editor is not None:
+            return self.config.editor.command
         editor = os.environ.get("EDITOR", "vim")
         return f"{editor} {{}}"
 
@@ -312,7 +312,7 @@ class CLI:
         text = self.renderer.render({None: todos}, "id", idempotent=True)
         text = strip_rich(text)
         with tempfile.NamedTemporaryFile(
-            suffix=f".{_NAME}.tmp", mode='w+', delete=False
+            suffix=f".{_NAME}", mode='w+', delete=False
         ) as temp_file:
             temp_file.write(text)
             temp_file.flush()

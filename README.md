@@ -192,12 +192,25 @@ for details of how to customize `tali`.
 
 ## 🚀 Productivity Tips
 
-- Use `t` as an alias for `tali`.
-  For example,
-  add the following line to your `~/.bashrc` or `~/.zshrc`:
-  ```bash
-  alias t='tali'
-  ```
+### 📟 Shell Aliases
+
+Use `t` as an alias for `tali`.
+For example,
+add the following line to your `~/.bashrc` or `~/.zshrc`:
+```bash
+alias t='tali'
+```
+
+### 🎨 Syntax Highlighting
+
+Use [`tali.vim`][tali.vim] for Neovim/Vim syntax highlighting.
+Install with [lazy.nvim][lazy.nvim]:
+```lua
+{
+  "admk/tali.nvim",
+  ft = "tali",
+}
+```
 
 ## 🧙‍♂️ Contribute
 
@@ -211,3 +224,5 @@ for details of how to customize `tali`.
 [issues]: https://github.com/admk/tali/issues
 [prs]: https://github.com/admk/tali/pulls
 [discussions]: https://github.com/admk/tali/discussions
+[tali.vim]: https://github.com/admk/tali.vim
+[lazy.nvim]: https://github.com/folke/lazy.nvim
