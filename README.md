@@ -20,18 +20,21 @@ for fast yet powerful filtering, grouping, sorting and batch operations.
   Intuitive symbols for fast task filtering and editing:
   `@tag`, `/project`, `^1week`.
 - 🔎 **Powerful Filtering, Grouping and Sorting** --
-  Filter, group and sort items with ease: `tali /work ! ^today @ =^`.
+  Filter, group and sort items with ease:
+  `tali /work ! ^today @ =^`.
 - 📒 **Batch Operations** --
   Modify multiple filtered tasks at once:
   `tali /grocery @fruit . ,d`
   marks tasks with tag `@fruit` in `/grocery` project as done.
 - 😄 **Emoji Support** --
-  Use Emoji markups for visual flair: 💥 = `:boom:`.
+  Use Emoji markups for visual flair:
+  💥 = `:boom:`.
 - ⏪ **Undo/Redo** --
   Never fear accidental changes
   with `-u`/`--undo` and `-r`/`--redo`.
 - ⚙️ **Highly Customizable** --
-  Configure symbols, aliases, rendering format/style, editor, pager,
+  Configure symbols, aliases,
+  rendering format/style, editor, pager,
   database location, and more
   in `~/.config/tali/config.toml`.
 - 📁 **Folder-specific Task Management** --
@@ -39,7 +42,7 @@ for fast yet powerful filtering, grouping, sorting and batch operations.
   by creating a `.tali` folder in any directory.
 - 📇 **JSON Storage/Export** --
   Machine-readable output with `-j`/`--json`.
-- 📜 **Cheatsheet Built-in** --
+- 📜 **Cheat Sheet Built-in** --
   Always available with `-c`/`--cheatsheet`.
 - 1️⃣ **Idempotent Operations** --
   Use interactive editor or scripts to modify tasks.
