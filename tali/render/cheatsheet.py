@@ -54,8 +54,13 @@ class CheatSheet:
         token = self.config.token.query if symbol else ""
         return f"{token}{text}"
 
+    def _separator(self, symbol: bool = True) -> str:
+        if symbol:
+            return f"[bold]{self.config.token.separator}[/bold]"
+        return "[bold]separator[/bold]"
+
     def _creation_commands(self) -> List[Tuple[str, str]]:
-        sep = self.config.token.separator
+        sep = self._separator()
         title = self._title
         project = self._project
         tag = self._tag
@@ -79,7 +84,7 @@ class CheatSheet:
     def _modification_commands(self) -> List[Tuple[str, str]]:
         id = self._id
         title = self._title
-        sep = self.config.token.separator
+        sep = self._separator()
         project = self._project
         status = self._status
         tag = self._tag
@@ -110,7 +115,7 @@ class CheatSheet:
 
     def _deadline_commands(self) -> List[Tuple[str, str]]:
         id = self._id
-        sep = self.config.token.separator
+        sep = self._separator()
         deadline = self._deadline
         return [
             (f"{id(1)} {sep} {deadline('+3d')}",
@@ -145,7 +150,7 @@ class CheatSheet:
 
     def _batch_commands(self) -> List[Tuple[str, str]]:
         id = self._id
-        sep = self.config.token.separator
+        sep = self._separator()
         project = self._project
         tag = self._tag
         status = self._status
@@ -158,7 +163,10 @@ class CheatSheet:
              f"Set {tag('urgent')} tasks "
              f"to {priority('high', False)} priority"),
             (f"{project('home')} {sep}",
-             f"Open an [bold]editor[/bold] for {project('home')} tasks"),
+             f"Open an [underline]editor[/underline] "
+             f"for {project('home')} tasks"),
+            (f"{sep}",
+             f"Edit everything in the [underline]editor[/underline]"),
         ]
 
     def render_examples(self) -> Table:
