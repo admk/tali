@@ -53,7 +53,7 @@ group:
   header:
     format: '[bold]{group}[/] [dim]{progress}[/]'
     priority:
-      high: '[magenta]{.item.priority.format.priority:high} high[/]'
+      high: '[red]{.item.priority.format.priority:high} high[/]'
       normal: '. normal'
       low: '[dim]{.item.priority.format.priority:low} low[/]'
     status:
@@ -106,14 +106,14 @@ item:
       status:done: '[strike dim blue]{}[/]'
   project:
     default: 'inbox'
-    format: '[bold]{.token.project}{}[/]'
+    format: '[bold magenta]{.token.project}{}[/]'
   priority:
     alias:
       ^h$: high
       ^n$: normal
       ^l$: low
     format:
-      priority:high: '[bold magenta]{.token.priority}[/]'
+      priority:high: '[bold red]{.token.priority}[/]'
       priority:low: '[dim]⌄[/]'
       priority:normal: ''
   deadline:
