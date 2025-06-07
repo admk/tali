@@ -1,4 +1,4 @@
-# tali 🧙‍♂️
+<h1 align="center">tali 🧙‍♂️</h1>
 
 > **The CLI magic 🔮 for task alchemists** --
 > Weave productivity spells with symbols
@@ -13,6 +13,30 @@
 `tali` is a magical command-line task manager.
 It manipulates tasks with intuitive symbols
 for fast yet powerful filtering, grouping, sorting and batch operations.
+<p align="center">
+  <img src="assets/screenshot.png" alt="screenshot" width="500" />
+</p>
+
+## Contents
+
+- [🔝 Top](#tali-%EF%B8%8F)
+- [✨ Features](#-features)
+- [📦 Installation](#-installation)
+- [📖 Usage Examples](#-usage-examples)
+  - [🪄 Basic Usage](#-basic-usage)
+  - [🔎 Filtering & Querying](#-filtering--querying)
+  - [✏️ Task Modifications](#-task-modifications)
+  - [⏰ Deadline Management](#-deadline-management)
+  - [📒 Batch Operations](#-batch-operations)
+  - [🧪 Advanced Options](#-advanced-options)
+  - [📝 Editor Usage](#-editor-usage)
+- [⚙️ Configuration](#-configuration)
+- [📜 Symbol Cheat Sheet](#-symbol-cheat-sheet)
+- [🚀 Productivity Tips](#-productivity-tips)
+  - [📟 Shell Aliases](#-shell-aliases)
+  - [🎨 Syntax Highlighting](#-syntax-highlighting)
+- [🧙‍♂️ Contribute](#-contribute)
+- [💡 Inspired by](#-inspired-by)
 
 ## ✨ Features
 
@@ -229,6 +253,13 @@ For example:
 - 📥 Submit PRs: [Pull Requests][prs]
 - 💬 Discuss: [Discussions][discussions]
 
+## 💡 Inspired by
+
+- [taskbook][taskbook]:
+  Tasks, boards & notes for the command-line habitat.
+- [taskwarrior][taskwarrior]:
+  A command line task list management utility.
+
 [config_guide]: https://github.com/admk/tali/blob/main/CONFIGURATION.md
 [faqs]: https://github.com/admk/tali/wiki/faqs
 [issues]: https://github.com/admk/tali/issues
@@ -237,3 +268,5 @@ For example:
 [tali.vim]: https://github.com/admk/tali.vim
 [lazy.nvim]: https://github.com/folke/lazy.nvim
 [catppuccin]: https://github.com/catppuccin/nvim
+[taskbook]: https://github.com/klaudiosinani/taskbook
+[taskwarrior]: https://github.com/GothenburgBitFactory/taskwarrior
