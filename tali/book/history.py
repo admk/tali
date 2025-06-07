@@ -105,11 +105,10 @@ def save(
     path: str, backup: bool = True, indent: int = 2,
 ):
     """
-    Save the list of todos to a file using git for version control.
+    Save the list of TODOs to a file using git for version control.
     Commits changes if backup is enabled and we're at HEAD.
     """
     logger.debug(f"Saving todos to {path} with commit message: {commit_message}")
-    repo = _repo(path)
     main_file = os.path.join(path, _MAIN_FILE)
     with open(main_file, "w") as f:
         data = [
@@ -117,6 +116,7 @@ def save(
         json_dump(data, f, indent=indent)
     if not backup:
         return
+    repo = _repo(path)
     if repo.head.is_detached:
         backup_branch = f"backup-{datetime.now():%Y-%m-%d-%H-%M-%S}"
         repo.git.branch("-m", "main", backup_branch)
