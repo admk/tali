@@ -146,7 +146,7 @@ When you save and close the editor:
 
 Example:
 ```
-. /grocery ^today
+. /home/grocery ^today buy
   @fruit
     apples
     oranges
@@ -155,9 +155,9 @@ Example:
 
 This would be interpreted as:
 ```
-. /grocery ^today @fruit apples
-. /grocery ^today @fruit oranges
-. /grocery ^today milk
+. /home/grocery ^today @fruit buy apples
+. /home/grocery ^today @fruit buy oranges
+. /home/grocery ^today buy milk
 ```
 
 ## ⚙️ Configuration
@@ -195,22 +195,32 @@ for details of how to customize `tali`.
 ### 📟 Shell Aliases
 
 Use `t` as an alias for `tali`.
-For example,
-add the following line to your `~/.bashrc` or `~/.zshrc`:
-```bash
-alias t='tali'
-```
+For example:
+1. Add the following line to your `~/.bashrc` or `~/.zshrc`:
+   ```bash
+   alias t='tali'
+   ```
+2. `source ~/.bashrc` or `source ~/.zshrc`
+   to apply the changes.
+3. Use `t <...>` instead of `tali <...>` for extra speed.
 
 ### 🎨 Syntax Highlighting
 
-Use [`tali.vim`][tali.vim] for Neovim/Vim syntax highlighting.
-Install with [lazy.nvim][lazy.nvim]:
-```lua
-{
-  "admk/tali.nvim",
-  ft = "tali",
-}
-```
+- Use [`tali.vim`][tali.vim] for Neovim/Vim syntax highlighting.
+  Install with [lazy.nvim][lazy.nvim]:
+  ```lua
+  {
+    "admk/tali.nvim",
+    ft = "tali",
+  }
+  ```
+- Color theme: [Catppuccin Mocha][catppuccin]
+  <details open>
+    <summary>Screenshot</summary>
+  <p align="center">
+    <img src="https://raw.githubusercontent.com/admk/tali.vim/main/assets/example.png" alt="screenshot" width="500" />
+  </p>
+  </details>
 
 ## 🧙‍♂️ Contribute
 
@@ -226,3 +236,4 @@ Install with [lazy.nvim][lazy.nvim]:
 [discussions]: https://github.com/admk/tali/discussions
 [tali.vim]: https://github.com/admk/tali.vim
 [lazy.nvim]: https://github.com/folke/lazy.nvim
+[catppuccin]: https://github.com/catppuccin/nvim
