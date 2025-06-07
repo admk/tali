@@ -9,6 +9,18 @@ from parsimonious.exceptions import ParseError, VisitationError
 from .common import CommonMixin
 
 
+class DateTimeParseError(Exception):
+    pass
+
+
+class DateTimeSyntaxError(DateTimeParseError):
+    """An exception raised when a date time syntax is invalid."""
+
+
+class DateTimeSemanticError(DateTimeParseError):
+    """An exception raised when a date time is semantically invalid."""
+
+
 class DateTimeParser(NodeVisitor, CommonMixin):
     weekday_map = {
         'mon': 0, 'tue': 1, 'wed': 2, 'thu': 3,
@@ -39,7 +51,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         try:
             return datetime(*args, **kwargs)
         except ValueError as e:
-            raise ValueError(f"Invalid datetime format: {e}") from e
+            raise DateTimeSemanticError(f"Invalid datetime format: {e}") from e
 
     def visit_datetime_expression(self, node, visited_children):
         return self._visit_any_of(node, visited_children)
@@ -87,7 +99,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
             elif ampm == 'am' and hour == 12:
                 hour = 0
         if not (0 <= hour < 24 and 0 <= minute < 60):
-            raise ValueError("Invalid time")
+            raise DateTimeSemanticError(f"Invalid time: {node.text!r}")
         return time(hour, minute)
 
     def visit_absolute_date(self, node, visited_children):
@@ -151,7 +163,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
             return self.now.date() + timedelta(days=days)
         elif unit == 'days':
             return self.now.date() + timedelta(days=count)
-        raise ValueError(f'Unexpected unit {unit!r}.')
+        raise DateTimeSemanticError(f'Unexpected unit {unit!r}.')
 
     visit_end = CommonMixin._visit_any_of
 
@@ -165,7 +177,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
             return datetime.max.date()
         if text == '-oo':  # distant past
             return datetime.min.date()
-        raise ValueError(f"Unexpected named date {node.text!r}.")
+        raise DateTimeSemanticError(f"Unexpected named date {node.text!r}.")
 
     visit_year = visit_day = visit_day = visit_hour = visit_minute = \
         visit_ordinal = CommonMixin._visit_int

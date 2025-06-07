@@ -11,6 +11,18 @@ from .result import Commit, ActionResult, HistoryResult, SwitchResult
 from .item import TodoItem
 
 
+class HistoryError(Exception):
+    pass
+
+
+class UndoRedoError(HistoryError):
+    """An exception raised when an undo or redo operation fails."""
+
+
+class CommitError(HistoryError):
+    """An exception raised when a commit operation fails."""
+
+
 _MAIN_FILE = "main"
 
 
@@ -61,19 +73,16 @@ def _undo_redo(
     repo = _repo(path)
     commits = list(repo.iter_commits("main"))
     before = repo.head.commit
-    try:
-        index = commits.index(before)
-    except ValueError:
-        raise ValueError("Current HEAD commit not found in main branch.")
+    index = commits.index(before)
     if action == "undo":
         if index + 1 >= len(commits):
-            logger.error("No history to undo.")
+            raise UndoRedoError("No history to undo.")
         index += 1
         action_results = to_commit(before).action_results
         message = str(before.message)
     elif action == "redo":
         if index == 0:
-            logger.error("No history to redo.")
+            raise UndoRedoError("No history to redo.")
         index -= 1
         action_results = to_commit(commits[index]).action_results
         message = str(commits[index].message)
@@ -129,4 +138,4 @@ def save(
             [ar.to_dict() for ar in action_results], indent=indent)
         repo.index.commit(commit_message + "\n\n" + result)
     except GitCommandError as e:
-        logger.error(f"Failed to commit changes: {e}")
+        raise CommitError(f"Failed to commit changes: {e}")

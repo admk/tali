@@ -1,3 +1,4 @@
+from argparse import Action
 import re
 import copy
 from datetime import datetime
@@ -11,6 +12,14 @@ from .item import TodoItem, Status, Priority
 from .result import AddResult, EditResult, ViewResult, QueryResult
 from .select import (
     FilterMixin, GroupMixin, SortMixin, FilterBy, FilterValue, GroupBy, SortBy)
+
+
+class ActionError(Exception):
+    pass
+
+
+class ActionValueError(ActionError):
+    """An exception raised when a value set operation fails."""
 
 
 class TaskBook(FilterMixin, GroupMixin, SortMixin):
@@ -64,7 +73,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         if status:
             status = self._resolve_alias("status", status)
             if status not in get_args(Status):
-                logger.error(f"Unrecognized status {status!r}.")
+                raise ActionValueError(f"Unrecognized status {status!r}.")
             return status
         status_changes: Dict[Status, Status] = {
             "done": "pending",
@@ -72,10 +81,10 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         }
         try:
             return status_changes[todo.status]
-        except KeyError:
-            logger.error(
+        except KeyError as e:
+            raise ActionValueError(
                 "Cannot toggle status of an item "
-                f"with status {todo.status!r}.")
+                f"with status {todo.status!r}.") from e
 
     def priority(self, todo: TodoItem, priority: Priority) -> Priority:
         new_priority = self._resolve_alias("priority", priority)
@@ -97,7 +106,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         except KeyError:
             new_priority = None
         if not new_priority:
-            logger.error(
+            raise ActionValueError(
                 "Cannot change priority from "
                 f"{todo.priority!r} to {priority!r}.")
         return new_priority

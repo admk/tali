@@ -24,6 +24,22 @@ GroupFunc = Callable[[TodoItem], GroupKey]
 SortFunc = Callable[[TodoItem], Any]
 
 
+class SelectError(Exception):
+    pass
+
+
+class FilterError(SelectError):
+    """An exception raised when a filter operation fails."""
+
+
+class SortError(SelectError):
+    """An exception raised when a sort operation fails."""
+
+
+class GroupError(SelectError):
+    """An exception raised when a group operation fails."""
+
+
 class SelectMixin:
     config: Box
 
@@ -52,7 +68,7 @@ class FilterMixin(SelectMixin):
     def filter_by_status(self, todo: TodoItem, status: Status) -> bool:
         new_status = self._resolve_alias('status', status)
         if new_status not in get_args(Status):
-            raise ValueError(f"Unrecognized status {status!r}.")
+            raise FilterError(f"Unrecognized status {status!r}.")
         return todo.status == new_status
 
     def filter_by_priority(self, todo: TodoItem, priority: Priority) -> bool:
@@ -78,7 +94,7 @@ class FilterMixin(SelectMixin):
         if len(date_range) == 1:
             date_range = (datetime.min, date_range[0])
         if len(date_range) != 2:
-            logger.error(f'Invalid date range: {date_range!r}.')
+            raise FilterError(f'Invalid date range: {date_range!r}.')
         return self._filter_by_date_range(todo.deadline, date_range)
 
     def filter_by_created_at(
@@ -182,7 +198,7 @@ class GroupMixin(SortMixin):
         return gfunc, sfunc
 
     def group_by_description(self):
-        logger.error("Grouping by description is not supported.")
+        raise GroupError("Grouping by description is not supported.")
 
     def group_by(
         self, todos: List[TodoItem], group_by: GroupBy,

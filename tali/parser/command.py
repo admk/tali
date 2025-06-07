@@ -17,6 +17,18 @@ from .datetime import DateTimeParser
 Mode = Literal["selection", "action"]
 
 
+class CommandParseError(Exception):
+    pass
+
+
+class CommandSyntaxError(CommandParseError):
+    """An exception raised when a command syntax is invalid."""
+
+
+class CommandSemanticError(CommandParseError):
+    """An exception raised when a command is semantically invalid."""
+
+
 class CommandParser(NodeVisitor, CommonMixin):
     def __init__(self, config: Box, reference_dt: Optional[datetime] = None):
         super().__init__()
@@ -41,7 +53,7 @@ class CommandParser(NodeVisitor, CommonMixin):
         except ParseError as e:
             arrow = " " * e.pos + "[bold red]⌃[/bold red] "
             msg = f"Syntax Error:\n  {e.text}\n  {arrow}\n  {e}"
-            logger.error(msg)
+            raise CommandSyntaxError(msg) from e
         return super().visit(ast)
 
     def parse(self, text: str, pos: int = 0) -> Tuple[
@@ -59,8 +71,10 @@ class CommandParser(NodeVisitor, CommonMixin):
             commands = text.split(f" {separator} ")
             try:
                 selection, action = commands
-            except ValueError:
-                raise SyntaxError("Invalid command format.")
+            except ValueError as e:
+                raise CommandSyntaxError(
+                    "Invalid command format. "
+                    f"Expected '(selection) {separator} (action)'.")
             selection = self._parse_mode("selection", selection, pos)
             action = self._parse_mode("action", action, pos)
         elif text.startswith(f"{separator} "):
@@ -99,10 +113,11 @@ class CommandParser(NodeVisitor, CommonMixin):
             elif isinstance(item, str):
                 kind, value = "title", item
             else:
-                raise ValueError(f"Unknown item {item!r}.")
+                raise CommandSemanticError(f"Unknown item {item!r}.")
             if kind in kinds["unique"]:
                 if kind in parsed:
-                    logger.error(f"Duplicate {kind!r} in command.")
+                    raise CommandSemanticError(
+                        f"Duplicate {kind!r} in command.")
                 parsed[kind] = value
             elif kind in kinds["list"]:
                 kind_list = parsed.setdefault(kind, [])
@@ -111,7 +126,7 @@ class CommandParser(NodeVisitor, CommonMixin):
                 else:
                     kind_list.append(value)
             else:
-                raise ValueError(f"Unknown kind {kind!r}.")
+                raise CommandSemanticError(f"Unknown kind {kind!r}.")
         if "ids" in parsed:
             parsed["ids"] = list(sorted(set(parsed["ids"])))
         if "title" in parsed:
@@ -122,9 +137,8 @@ class CommandParser(NodeVisitor, CommonMixin):
                     self.datetime_parser.parse(dt)
                     for dt in parsed["deadline"]]
             except (ParseError, VisitationError) as e:
-                if logger.is_enabled_for("debug"):
-                    raise e
-                logger.error(f"Invalid date time syntax: {e}")
+                raise CommandSemanticError(
+                    f"Invalid date time syntax: {e}") from e
             parsed["deadline"] = dts
         if "tag" in parsed:
             parsed["tags"] = parsed.pop("tag")
@@ -138,7 +152,8 @@ class CommandParser(NodeVisitor, CommonMixin):
             parsed["priority"] = "high"
         if "deadline" in parsed:
             if len(parsed["deadline"]) > 1:
-                logger.error("Multiple deadlines are not allowed.")
+                raise CommandSemanticError(
+                    "Multiple deadlines are not allowed.")
             dt = parsed["deadline"][0]
             years = (dt - datetime.now()).days / 365
             parsed["deadline"] = None if years >= 1000 else dt
@@ -159,7 +174,7 @@ class CommandParser(NodeVisitor, CommonMixin):
         elif name == "query_token":
             query = "title"
         else:
-            raise ParseError(
+            raise CommandSemanticError(
                 f"Unexpected query type: {node.children[1].expr_name}")
         return "query", query
 
