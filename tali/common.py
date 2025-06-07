@@ -86,6 +86,14 @@ class Logger:
         self.logger.error(msg, *args, **kwargs)
         sys.exit(1)
 
+    def ask(self, msg: str, answers: List[str], *args, **kwargs) -> str:
+        ans = "/".join(answers)
+        ans = rich_console.input(f"[bold red]?[/] [italic]{msg}[/] [{ans}]: ")
+        if not ans:
+            # the first all-cap answer is the default
+            ans = [a for a in answers if a.isupper()][0]
+        return ans.strip().lower()
+
 
 logger = Logger()
 

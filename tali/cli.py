@@ -2,10 +2,11 @@ import os
 import sys
 import yaml
 import argparse
+import textwrap
 import tempfile
 import contextlib
 import subprocess
-from typing import Literal, Optional, List, Sequence
+from typing import Literal, Optional, List, Tuple, Sequence
 
 from box import Box
 from rich.padding import Padding
@@ -18,7 +19,8 @@ from .common import (
     format_config, logger, rich_console, os_env_swap, flatten, json_dumps)
 from .book import (
     load, save, undo, redo, history, TaskBook, TodoItem,
-    EditResult, AddResult, ActionResult, ViewResult, QueryResult, RequiresSave)
+    EditResult, AddResult, ActionResult, ViewResult, QueryResult, RequiresSave,
+    ActionValueError)
 from .parser import CommandParser
 from .parser.indent import process_prefix_sharing_lines
 from .render.cli import Renderer
@@ -263,7 +265,8 @@ class CLI:
             try:
                 title = action.pop("title")
             except KeyError:
-                logger.error("Missing title.")
+                raise ActionValueError(
+                    f"Missing title in command: {command!r}.")
             if "project" not in action:
                 action["project"] = self.config.item.project.default
             return [book.add(title, **action)]  # type: ignore
@@ -279,14 +282,24 @@ class CLI:
         return self._process_editor_action(before_todos, book)
 
     def _process_editor_action(
-        self, before_todos: List[TodoItem], book: TaskBook
+        self, before_todos: List[TodoItem], book: TaskBook,
+        actions: Optional[List[str]] = None
     ) -> List[ActionResult]:
-        editor_actions = self.editor_action(before_todos)
+        editor_actions = self.editor_action(before_todos, actions)
         logger.debug(f"Editor commands:\n{editor_actions!r}")
         edit_result = EditResult([], [])
         add_result = AddResult([])
+        error = []
         for action in editor_actions:
-            results = self._process_action(book, action, True)
+            try:
+                results = self._process_action(book, action, True)
+            except Exception as e:
+                if logger.is_enabled_for("debug"):
+                    raise e
+                logger.warn(
+                    f"Failed to process action: \"{action}\"\n  {e!r}")
+                error.append(action)
+                continue
             for result in results:
                 if isinstance(result, EditResult):
                     edit_result.before.extend(result.before)
@@ -298,9 +311,19 @@ class CLI:
             results.append(edit_result)
         if add_result.items:
             results.append(add_result)
+        if error:
+            ans = logger.ask(
+                "Do you want to continue editing failed actions?", ["Y", "n"])
+            if ans == "n":
+                return results
+            results = self._process_editor_action([], book, error)
         return results
 
     def _edit_file(self, path: str) -> None:
+        if not self.editor_command:
+            logger.error(
+                "No editor command configured. "
+                "Please set `editor.command` in the configuration file.")
         try:
             subprocess.run(
                 f"{self.editor_command.format(path)}",
@@ -308,13 +331,18 @@ class CLI:
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to edit file: {e!r}")
 
-    def editor_action(self, todos: List[TodoItem]) -> List[str]:
+    def editor_action(
+        self, todos: List[TodoItem], actions: Optional[List[str]] = None
+    ) -> List[str]:
         text = self.renderer.render({None: todos}, "id", idempotent=True)
-        text = strip_rich(text)
+        text = strip_rich(text).rstrip()
         with tempfile.NamedTemporaryFile(
             suffix=f".{_NAME}", mode='w+', delete=False
         ) as temp_file:
-            temp_file.write(text)
+            if text:
+                temp_file.write(text + "\n")
+            if actions:
+                temp_file.write("\n".join(actions) + "\n")
             temp_file.flush()
             temp_path = temp_file.name
         self._edit_file(temp_path)
