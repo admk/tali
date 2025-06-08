@@ -46,6 +46,13 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         with open(os.path.join(root, 'datetime.grammar'), 'r') as f:
             self.grammar = Grammar(f.read())
 
+    def parse(self, text: str, pos: int = 0) -> datetime:
+        try:
+            ast = self.grammar.parse(text.strip())
+        except ParseError as e:
+            raise DateTimeSyntaxError(e)
+        return self.visit(ast)
+
     @staticmethod
     def _datetime(*args, **kwargs) -> datetime:
         try:
@@ -195,58 +202,3 @@ class DateTimeParser(NodeVisitor, CommonMixin):
 
     def generic_visit(self, node, visited_children):
         return visited_children
-
-
-if __name__ == "__main__":
-    test_date = datetime(2025, 5, 11, 11, 0, 0)
-    parser = DateTimeParser(test_date)
-    test_cases = [
-        ('today',           datetime(2025, 5, 11, 23, 59, 59, 999999)),
-        ('20:00',           datetime(2025, 5, 11, 20, 0, 0)),
-        ('10am',            datetime(2025, 5, 12, 10, 0, 0)),
-        ('week',            datetime(2025, 5, 11, 23, 59, 59, 999999)),
-        ('w',               datetime(2025, 5, 11, 23, 59, 59, 999999)),
-        ('tomorrow 6pm',    datetime(2025, 5, 12, 18, 0, 0)),
-        ('tomorrow',        datetime(2025, 5, 12, 23, 59, 59, 999999)),
-        ('2w',              datetime(2025, 5, 18, 23, 59, 59, 999999)),
-        ('mon',             datetime(2025, 5, 12, 23, 59, 59, 999999)),
-        ('2tue',            datetime(2025, 5, 20, 23, 59, 59, 999999)),
-        ('2fri',            datetime(2025, 5, 23, 23, 59, 59, 999999)),
-        ('M',               datetime(2025, 5, 31, 23, 59, 59, 999999)),
-        ('month',           datetime(2025, 5, 31, 23, 59, 59, 999999)),
-        # ('+M',              relativedelta(months=1)),  # datetime(2025, 6, 11, 11, 0, 0, 0)),
-        # ('+1M',             relativedelta(months=1)),
-        # ('+Md',             relativedelta(months=1, days=1)),  # datetime(2025, 6, 12, 11, 0, 0, 0)),
-        # ('+M1d',            relativedelta(months=1, days=1)),  # datetime(2025, 6, 12, 11, 0, 0, 0)),
-        ('+M',              datetime(2025, 6, 11, 11, 0, 0)),
-        ('+1M',             datetime(2025, 6, 11, 11, 0, 0)),
-        ('+Md',             datetime(2025, 6, 12, 11, 0, 0)),
-        ('+M1d',            datetime(2025, 6, 12, 11, 0, 0)),
-        ('3month',          datetime(2025, 7, 31, 23, 59, 59, 999999)),
-        ('february 21 8am', datetime(2026, 2, 21, 8, 0, 0)),
-        ('feb 21',          datetime(2026, 2, 21, 23, 59, 59, 999999)),
-        ('feb',             datetime(2026, 2, 28, 23, 59, 59, 999999)),
-        ('1feb',            datetime(2026, 2, 28, 23, 59, 59, 999999)),
-        ('3feb',            datetime(2028, 2, 29, 23, 59, 59, 999999)),
-    ]
-    error_cases = [
-        'invalid',
-        '12:99',
-        '+feb',
-        'feb 29',
-    ]
-
-    # Run positive test cases
-    for text, expected in test_cases:
-        result = parser.parse(text)
-        fail_msg = f"FAIL: {text} => {result} (expected {expected})"
-        assert result == expected, fail_msg
-        print(f"PASS: {text:15} => {result}")
-    for text in error_cases:
-        try:
-            result = parser.parse(text)
-            print(
-                f"FAIL: {text} should have raised an error "
-                f"but returned {result}")
-        except (ParseError, VisitationError):
-            print(f"PASS: {text} correctly raised an error")
