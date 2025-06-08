@@ -1,7 +1,7 @@
 import os
 from datetime import time, datetime, timedelta
-from dateutil.relativedelta import relativedelta
 
+from dateutil.relativedelta import relativedelta
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 from parsimonious.exceptions import ParseError, VisitationError
@@ -59,7 +59,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
     def visit_relative_datetime(self, node, visited_children):
         pm, count_units = visited_children
         units = {u: -c if pm == "-" else c for c, u in count_units}
-        return relativedelta(**units)
+        return self.now + relativedelta(**units)
 
     def visit_count_unit(self, node, visited_children):
         ordinal, unit, _ = visited_children
@@ -214,10 +214,14 @@ if __name__ == "__main__":
         ('2fri',            datetime(2025, 5, 23, 23, 59, 59, 999999)),
         ('M',               datetime(2025, 5, 31, 23, 59, 59, 999999)),
         ('month',           datetime(2025, 5, 31, 23, 59, 59, 999999)),
-        ('+M',              relativedelta(months=1)),  # datetime(2025, 6, 11, 11, 0, 0, 0)),
-        ('+1M',             relativedelta(months=1)),
-        ('+Md',             relativedelta(months=1, days=1)),  # datetime(2025, 6, 12, 11, 0, 0, 0)),
-        ('+M1d',            relativedelta(months=1, days=1)),  # datetime(2025, 6, 12, 11, 0, 0, 0)),
+        # ('+M',              relativedelta(months=1)),  # datetime(2025, 6, 11, 11, 0, 0, 0)),
+        # ('+1M',             relativedelta(months=1)),
+        # ('+Md',             relativedelta(months=1, days=1)),  # datetime(2025, 6, 12, 11, 0, 0, 0)),
+        # ('+M1d',            relativedelta(months=1, days=1)),  # datetime(2025, 6, 12, 11, 0, 0, 0)),
+        ('+M',              datetime(2025, 6, 11, 11, 0, 0)),
+        ('+1M',             datetime(2025, 6, 11, 11, 0, 0)),
+        ('+Md',             datetime(2025, 6, 12, 11, 0, 0)),
+        ('+M1d',            datetime(2025, 6, 12, 11, 0, 0)),
         ('3month',          datetime(2025, 7, 31, 23, 59, 59, 999999)),
         ('february 21 8am', datetime(2026, 2, 21, 8, 0, 0)),
         ('feb 21',          datetime(2026, 2, 21, 23, 59, 59, 999999)),

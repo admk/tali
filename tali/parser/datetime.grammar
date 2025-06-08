@@ -34,7 +34,7 @@ hour = ~r"[0-2]?[0-9]"
 minute = ~r"[0-5][0-9]"
 ampm = "am" / "pm" / "AM" / "PM"
 
-monday = ~r"mon(day)?"i
+monday = ~r"mon(?!th)(day)?"i
 tuesday = ~r"tue(sday)?"i
 wednesday = ~r"wed(nesday)?"i
 thursday = ~r"thu(rsday)?"i
