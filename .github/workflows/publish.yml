@@ -8,6 +8,7 @@ on:
 jobs:
   pypi-publish:
     name: Upload release to PyPI
+    needs: test
     runs-on: ubuntu-latest
     environment:
       name: pypi
