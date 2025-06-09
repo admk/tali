@@ -10,7 +10,8 @@ def strip_comments(lines: List[str]) -> List[str]:
 
 
 def _min_indent(lines):
-    return min(len(line) - len(line.lstrip()) for line in lines)
+    indents = [len(line) - len(line.lstrip()) for line in lines if line.strip()]
+    return min(indents) if indents else 0
 
 
 def _process_block(block: List[str]) -> List[str]:

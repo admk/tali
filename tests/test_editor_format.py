@@ -1,6 +1,6 @@
 import unittest
 
-from tali.parser.indent import process_prefix_sharing_lines
+from tali.parser.editor import process_prefix_sharing_lines
 
 
 class TestProcessIndent(unittest.TestCase):

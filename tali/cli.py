@@ -41,7 +41,7 @@ from .common import (
     rich_console,
 )
 from .parser import CommandParser
-from .parser.text import process_prefix_sharing_lines, strip_comments
+from .parser.editor import process_prefix_sharing_lines, strip_comments
 from .render.cheatsheet import CheatSheet
 from .render.cli import Renderer
 from .render.common import strip_rich
