@@ -121,7 +121,8 @@ def format_config_value(value: int | str, config: Box) -> int | str:
 
 def format_config(config: Box) -> Box:
     while True:
-        format_value = lambda x: format_config_value(x, config)
+        def format_value(x):
+            return format_config_value(x, config)
         formatted = box_recursive_apply(
             config, format_value, box_dots=True)
         if formatted == config:

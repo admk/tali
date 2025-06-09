@@ -233,8 +233,8 @@ class Renderer:
     def render_item_diff(
         self, before_todo: TodoItem, after_todo: TodoItem
     ) -> str:
-        strip_color = lambda fields: \
-            {k: strip_rich(v) for k, v in fields.items()}
+        def strip_color(fields):
+            return {k: strip_rich(v) for k, v in fields.items()}
         before_nc = strip_color(self._render_fields(before_todo))
         after = self._render_fields(after_todo)
         after_nc = strip_color(after)

@@ -151,7 +151,8 @@ class GroupMixin(SortMixin):
     def _group_by_value(
         self, name: str
     ) -> Tuple[GroupFunc, Optional[SortFunc]]:
-        gfunc = lambda todo: getattr(todo, name)
+        def gfunc(todo):
+            return getattr(todo, name)
         sfunc = getattr(self, f"sort_by_{name}")
         return gfunc, sfunc
 
@@ -164,7 +165,8 @@ class GroupMixin(SortMixin):
         return self._group_by_value("project")
 
     def group_by_tag(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
-        gfunc = lambda todo: todo.tags if todo.tags else "_untagged"
+        def gfunc(todo):
+            return todo.tags if todo.tags else "_untagged"
         return gfunc, self.sort_by_tags
 
     def group_by_status(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
@@ -184,7 +186,8 @@ class GroupMixin(SortMixin):
             if delta < 86400:  # 1 day in seconds
                 return "today"
             return dt.date()
-        sfunc = lambda todo: todo.deadline or datetime(9999, 12, 31)
+        def sfunc(todo):
+            return todo.deadline or datetime(9999, 12, 31)
         return gfunc, sfunc
 
     def group_by_created_at(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
@@ -194,7 +197,8 @@ class GroupMixin(SortMixin):
             if delta.days > 1:
                 return dt.date()
             return "_today"
-        sfunc = lambda todo: todo.created_at
+        def sfunc(todo):
+            return todo.created_at
         return gfunc, sfunc
 
     def group_by_description(self):
