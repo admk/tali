@@ -14,7 +14,6 @@ view:
   sort_by: created_at
   stats:
     enable: default   # always / never / default / all
-    count: all   # filtered / all
   history:
     max_length: 20
     num_components: 2
@@ -141,16 +140,19 @@ stats:
     all: '{} of all tasks complete.'
     filtered: '{} of filtered tasks complete.'
   progress:
-    10: '[bold red]{}[/]'
-    25: '[bold yellow]{}[/]'
-    50: '[bold magenta]{}[/]'
-    75: '[bold blue]{}[/]'
-    90: '[bold cyan]{}[/]'
     _: '[bold green]{}[/]'
+    90: '[bold cyan]{}[/]'
+    75: '[bold blue]{}[/]'
+    50: '[bold magenta]{}[/]'
+    25: '[bold yellow]{}[/]'
+    10: '[bold red]{}[/]'
   separator: ' · '
   status:
     pending: '[yellow]{.item.status.format.status:pending} {}[/] pending'
+    pending_hidden: '[yellow]{.item.status.format.status:pending} {} [dim]({} hidden)[/][/] pending'
     done: '[green]{.item.status.format.status:done} {}[/] done'
+    done_hidden: '[green]{.item.status.format.status:done} {} [dim]({} hidden)[/][/] done'
     note: '[blue]{.item.status.format.status:note} {}[/] notes'
-    archive: '[dim]{.item.status.format.status:archive} {}[/] archived'
-    hidden: '[dim]◌ {}[/] hidden'
+    note_hidden: '[blue]{.item.status.format.status:note} {} [dim]({} hidden)[/][/] notes'
+    archive: '[dim bright_black]{.item.status.format.status:archive} {}[/] archived'
+    archive_hidden: '[dim bright_black]{.item.status.format.status:archive} {} [dim]({} hidden)[/][/] archived'

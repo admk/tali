@@ -387,8 +387,8 @@ class CLI:
     ) -> ActionResult:
         if not self.config.file.backup:
             logger.error(
-                "History is disabled. "
-                "Please set `file.backup` to `true`.")
+                "History is disabled. Please set `file.backup` to `true`."
+            )
         func = undo if action == "undo" else redo
         return func(db_dir)
 
@@ -415,8 +415,7 @@ class CLI:
             render_stats = True
         if not render_stats:
             return
-        count = self.args.stats_count or self.config.view.stats.count
-        todos = book.todos if count == "all" else result.flatten()
+        todos = result.flatten()
         if self.args.idempotent or not todos:
             return
         stats = self.renderer.render_stats(todos, book.todos)

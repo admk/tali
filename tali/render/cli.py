@@ -41,11 +41,19 @@ class Renderer:
             if status == "delete":
                 continue
             stats[status] = len([t for t in count_todos if t.status == status])
+            if all_todos is not None:
+                len_all = len([t for t in all_todos if t.status == status])
+                stats[status + "_hidden"] = len_all - stats[status]
         if all_todos is not None:
             stats["hidden"] = len(all_todos) - len(count_todos)
-        total = stats["done"] + stats["pending"]
-        progress = stats["done"] / total if total > 0 else None
-        return stats | {"progress": progress}
+        done = stats["done"]
+        total = done + stats["pending"]
+        stats["progress_filtered"] = done / total if total > 0 else None
+        if all_todos is not None:
+            done += stats["done_hidden"]
+            total += stats["done_hidden"] + stats["pending_hidden"]
+            stats["progress_all"] = done / total if total > 0 else None
+        return stats
 
     def _render_by_format_map(
         self,
@@ -267,27 +275,44 @@ class Renderer:
         return self.config.item.format.format(**fields)[1:]
 
     def render_stats(
-        self, count_todos: List[TodoItem], all_todos: List[TodoItem]
+        self,
+        filtered_todos: List[TodoItem],
+        all_todos: List[TodoItem],
     ) -> str:
-        stats = self._get_stats(count_todos, all_todos)
-        text = []
-        progress = stats["progress"]
-        if progress is not None:
-            progress_str = f"{stats['progress']:.0%}"
+        separator = self.config.stats.separator
+        stats = self._get_stats(filtered_todos, all_todos)
+        progress_text = []
+        for key in ("filtered", "all"):
+            progress = stats["progress_" + key]
+            if progress is None:
+                continue
+            if key == "filtered" and len(filtered_todos) == len(all_todos):
+                continue
+            progress_str = f"{stats['progress_' + key]:.0%}"
             progress_map = self.config.stats.progress
             progress_format = progress_map._
             for k, v in progress_map.items():
                 if isinstance(k, int) and progress * 100 <= k:
                     progress_format = v
             progress_str = progress_format.format(progress_str)
-            key = "filtered" if stats.get("hidden", 0) > 0 else "all"
-            text.append(self.config.stats.title[key].format(progress_str))
+            stats_format = self.config.stats.title[key]
+            progress_text.append(stats_format.format(progress_str))
+        text = []
+        if progress_text:
+            text.append(separator.join(progress_text))
         stats_text = []
-        for key, value in self.config.stats.status.items():
+        formats = self.config.stats.status
+        for key in get_args(Status):
+            if key == "delete":
+                continue
             count = stats[key]
-            if count > 0:
-                stats_text.append(value.format(count))
-        text.append(self.config.stats.separator.join(stats_text))
+            hidden = stats.get(key + "_hidden", 0)
+            if hidden > 0:
+                value = formats[key + "_hidden"].format(count, hidden)
+                stats_text.append(value)
+            else:
+                stats_text.append(formats[key].format(count))
+        text.append(separator.join(stats_text))
         return "\n".join(text)
 
     def render(
