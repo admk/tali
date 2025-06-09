@@ -40,7 +40,7 @@ from .common import (
     rich_console,
 )
 from .parser import CommandParser
-from .parser.indent import process_prefix_sharing_lines
+from .parser.text import strip_comments, process_prefix_sharing_lines
 from .render.cheatsheet import CheatSheet
 from .render.cli import Renderer
 from .render.common import strip_rich
@@ -376,7 +376,8 @@ class CLI:
         self._edit_file(temp_path)
         with open(temp_path, "r") as temp_file:
             edited = temp_file.read().strip().rstrip("\n")
-        edited = process_prefix_sharing_lines(edited.splitlines())
+        edited = strip_comments(edited.splitlines())
+        edited = process_prefix_sharing_lines(edited)
         os.unlink(temp_path)
         before = [b.strip() for b in text.strip().rstrip("\n").splitlines()]
         edited = [e.strip() for e in edited if e.strip()]

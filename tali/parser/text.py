@@ -1,8 +1,16 @@
 from typing import List
 
 
+def strip_comments(lines: List[str]) -> List[str]:
+    new_lines = []
+    for line in lines:
+        line = line.split("#", 1)[0]
+        new_lines.append(line.rstrip())
+    return new_lines
+
+
 def _min_indent(lines):
-    return min(len(line) - len(line.lstrip()) for line in lines if line.strip())
+    return min(len(line) - len(line.lstrip()) for line in lines)
 
 
 def _process_block(block: List[str]) -> List[str]:
