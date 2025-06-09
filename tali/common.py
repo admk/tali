@@ -4,7 +4,15 @@ import sys
 import json
 import logging
 from typing import (
-    Any, NoReturn, Callable, Generator, Sequence, TypeVar, List, Optional)
+    Any,
+    NoReturn,
+    Callable,
+    Generator,
+    Sequence,
+    TypeVar,
+    List,
+    Optional,
+)
 from contextlib import contextmanager
 
 from box import Box
@@ -16,7 +24,7 @@ _rich_traceback_install()
 rich_console = Console()
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def flatten(sequence: Sequence[Sequence[T]]) -> List[T]:
@@ -46,14 +54,20 @@ class Logger:
         "warn": "[yellow]![/yellow]",
         "error": "[red]‼[/red]",
     }
+
     def __init__(self):
         super().__init__()
         handler = RichHandler(
-            show_level=False, show_time=False, show_path=False,
-            markup=True, rich_tracebacks=True)
+            show_level=False,
+            show_time=False,
+            show_path=False,
+            markup=True,
+            rich_tracebacks=True,
+        )
         self.logger = logging.getLogger("rich")
         logging.basicConfig(
-            level=logging.INFO, format="%(message)s", handlers=[handler])
+            level=logging.INFO, format="%(message)s", handlers=[handler]
+        )
 
     def is_enabled_for(self, level: int | str) -> bool:
         if isinstance(level, str):
@@ -104,27 +118,32 @@ def box_recursive_apply(
     if isinstance(value, Box):
         return Box(
             {k: box_recursive_apply(v, func) for k, v in value.items()},
-            *args, **kwargs)
+            *args,
+            **kwargs,
+        )
     return func(value)
 
 
 def format_config_value(value: int | str, config: Box) -> int | str:
     if not isinstance(value, str):
         return value
+
     def replace(match):
-        key = match.group(1).lstrip('.')
+        key = match.group(1).lstrip(".")
         if key not in config:
             logger.error(f"Config key '{key}' not found.")
         return str(config[key])
+
     return re.sub(r"{\.([^}]+)}", replace, value)
 
 
 def format_config(config: Box) -> Box:
     while True:
+
         def format_value(x):
             return format_config_value(x, config)
-        formatted = box_recursive_apply(
-            config, format_value, box_dots=True)
+
+        formatted = box_recursive_apply(config, format_value, box_dots=True)
         if formatted == config:
             return formatted
         config = formatted

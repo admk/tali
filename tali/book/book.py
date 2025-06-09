@@ -9,7 +9,14 @@ from ..common import logger
 from .item import TodoItem, Status, Priority
 from .result import AddResult, EditResult, ViewResult, QueryResult
 from .select import (
-    FilterMixin, GroupMixin, SortMixin, FilterBy, FilterValue, GroupBy, SortBy)
+    FilterMixin,
+    GroupMixin,
+    SortMixin,
+    FilterBy,
+    FilterValue,
+    GroupBy,
+    SortBy,
+)
 
 
 class ActionError(Exception):
@@ -25,7 +32,9 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     path: Optional[str]
 
     def __init__(
-        self, config: Box, todos: Optional[List[TodoItem]] = None,
+        self,
+        config: Box,
+        todos: Optional[List[TodoItem]] = None,
     ):
         super().__init__()
         self.config = config
@@ -33,9 +42,13 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         self.next_id = max([todo.id for todo in self.todos], default=0) + 1
 
     def add(
-        self, title: str, description: Optional[str] = None,
-        project: str = "inbox", tags: Optional[List[str]] = None,
-        status: Status = "pending", priority: Priority = "normal",
+        self,
+        title: str,
+        description: Optional[str] = None,
+        project: str = "inbox",
+        tags: Optional[List[str]] = None,
+        status: Status = "pending",
+        priority: Priority = "normal",
         deadline: Optional[datetime] = None,
     ) -> AddResult:
         if tags is None:
@@ -64,7 +77,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         if description:
             description = description.strip()
             if description:
-                return self._resolve_alias('description', description)
+                return self._resolve_alias("description", description)
         return None
 
     def status(self, todo: TodoItem, status: str) -> Status:
@@ -81,8 +94,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
             return status_changes[todo.status]
         except KeyError as e:
             raise ActionValueError(
-                "Cannot toggle status of an item "
-                f"with status {todo.status!r}.") from e
+                f"Cannot toggle status of an item with status {todo.status!r}."
+            ) from e
 
     def priority(self, todo: TodoItem, priority: Priority) -> Priority:
         new_priority = self._resolve_alias("priority", priority)
@@ -105,12 +118,12 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
             new_priority = None
         if not new_priority:
             raise ActionValueError(
-                "Cannot change priority from "
-                f"{todo.priority!r} to {priority!r}.")
+                f"Cannot change priority from {todo.priority!r} to {priority!r}."
+            )
         return new_priority
 
     def project(self, todo: TodoItem, project: str) -> str:
-        return self._resolve_alias('project', project)
+        return self._resolve_alias("project", project)
 
     def tags(self, todo: TodoItem, tags: List[str]) -> List[str]:
         new_tags: List[str] = list(todo.tags)
@@ -134,14 +147,15 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         if not isinstance(deadline, relativedelta):
             return deadline
         if not todo.deadline:
-            logger.warn(
-                "Cannot relative adjust an item without a deadline.")
+            logger.warn("Cannot relative adjust an item without a deadline.")
             return None
         return todo.deadline + deadline
 
     def select(
-        self, filters: Optional[Dict[FilterBy, FilterValue]],
-        group_by: GroupBy = "id", sort_by: SortBy = "id",
+        self,
+        filters: Optional[Dict[FilterBy, FilterValue]],
+        group_by: GroupBy = "id",
+        sort_by: SortBy = "id",
     ) -> ViewResult:
         filtered_todos = self.todos
         if filters is not None:
@@ -164,7 +178,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         before_id_todos = {t.id: t for t in before}
         after_id_todos = {t.id: t for t in after}
         all_id_todos = {
-            t.id: t for t in self.todos if t.id not in before_id_todos}
+            t.id: t for t in self.todos if t.id not in before_id_todos
+        }
         all_id_todos |= after_id_todos
         self.todos = list(sorted(all_id_todos.values(), key=lambda t: t.id))
         updates = []
@@ -177,7 +192,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         return result
 
     def action(
-        self, todos: List[TodoItem],
+        self,
+        todos: List[TodoItem],
         actions: Optional[Dict[str, Literal["editor"] | str | List[str]]],
     ) -> EditResult:
         if actions is None:
@@ -191,7 +207,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                     logger.warn(e)
                 else:
                     logger.debug(
-                        f"Setting {action!r} to {value!r} for {todo.id}.")
+                        f"Setting {action!r} to {value!r} for {todo.id}."
+                    )
                     setattr(todo, action, value)
         return self._update_and_return(todos, after)
 

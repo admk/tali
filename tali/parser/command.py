@@ -35,7 +35,7 @@ class CommandParser(NodeVisitor, CommonMixin):
         self.config = config
         self.datetime_parser = DateTimeParser(reference_dt or datetime.now())
         root = os.path.dirname(__file__)
-        with open(os.path.join(root, 'command.grammar'), 'r') as f:
+        with open(os.path.join(root, "command.grammar"), "r") as f:
             grammar = f.read()
             grammar = grammar.format(**config.token)
         for mode in ["selection", "action"]:
@@ -56,9 +56,13 @@ class CommandParser(NodeVisitor, CommonMixin):
             raise CommandSyntaxError(msg) from e
         return super().visit(ast)
 
-    def parse(self, text: str, pos: int = 0) -> Tuple[
+    def parse(
+        self, text: str, pos: int = 0
+    ) -> Tuple[
         Optional[Dict[FilterBy, FilterValue]],
-        Optional[GroupBy], Optional[SortBy], Optional[List[str]],
+        Optional[GroupBy],
+        Optional[SortBy],
+        Optional[List[str]],
         Optional[Literal["editor"] | Dict[str, str | List[str]]],
     ]:
         separator = self.config.token.separator
@@ -74,7 +78,8 @@ class CommandParser(NodeVisitor, CommonMixin):
             except ValueError:
                 raise CommandSyntaxError(
                     "Invalid command format. "
-                    f"Expected '(selection) {separator} (action)'.")
+                    f"Expected '(selection) {separator} (action)'."
+                )
             selection = self._parse_mode("selection", selection, pos)
             action = self._parse_mode("action", action, pos)
         elif text.startswith(f"{separator} "):
@@ -82,7 +87,7 @@ class CommandParser(NodeVisitor, CommonMixin):
             selection = None
             action = self._parse_mode("action", text[2:], pos)
         elif text.endswith(f" {separator}"):
-            text = text[:-len(f" {separator}")]
+            text = text[: -len(f" {separator}")]
             selection = self._parse_mode("selection", text, pos)
             # a separator at the end launches the editor
             action = "editor"
@@ -103,8 +108,13 @@ class CommandParser(NodeVisitor, CommonMixin):
         parsed = {}
         kinds = {
             "unique": [
-                "project", "status", "priority",
-                "group", "sort", "description"],
+                "project",
+                "status",
+                "priority",
+                "group",
+                "sort",
+                "description",
+            ],
             "list": ["ids", "tag", "deadline", "title", "query"],
         }
         for item in items:
@@ -117,7 +127,8 @@ class CommandParser(NodeVisitor, CommonMixin):
             if kind in kinds["unique"]:
                 if kind in parsed:
                     raise CommandSemanticError(
-                        f"Duplicate {kind!r} in command.")
+                        f"Duplicate {kind!r} in command."
+                    )
                 parsed[kind] = value
             elif kind in kinds["list"]:
                 kind_list = parsed.setdefault(kind, [])
@@ -134,11 +145,12 @@ class CommandParser(NodeVisitor, CommonMixin):
         if "deadline" in parsed:
             try:
                 dts = [
-                    self.datetime_parser.parse(dt)
-                    for dt in parsed["deadline"]]
+                    self.datetime_parser.parse(dt) for dt in parsed["deadline"]
+                ]
             except (ParseError, VisitationError) as e:
                 raise CommandSemanticError(
-                    f"Invalid date time syntax: {e}") from e
+                    f"Invalid date time syntax: {e}"
+                ) from e
             parsed["deadline"] = dts
         if "tag" in parsed:
             parsed["tags"] = parsed.pop("tag")
@@ -153,7 +165,8 @@ class CommandParser(NodeVisitor, CommonMixin):
         if "deadline" in parsed:
             if len(parsed["deadline"]) > 1:
                 raise CommandSemanticError(
-                    "Multiple deadlines are not allowed.")
+                    "Multiple deadlines are not allowed."
+                )
             dt = parsed["deadline"][0]
             years = (dt - datetime.now()).days / 365
             parsed["deadline"] = None if years >= 1000 else dt
@@ -175,7 +188,8 @@ class CommandParser(NodeVisitor, CommonMixin):
             query = "title"
         else:
             raise CommandSemanticError(
-                f"Unexpected query type: {node.children[1].expr_name}")
+                f"Unexpected query type: {node.children[1].expr_name}"
+            )
         return "query", query
 
     def visit_group(self, node, visited_children):
@@ -221,8 +235,9 @@ class CommandParser(NodeVisitor, CommonMixin):
         return "description", text
 
     visit_task_id = CommonMixin._visit_int
-    visit_word = visit_project_name = visit_tag_name = visit_pm = \
+    visit_word = visit_project_name = visit_tag_name = visit_pm = (
         CommonMixin._visit_str
+    )
     visit_selection = visit_action = visit_shared = CommonMixin._visit_any_of
     visit_ws = CommonMixin._visit_noop
 

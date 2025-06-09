@@ -53,9 +53,12 @@ class Commit:
     @classmethod
     def from_dict(cls, data: dict) -> "Commit":
         return cls(
-            data["message"], data["hexsha"],
-            datetime.fromisoformat(data["timestamp"]), data["is_head"],
-            [ActionResult.from_dict(ar) for ar in data["action_results"]])
+            data["message"],
+            data["hexsha"],
+            datetime.fromisoformat(data["timestamp"]),
+            data["is_head"],
+            [ActionResult.from_dict(ar) for ar in data["action_results"]],
+        )
 
 
 @dataclass
@@ -91,7 +94,8 @@ class QueryResult(ActionResult):
             "keys": self.keys,
             "values": [
                 v.isoformat() if isinstance(v, datetime) else v
-                for v in self.values],
+                for v in self.values
+            ],
         }
 
 

@@ -3,11 +3,11 @@ from datetime import timedelta
 from typing import Optional, Dict
 
 
-def shorten(text: str, max_len: int, ellipsis: str = '…') -> str:
+def shorten(text: str, max_len: int, ellipsis: str = "…") -> str:
     if max_len <= 0:
         return text
     if len(text) > max_len:
-        return f"{text[:max_len - len(ellipsis)]}{ellipsis}"
+        return f"{text[: max_len - len(ellipsis)]}{ellipsis}"
     return text
 
 
@@ -46,7 +46,7 @@ def timedelta_format(
     delta: timedelta,
     fmt: Optional[str | Dict[str, str]] = None,
     num_components: int = 2,
-    skip_zeros: bool = True
+    skip_zeros: bool = True,
 ):
     total_seconds = delta.total_seconds()
     negative = total_seconds < 0
@@ -56,7 +56,7 @@ def timedelta_format(
     if isinstance(fmt, str):
         fmt = {c: _DEFAULT_FORMAT[c] for c in fmt}
     if not all(c in SECONDS for c in fmt):
-        raise ValueError(f'Invalid format: {fmt}')
+        raise ValueError(f"Invalid format: {fmt}")
     text = []
     leading_zeros = True
     for k, v in SECONDS.items():
@@ -71,8 +71,8 @@ def timedelta_format(
             if len(text) >= num_components:
                 continue
         if skip_zeros:
-            text.append(f'{count}{fmt[k]}')
+            text.append(f"{count}{fmt[k]}")
         elif count > 0:
-            text.append(f'{count}{fmt[k]}')
+            text.append(f"{count}{fmt[k]}")
     sign = "-" if negative else ""
     return f"{sign}{''.join(text) or '0s'}"

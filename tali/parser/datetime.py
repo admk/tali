@@ -23,27 +23,55 @@ class DateTimeSemanticError(DateTimeParseError):
 
 class DateTimeParser(NodeVisitor, CommonMixin):
     weekday_map = {
-        'mon': 0, 'tue': 1, 'wed': 2, 'thu': 3,
-        'fri': 4, 'sat': 5, 'sun': 6,
-        'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
-        'friday': 4, 'saturday': 5, 'sunday': 6,
+        "mon": 0,
+        "tue": 1,
+        "wed": 2,
+        "thu": 3,
+        "fri": 4,
+        "sat": 5,
+        "sun": 6,
+        "monday": 0,
+        "tuesday": 1,
+        "wednesday": 2,
+        "thursday": 3,
+        "friday": 4,
+        "saturday": 5,
+        "sunday": 6,
     }
     month_map = {
-        'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5,
-        'june': 6, 'july': 7, 'august': 8, 'september': 9,
-        'october': 10, 'november': 11, 'december': 12,
+        "january": 1,
+        "february": 2,
+        "march": 3,
+        "april": 4,
+        "may": 5,
+        "june": 6,
+        "july": 7,
+        "august": 8,
+        "september": 9,
+        "october": 10,
+        "november": 11,
+        "december": 12,
     }
     unit_map = {
-        'year': 'years', 'y': 'years', 'month': 'months', 'M': 'months',
-        'week': 'weeks', 'w': 'weeks', 'day': 'days', 'd': 'days',
-        'hour': 'hours', 'h': 'hours', 'minute': 'minutes', 'm': 'minutes',
+        "year": "years",
+        "y": "years",
+        "month": "months",
+        "M": "months",
+        "week": "weeks",
+        "w": "weeks",
+        "day": "days",
+        "d": "days",
+        "hour": "hours",
+        "h": "hours",
+        "minute": "minutes",
+        "m": "minutes",
     }
 
     def __init__(self, now=None):
         super().__init__()
         self.now = now or datetime.now()
         root = os.path.dirname(__file__)
-        with open(os.path.join(root, 'datetime.grammar'), 'r') as f:
+        with open(os.path.join(root, "datetime.grammar"), "r") as f:
             self.grammar = Grammar(f.read())
 
     def parse(self, text: str, pos: int = 0) -> datetime:
@@ -101,9 +129,9 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         minute = minute[0][1] if minute and minute[0] else 0
         if ampm:
             ampm = ampm[0].lower()
-            if ampm == 'pm' and hour < 12:
+            if ampm == "pm" and hour < 12:
                 hour += 12
-            elif ampm == 'am' and hour == 12:
+            elif ampm == "am" and hour == 12:
                 hour = 0
         if not (0 <= hour < 24 and 0 <= minute < 60):
             raise DateTimeSemanticError(f"Invalid time: {node.text!r}")
@@ -148,29 +176,32 @@ class DateTimeParser(NodeVisitor, CommonMixin):
             year += 1
         year += count - 1
         last_day = (
-            self._datetime(year, month, 1) +
-            relativedelta(months=1) - timedelta(days=1))
+            self._datetime(year, month, 1)
+            + relativedelta(months=1)
+            - timedelta(days=1)
+        )
         return self._datetime(year, month, last_day.day).date()
 
     def _end_unit(self, unit, count):
         count -= 1
-        if unit == 'years':
+        if unit == "years":
             year = self.now.year
             return self._datetime(year + count, 12, 31).date()
-        elif unit == 'months':
+        elif unit == "months":
             next_month = self.now.replace(day=1)
             next_month += relativedelta(months=count)
             last_day = (
-                next_month.replace(day=1) +
-                relativedelta(months=1) -
-                timedelta(days=1)).day
+                next_month.replace(day=1)
+                + relativedelta(months=1)
+                - timedelta(days=1)
+            ).day
             return next_month.replace(day=last_day).date()
-        elif unit == 'weeks':
+        elif unit == "weeks":
             days = 7 * count + (6 - self.now.weekday())
             return self.now.date() + timedelta(days=days)
-        elif unit == 'days':
+        elif unit == "days":
             return self.now.date() + timedelta(days=count)
-        raise DateTimeSemanticError(f'Unexpected unit {unit!r}.')
+        raise DateTimeSemanticError(f"Unexpected unit {unit!r}.")
 
     visit_end = CommonMixin._visit_any_of
 
@@ -180,17 +211,18 @@ class DateTimeParser(NodeVisitor, CommonMixin):
             return self.now.date()
         if text == "tomorrow":
             return self.now.date() + timedelta(days=1)
-        if text in ('oo', '+oo'):  # distant future
+        if text in ("oo", "+oo"):  # distant future
             return datetime.max.date()
-        if text == '-oo':  # distant past
+        if text == "-oo":  # distant past
             return datetime.min.date()
         raise DateTimeSemanticError(f"Unexpected named date {node.text!r}.")
 
-    visit_year = visit_day = visit_day = visit_hour = visit_minute = \
-        visit_ordinal = CommonMixin._visit_int
+    visit_year = visit_day = visit_day = visit_hour = visit_minute = (
+        visit_ordinal
+    ) = CommonMixin._visit_int
 
     def visit_unit(self, node, visited_children):
-        return node.children[0].expr_name.replace('unit_', '')
+        return node.children[0].expr_name.replace("unit_", "")
 
     def visit_month(self, node, visited_children):
         return node.children[0].expr_name

@@ -12,8 +12,14 @@ from ..common import json_dumps, has_prefix
 from ..book.item import TodoItem, Status, Priority
 from ..book.select import GroupBy
 from ..book.result import (
-    ActionResult, ViewResult, QueryResult, AddResult, EditResult,
-    HistoryResult, SwitchResult)
+    ActionResult,
+    ViewResult,
+    QueryResult,
+    AddResult,
+    EditResult,
+    HistoryResult,
+    SwitchResult,
+)
 from .common import shorten, strip_rich, timedelta_format, pluralize
 
 
@@ -27,8 +33,9 @@ class Renderer:
         self.idempotent = idempotent
 
     def _get_stats(
-        self, count_todos: List[TodoItem],
-        all_todos: Optional[List[TodoItem]] = None
+        self,
+        count_todos: List[TodoItem],
+        all_todos: Optional[List[TodoItem]] = None,
     ) -> Dict[str, int | float]:
         stats = {}
         for status in get_args(Status):
@@ -42,9 +49,12 @@ class Renderer:
         return stats | {"progress": progress}
 
     def _render_by_format_map(
-        self, todo: Optional[TodoItem], format_map: str | Dict[str, str],
-        text_to_render: str, early_exit: bool = False,
-        match_func: Optional[Callable[[Any, Any], bool]] = None
+        self,
+        todo: Optional[TodoItem],
+        format_map: str | Dict[str, str],
+        text_to_render: str,
+        early_exit: bool = False,
+        match_func: Optional[Callable[[Any, Any], bool]] = None,
     ) -> str:
         if isinstance(format_map, str):
             return format_map.format(text_to_render)
@@ -73,23 +83,27 @@ class Renderer:
         if self.idempotent:
             return f"{id} {self.config.token.separator}"
         return self._render_by_format_map(
-            todo, self.config.item.id.format, str(id))
+            todo, self.config.item.id.format, str(id)
+        )
 
     def _render_status(
-        self, todo: Optional[TodoItem], status: Status,
+        self,
+        todo: Optional[TodoItem],
+        status: Status,
     ) -> Optional[str]:
         if todo is None:
             return self.config.group.header.status[status]
         if self.idempotent:
             return f"{self.config.token.status}{status}"
         return self._render_by_format_map(
-            todo, self.config.item.status.format, status)
+            todo, self.config.item.status.format, status
+        )
 
     def _render_title(
         self, todo: Optional[TodoItem], title: str
     ) -> Optional[str]:
         for token in self.config.token.values():
-            title = title.replace(f'\\{token}', token)
+            title = title.replace(f"\\{token}", token)
         style = self.config.item.title
         if self.idempotent:
             for token in self.config.token.values():
@@ -118,8 +132,11 @@ class Renderer:
     ) -> Optional[str]:
         token = self.config.token.project
         return self._render_by_format_map(
-            todo, self.config.item.project.format, project,
-            match_func=lambda q, a: has_prefix(a.split(token), q.split(token)))
+            todo,
+            self.config.item.project.format,
+            project,
+            match_func=lambda q, a: has_prefix(a.split(token), q.split(token)),
+        )
 
     def _render_priority(
         self, todo: Optional[TodoItem], priority: Priority
@@ -129,11 +146,14 @@ class Renderer:
         if self.idempotent:
             return f"{self.config.token.priority}{priority}"
         return self._render_by_format_map(
-            todo, self.config.item.priority.format, priority)
+            todo, self.config.item.priority.format, priority
+        )
 
     def _render_deadline(
-        self, deadline: Optional[date | datetime], status: Status,
-        header: bool = False
+        self,
+        deadline: Optional[date | datetime],
+        status: Status,
+        header: bool = False,
     ) -> Optional[str]:
         prefix = self.config.token.deadline
         deadline_format = self.config.item.deadline.format
@@ -153,7 +173,7 @@ class Renderer:
         if type(deadline) is date:
             deadline = datetime.combine(deadline, datetime.max.time())
         if self.idempotent:
-            return f"{prefix}{deadline:\"%Y-%b-%d %H:%M\"}"
+            return f'{prefix}{deadline:"%Y-%b-%d %H:%M"}'
         remaining_time = deadline - datetime.now()
         seconds = abs(remaining_time.total_seconds())
         if abs(seconds) < 365 * 24 * 60 * 60:  # one year
@@ -162,7 +182,8 @@ class Renderer:
             else:
                 format = self.config.item.deadline
             text = prefix + timedelta_format(
-                remaining_time, format.timedelta, format.num_components)
+                remaining_time, format.timedelta, format.num_components
+            )
         else:
             dt_fmt = self.config.item.deadline.datetime
             text = f"{prefix}{deadline:{dt_fmt}}"
@@ -189,11 +210,10 @@ class Renderer:
         style = self.config.item.description
         desc = shorten(description, style.max_length, style.ellipsis)
         return self._render_by_format_map(
-            todo, self.config.item.description.format, desc)
+            todo, self.config.item.description.format, desc
+        )
 
-    def _render_header(
-        self, group_by: GroupBy, value: Any
-    ) -> str | None:
+    def _render_header(self, group_by: GroupBy, value: Any) -> str | None:
         if group_by == "id":
             return None
         if group_by == "project":
@@ -223,9 +243,7 @@ class Renderer:
         }
         return {k: " " + v if v else "" for k, v in fields.items()}
 
-    def render_item(
-        self, todo: TodoItem, group_by: GroupBy = "id"
-    ) -> str:
+    def render_item(self, todo: TodoItem, group_by: GroupBy = "id") -> str:
         fields = self._render_fields(todo)
         format = self.config.group.format[group_by]
         return format.format(**fields)[1:]
@@ -235,6 +253,7 @@ class Renderer:
     ) -> str:
         def strip_color(fields):
             return {k: strip_rich(v) for k, v in fields.items()}
+
         before_nc = strip_color(self._render_fields(before_todo))
         after = self._render_fields(after_todo)
         after_nc = strip_color(after)
@@ -273,9 +292,11 @@ class Renderer:
         return "\n".join(text)
 
     def render(
-        self, grouped_todos: Dict[Any, List[TodoItem]],
-        group_by: GroupBy, render_stats: bool = True,
-        idempotent: Optional[bool] = None
+        self,
+        grouped_todos: Dict[Any, List[TodoItem]],
+        group_by: GroupBy,
+        render_stats: bool = True,
+        idempotent: Optional[bool] = None,
     ) -> str:
         old_idempotent = self.idempotent
         if idempotent is not None:
@@ -291,7 +312,8 @@ class Renderer:
                 progress = f"[{stats['done']}/{len(gtodos)}]"
                 group = self._render_header(group_by, group)
                 header = self.config.group.header.format.format(
-                    group=group, progress=progress)
+                    group=group, progress=progress
+                )
                 text.append(header)
             for todo in gtodos:
                 item = f"{self.render_item(todo, group_by)}"
@@ -327,7 +349,8 @@ class Renderer:
         items = [self.render_item(item) for item in result.items]
         count = len(result.items)
         message = self.config.message.add.format(
-            count, pluralize('item', count))
+            count, pluralize("item", count)
+        )
         return "\n".join([message, ""] + items)
 
     def render_EditResult(self, result: EditResult) -> str:
@@ -335,8 +358,7 @@ class Renderer:
             text = [self.config.message.no_edit]
         else:
             c = len(result.after)
-            message = self.config.message.edit.format(
-                c, pluralize('item', c))
+            message = self.config.message.edit.format(c, pluralize("item", c))
             text = [message]
             text.append("")
         for btodo, atodo in zip(result.before, result.after):
@@ -357,9 +379,7 @@ class Renderer:
             table.add_row(dt, item.message)
         return table
 
-    def render_SwitchResult(
-        self, result: SwitchResult
-    ) -> List[RenderableType]:
+    def render_SwitchResult(self, result: SwitchResult) -> List[RenderableType]:
         format = getattr(self.config.message, result.action)
         text = format.format(result.message)
         panels = []
@@ -369,19 +389,23 @@ class Renderer:
                 for a in after:
                     a.status = "delete"
                 diffs = [
-                    self.render_item_diff(b, a) for b, a in zip(ar.items, after)]
+                    self.render_item_diff(b, a) for b, a in zip(ar.items, after)
+                ]
                 count = len(ar.items)
                 message = self.config.message.undo_add.format(
-                    count, pluralize('item', count))
+                    count, pluralize("item", count)
+                )
                 panels.append([message, ""] + diffs)
             if isinstance(ar, AddResult) and result.action == "redo":
                 items = [self.render_item(a) for a in ar.items]
                 message = self.config.message.redo_add.format(
-                    len(ar.items), pluralize('item', len(ar.items)))
+                    len(ar.items), pluralize("item", len(ar.items))
+                )
                 panels.append([message, ""] + items)
             if isinstance(ar, EditResult):
                 message = self.config.message.undo_edit.format(
-                    len(ar.after), pluralize('item', len(ar.after)))
+                    len(ar.after), pluralize("item", len(ar.after))
+                )
                 panel = [message, ""]
                 for btodo, atodo in zip(ar.before, ar.after):
                     if result.action == "undo":
@@ -389,5 +413,6 @@ class Renderer:
                     panel.append(self.render_item_diff(btodo, atodo))
                 panels.append(panel)
         panels = [
-            Panel(Group(*panel), expand=False) for panel in panels if panel]
+            Panel(Group(*panel), expand=False) for panel in panels if panel
+        ]
         return [text] + panels

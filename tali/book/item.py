@@ -19,13 +19,26 @@ class TodoItem:
     deadline: Optional[datetime]
     created_at: datetime
     _keys = [
-        "id", "title", "description", "project", "tags",
-        "status", "priority", "deadline", "created_at"]
+        "id",
+        "title",
+        "description",
+        "project",
+        "tags",
+        "status",
+        "priority",
+        "deadline",
+        "created_at",
+    ]
 
     def __init__(
-        self, id: int, title: str, description: Optional[str] = None,
-        project: str = "inbox", tags: Optional[List[str]] = None,
-        status: Status = "pending", priority: Priority = "normal",
+        self,
+        id: int,
+        title: str,
+        description: Optional[str] = None,
+        project: str = "inbox",
+        tags: Optional[List[str]] = None,
+        status: Status = "pending",
+        priority: Priority = "normal",
         deadline: Optional[datetime] = None,
         created_at: Optional[datetime] = None,
     ):
@@ -53,7 +66,9 @@ class TodoItem:
 
     @staticmethod
     def _str_to_datetime(dt_str: Optional[str]) -> Optional[datetime]:
-        return datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%S") if dt_str else None
+        return (
+            datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%S") if dt_str else None
+        )
 
     def to_dict(self):
         return {

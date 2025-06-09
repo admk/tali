@@ -37,7 +37,7 @@ class CheatSheet:
     def _deadline(self, text: str, symbol: bool = True) -> str:
         if symbol:
             token = self.config.token.deadline
-            text = repr(text) if ' ' in text else text
+            text = repr(text) if " " in text else text
         else:
             token = ""
         return f"[green]{token}{text}[/green]"
@@ -68,17 +68,22 @@ class CheatSheet:
         status = self._status
         priority = self._priority
         return [
-            (f"{sep} {title('Buy milk')} {project('home', 'grocery')} "
-             f"{deadline('today')}",
-             f"Create a task with {project('project', symbol=False)} "
-             f"and {deadline('deadline', False)}"),
-            (f"{sep} {title('Meeting')} {project('work')} "
-             f"{deadline('tue 4pm')} {status('n')}",
-             f"Create a {status('note', False)}"),
-            (f"{sep} {title('Fix bug')} {project(_NAME)} {priority('high')} "
-             f"{tag('urgent')}",
-             f"{priority('High', False)}-priority task "
-             f"with an {tag('urgent')} tag"),
+            (
+                f"{sep} {title('Buy milk')} {project('home', 'grocery')} "
+                f"{deadline('today')}",
+                f"Create a task with {project('project', symbol=False)} "
+                f"and {deadline('deadline', False)}",
+            ),
+            (
+                f"{sep} {title('Meeting')} {project('work')} "
+                f"{deadline('tue 4pm')} {status('n')}",
+                f"Create a {status('note', False)}",
+            ),
+            (
+                f"{sep} {title('Fix bug')} {project(_NAME)} {priority('high')} "
+                f"{tag('urgent')}",
+                f"{priority('High', False)}-priority task with an {tag('urgent')} tag",
+            ),
         ]
 
     def _modification_commands(self) -> List[Tuple[str, str]]:
@@ -92,25 +97,36 @@ class CheatSheet:
         priority = self._priority
         description = self._description
         return [
-            (f"{id(1)} {sep} {status('')}",
-             f"Toggle task {id(1, False)} {status('status', False)} between "
-             f"{status('pending', False)} and {status('done', False)}"),
+            (
+                f"{id(1)} {sep} {status('')}",
+                f"Toggle task {id(1, False)} {status('status', False)} between "
+                f"{status('pending', False)} and {status('done', False)}",
+            ),
             (f"{id(1)} {sep} {tag('tag')}", f"Toggle {tag('tag', False)}"),
-            (f"{id(1)} {sep} {tag('star')}",
-             f"Set as starred {self.config.item.tag.format.star}"),
-            (f"{id(1)} {sep} {tag('fav')}",
-             f"Set as favorite {self.config.item.tag.format.like}"),
-            (f"{id(1)} {sep} {priority('h')}",
-             f"Set priority to {priority('high', False)}"),
-            (f"{id(1)} {sep} {status('x')}",
-             f"{status('Delete', False)} task"),
-            (f"{id(1)} {sep} {description('detailed description...')}",
-             f"Add {description('description', False)}"),
-            (f"{id(1)} {sep} {title('New title')} "
-             f"{project('awesome')} {status('n')}",
-             f"Edit {title('title', False)}, "
-             f"{project('project', symbol=False)} "
-             f"and convert to {status('note', False)}"),
+            (
+                f"{id(1)} {sep} {tag('star')}",
+                f"Set as starred {self.config.item.tag.format.star}",
+            ),
+            (
+                f"{id(1)} {sep} {tag('fav')}",
+                f"Set as favorite {self.config.item.tag.format.like}",
+            ),
+            (
+                f"{id(1)} {sep} {priority('h')}",
+                f"Set priority to {priority('high', False)}",
+            ),
+            (f"{id(1)} {sep} {status('x')}", f"{status('Delete', False)} task"),
+            (
+                f"{id(1)} {sep} {description('detailed description...')}",
+                f"Add {description('description', False)}",
+            ),
+            (
+                f"{id(1)} {sep} {title('New title')} "
+                f"{project('awesome')} {status('n')}",
+                f"Edit {title('title', False)}, "
+                f"{project('project', symbol=False)} "
+                f"and convert to {status('note', False)}",
+            ),
         ]
 
     def _deadline_commands(self) -> List[Tuple[str, str]]:
@@ -118,14 +134,22 @@ class CheatSheet:
         sep = self._separator()
         deadline = self._deadline
         return [
-            (f"{id(1)} {sep} {deadline('+3d')}",
-             f"Postpone by {deadline('3 days', False)}"),
-            (f"{id(1)} {sep} {deadline('2mon')}",
-             f"Set deadline to the {deadline('Monday after next', False)}"),
-            (f"{id(1)} {sep} {deadline('M')}",
-             f"Set deadline to the {deadline('end of the month', False)}"),
-            (f"{id(1)} {sep} {deadline('oo')}",
-             f"{deadline('Remove', False)} deadline"),
+            (
+                f"{id(1)} {sep} {deadline('+3d')}",
+                f"Postpone by {deadline('3 days', False)}",
+            ),
+            (
+                f"{id(1)} {sep} {deadline('2mon')}",
+                f"Set deadline to the {deadline('Monday after next', False)}",
+            ),
+            (
+                f"{id(1)} {sep} {deadline('M')}",
+                f"Set deadline to the {deadline('end of the month', False)}",
+            ),
+            (
+                f"{id(1)} {sep} {deadline('oo')}",
+                f"{deadline('Remove', False)} deadline",
+            ),
         ]
 
     def _selection_commands(self) -> List[Tuple[str, str]]:
@@ -137,15 +161,21 @@ class CheatSheet:
         sort = self._sort
         query = self._query
         return [
-            (f"{project('work')} {priority('high')} {deadline('today')}",
-             f"[bold]Filter[/bold] high-priority {project('work')} tasks "
-             f"due {deadline('today')}"),
-            (f"{tag('')} {sort(deadline(''))}",
-             f"[bold]Group[/bold] tasks by {tag('tag', False)} "
-             f"and [bold]sort[/bold] by {deadline('deadline', False)}"),
-            (f"{id(1)} {query(deadline(''))}",
-             f"[bold]Query[/bold] the {deadline('deadline', False)} "
-             f"of task {id(1, False)}"),
+            (
+                f"{project('work')} {priority('high')} {deadline('today')}",
+                f"[bold]Filter[/bold] high-priority {project('work')} tasks "
+                f"due {deadline('today')}",
+            ),
+            (
+                f"{tag('')} {sort(deadline(''))}",
+                f"[bold]Group[/bold] tasks by {tag('tag', False)} "
+                f"and [bold]sort[/bold] by {deadline('deadline', False)}",
+            ),
+            (
+                f"{id(1)} {query(deadline(''))}",
+                f"[bold]Query[/bold] the {deadline('deadline', False)} "
+                f"of task {id(1, False)}",
+            ),
         ]
 
     def _batch_commands(self) -> List[Tuple[str, str]]:
@@ -157,22 +187,25 @@ class CheatSheet:
         status = self._status
         priority = self._priority
         return [
-            (f"{id('1..5')} {sep} {status('x')}",
-             f"{status('Delete', False)} tasks {id('1-5')}"),
-            (f"{tag('urgent')} {sep} {priority('high')}",
-             f"Set {tag('urgent')} tasks "
-             f"to {priority('high', False)} priority"),
-            (f"{project('home')} {sep}",
-             f"Open an [underline]editor[/underline] "
-             f"for {project('home')} tasks"),
-            (f"{sep}",
-             "Edit everything in the [underline]editor[/underline]"),
+            (
+                f"{id('1..5')} {sep} {status('x')}",
+                f"{status('Delete', False)} tasks {id('1-5')}",
+            ),
+            (
+                f"{tag('urgent')} {sep} {priority('high')}",
+                f"Set {tag('urgent')} tasks to {priority('high', False)} priority",
+            ),
+            (
+                f"{project('home')} {sep}",
+                f"Open an [underline]editor[/underline] for {project('home')} tasks",
+            ),
+            (f"{sep}", "Edit everything in the [underline]editor[/underline]"),
         ]
 
     def render_examples(self) -> Table:
         title = (
-            f"[bold]~ :scroll: {_NAME.capitalize()} "
-            "Command Reference ~[/bold]")
+            f"[bold]~ :scroll: {_NAME.capitalize()} Command Reference ~[/bold]"
+        )
         table = Table("Commands", "Description", title=title, box=box.ROUNDED)
         sections = [
             ("Task Creation", self._creation_commands()),
@@ -186,13 +219,12 @@ class CheatSheet:
             for i, (cmd, desc) in enumerate(commands):
                 end_section = i == len(commands) - 1
                 table.add_row(
-                    f"[dim]{_NAME}[/dim] {cmd}", desc, end_section=end_section)
+                    f"[dim]{_NAME}[/dim] {cmd}", desc, end_section=end_section
+                )
         return table
 
     def render_token_cheat(self) -> Table:
-        title = (
-            f"[bold]~ :man_mage: {_NAME.capitalize()} "
-            "Symbol Cheat Sheet ~[/bold]")
+        title = f"[bold]~ :man_mage: {_NAME.capitalize()} Symbol Cheat Sheet ~[/bold]"
         table = Table(title=title, box=box.ROUNDED)
         table.add_column("Token", style="bold yellow")
         table.add_column("Name", style="bold blue")
@@ -201,7 +233,8 @@ class CheatSheet:
         token = {
             "separator": (
                 "Separates selection from action",
-                "1{id}3 {separator} {status}pending"),
+                "1{id}3 {separator} {status}pending",
+            ),
             "id": ("Range of item IDs", "1{id}3"),
             "status": ("Status of the item", "{status}pending"),
             "project": ("Project", "{project}work"),
@@ -212,13 +245,17 @@ class CheatSheet:
             "query": ("Query attributes of the item", "{query}{tag}"),
             "description": (
                 "Description of the item",
-                "{description} detailed description."),
+                "{description} detailed description.",
+            ),
             "stdin": ("Reads from stdin and replace", "{stdin}"),
         }
         for key, (desc, example) in token.items():
             table.add_row(
-                self.config.token[key], key, desc,
-                example.format(**self.config.token))
+                self.config.token[key],
+                key,
+                desc,
+                example.format(**self.config.token),
+            )
         return table
 
     def render(self) -> List[Table]:

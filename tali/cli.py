@@ -12,14 +12,31 @@ from rich.padding import Padding
 from rich.console import RenderableType, Group
 from rich_argparse import RawDescriptionRichHelpFormatter
 
-from . import (
-    __name__ as _NAME, __version__, __description__, __epilog__)
+from . import __name__ as _NAME, __version__, __description__, __epilog__
 from .common import (
-    format_config, logger, rich_console, os_env_swap, flatten, json_dumps)
+    format_config,
+    logger,
+    rich_console,
+    os_env_swap,
+    flatten,
+    json_dumps,
+)
 from .book import (
-    load, save, undo, redo, history, TaskBook, TodoItem,
-    EditResult, AddResult, ActionResult, ViewResult, QueryResult, RequiresSave,
-    ActionValueError)
+    load,
+    save,
+    undo,
+    redo,
+    history,
+    TaskBook,
+    TodoItem,
+    EditResult,
+    AddResult,
+    ActionResult,
+    ViewResult,
+    QueryResult,
+    RequiresSave,
+    ActionValueError,
+)
 from .parser import CommandParser
 from .parser.indent import process_prefix_sharing_lines
 from .render.cli import Renderer
@@ -29,29 +46,28 @@ from .render.cheatsheet import CheatSheet
 
 class CLI:
     options = {
-        ('-h', '--help'): {
-            'action': 'help',
-            'default': argparse.SUPPRESS,
-            'help': 'Show this help message and exit.',
+        ("-h", "--help"): {
+            "action": "help",
+            "default": argparse.SUPPRESS,
+            "help": "Show this help message and exit.",
         },
-        ('-v', '--version'): {
-            'action': 'version',
-            'version': f"{_NAME} {__version__}",
-            'help': 'Show the version number and exit.'
+        ("-v", "--version"): {
+            "action": "version",
+            "version": f"{_NAME} {__version__}",
+            "help": "Show the version number and exit.",
         },
-        ('-c', '--cheatsheet'): {
-            'action': 'store_true',
-            'help': 'Print the cheatsheet and exit. '
+        ("-c", "--cheatsheet"): {
+            "action": "store_true",
+            "help": "Print the cheatsheet and exit. ",
         },
-        ('-d', '--debug'): {
-            'action': 'store_true',
-            'help': 'Enable debug output. '
+        ("-d", "--debug"): {
+            "action": "store_true",
+            "help": "Enable debug output. ",
         },
-        ('-rc', '--rc-file'): {
-            'type': str,
-            'default': None,
-            'help':
-                f"""
+        ("-rc", "--rc-file"): {
+            "type": str,
+            "default": None,
+            "help": f"""
                 The configuration file to use.
                 If unspecified,
                 it will search in the following order:
@@ -61,17 +77,16 @@ class CLI:
                    relative to the current working directory;
                 2. `$XDG_CONFIG_HOME/{_NAME}/config.toml`;
                 3. `~/.config/{_NAME}/config.toml`.
-                """
+                """,
         },
-        ('-erc', '--edit-rc'): {
-            'action': 'store_true',
-            'help': 'Launch the editor to edit the configuration file.'
+        ("-erc", "--edit-rc"): {
+            "action": "store_true",
+            "help": "Launch the editor to edit the configuration file.",
         },
-        ('-db', '--db-dir'): {
-            'type': str,
-            'default': None,
-            'help':
-                f"""
+        ("-db", "--db-dir"): {
+            "type": str,
+            "default": None,
+            "help": f"""
                 The database folder to use.
                 If unspecified,
                 it will search in the following order:
@@ -84,47 +99,46 @@ class CLI:
                 4. `~/.config/{_NAME}/book/`.
                 """,
         },
-        ('-e', '--editor'): {
-            'action': 'store_true',
-            'help':
-                """
+        ("-e", "--editor"): {
+            "action": "store_true",
+            "help": """
                 Start the editor with empty content.
                 This is useful for adding new items.
                 """,
         },
-        ('-j', '--json'): {
-            'action': 'store_true',
-            'help': 'Output the result in JSON format.'
+        ("-j", "--json"): {
+            "action": "store_true",
+            "help": "Output the result in JSON format.",
         },
-        ('-s', '--stats'): {
-            'action': 'store_true',
-            'help': 'Show statistics for the current view.'
+        ("-s", "--stats"): {
+            "action": "store_true",
+            "help": "Show statistics for the current view.",
         },
-        ('--stats-count', ): {
-            'type': str,
-            'default': None,
-            'choices': ['filtered', 'all'],
-            'help': 'Which items to count for statistics.'
+        ("--stats-count",): {
+            "type": str,
+            "default": None,
+            "choices": ["filtered", "all"],
+            "help": "Which items to count for statistics.",
         },
-        ('-i', '--idempotent'): {
-            'action': 'store_true',
-            'help': 'Render output in idempotent format.'
+        ("-i", "--idempotent"): {
+            "action": "store_true",
+            "help": "Render output in idempotent format.",
         },
-        ('-u', '--undo'): {
-            'action': 'store_true',
-            'help': 'Undo the last run.'
+        ("-u", "--undo"): {
+            "action": "store_true",
+            "help": "Undo the last run.",
         },
-        ('-r', '--redo'): {
-            'action': 'store_true',
-            'help': 'Redo the last undone run.'
+        ("-r", "--redo"): {
+            "action": "store_true",
+            "help": "Redo the last undone run.",
         },
-        ('-H', '--history'): {
-            'action': 'store_true',
-            'help': 'Show the history of the database.'
+        ("-H", "--history"): {
+            "action": "store_true",
+            "help": "Show the history of the database.",
         },
-        ('-R', '--re-index'): {
-            'action': 'store_true',
-            'help': 'Re-index all items.'
+        ("-R", "--re-index"): {
+            "action": "store_true",
+            "help": "Re-index all items.",
         },
     }
     epilog = __epilog__
@@ -152,13 +166,16 @@ class CLI:
             add_help=False,
             description=__description__,
             formatter_class=RawDescriptionRichHelpFormatter,
-            epilog=self.epilog)
+            epilog=self.epilog,
+        )
         for option, kwargs in self.options.items():
             parser.add_argument(*option, **kwargs)
         parser.add_argument(
-            'command', nargs='*',
+            "command",
+            nargs="*",
             default=None,
-            help='Command to run. See `--cheatsheet` for details.')
+            help="Command to run. See `--cheatsheet` for details.",
+        )
         return parser
 
     def _project_root(self, name: Optional[str] = None) -> Optional[str]:
@@ -175,7 +192,8 @@ class CLI:
     def _config_paths(self) -> List[str]:
         base_name = "config.yaml"
         default_file = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), base_name)
+            os.path.dirname(os.path.abspath(__file__)), base_name
+        )
         xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "~/.config")
         xdg_file = os.path.join(xdg_config_home, _NAME, base_name)
         root_file = self._project_root(base_name)
@@ -216,7 +234,7 @@ class CLI:
         command = " ".join(command).strip()
         if not command.strip():
             command = self.config.view.default
-            logger.debug(f"Command (from \".view.default\"): {command!r}")
+            logger.debug(f'Command (from ".view.default"): {command!r}')
         else:
             logger.debug(f"Command: {command!r}")
         return command
@@ -225,27 +243,31 @@ class CLI:
         xdg_data_home = os.environ.get("XDG_DATA_HOME", "~/.local/share")
         xdg_dir = os.path.join(xdg_data_home, _NAME)
         paths = [
-            self.args.db_dir, self.config.file.db,
-            self._project_root(), xdg_dir]
+            self.args.db_dir,
+            self.config.file.db,
+            self._project_root(),
+            xdg_dir,
+        ]
         paths = [p for p in paths if p is not None and os.path.exists(p)]
         if not paths:
             logger.warn(
-                'No database directory found. '
-                f'Creating a new one at {xdg_dir!r}.')
+                f"No database directory found. Creating a new one at {xdg_dir!r}."
+            )
             os.makedirs(xdg_dir, exist_ok=True)
             paths.append(xdg_dir)
         if len(paths) > 1:
             logger.debug(
-                'Multiple database directories found '
-                f'with precedence: {paths!r}.')
+                f"Multiple database directories found with precedence: {paths!r}."
+            )
         logger.debug(f"Using database directory: {paths[0]!r}")
         return paths[0]
 
     def _process_action(
         self, book: TaskBook, command: str, nested: bool = False
     ) -> List[ActionResult]:
-        selection, group, sort, query, action = \
-            self.command_parser.parse(command)
+        selection, group, sort, query, action = self.command_parser.parse(
+            command
+        )
         logger.debug(f"Selection: {selection}")
         logger.debug(f"Group: {group}")
         logger.debug(f"Sort: {sort}")
@@ -265,7 +287,8 @@ class CLI:
                 title = action.pop("title")
             except KeyError:
                 raise ActionValueError(
-                    f"Missing title in command: {command!r}.")
+                    f"Missing title in command: {command!r}."
+                )
             if "project" not in action:
                 action["project"] = self.config.item.project.default
             return [book.add(title, **action)]  # type: ignore
@@ -276,13 +299,16 @@ class CLI:
             logger.warn(
                 "Cannot nest editor action in another editor action. "
                 f"Ignoring command {command!r} "
-                "that tries to launch the editor.")
+                "that tries to launch the editor."
+            )
             return []
         return self._process_editor_action(before_todos, book)
 
     def _process_editor_action(
-        self, before_todos: List[TodoItem], book: TaskBook,
-        actions: Optional[List[str]] = None
+        self,
+        before_todos: List[TodoItem],
+        book: TaskBook,
+        actions: Optional[List[str]] = None,
     ) -> List[ActionResult]:
         editor_actions = self.editor_action(before_todos, actions)
         logger.debug(f"Editor commands:\n{editor_actions!r}")
@@ -295,8 +321,7 @@ class CLI:
             except Exception as e:
                 if logger.is_enabled_for("debug"):
                     raise e
-                logger.warn(
-                    f"Failed to process action: \"{action}\"\n  {e!r}")
+                logger.warn(f'Failed to process action: "{action}"\n  {e!r}')
                 error.append(action)
                 continue
             for result in results:
@@ -312,7 +337,8 @@ class CLI:
             results.append(add_result)
         if error:
             ans = logger.ask(
-                "Do you want to continue editing failed actions?", ["Y", "n"])
+                "Do you want to continue editing failed actions?", ["Y", "n"]
+            )
             if ans == "n":
                 return results
             results = self._process_editor_action([], book, error)
@@ -322,11 +348,12 @@ class CLI:
         if not self.editor_command:
             logger.error(
                 "No editor command configured. "
-                "Please set `editor.command` in the configuration file.")
+                "Please set `editor.command` in the configuration file."
+            )
         try:
             subprocess.run(
-                f"{self.editor_command.format(path)}",
-                shell=True, check=True)
+                f"{self.editor_command.format(path)}", shell=True, check=True
+            )
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to edit file: {e!r}")
 
@@ -336,7 +363,7 @@ class CLI:
         text = self.renderer.render({None: todos}, "id", idempotent=True)
         text = strip_rich(text).rstrip()
         with tempfile.NamedTemporaryFile(
-            suffix=f".{_NAME}", mode='w+', delete=False
+            suffix=f".{_NAME}", mode="w+", delete=False
         ) as temp_file:
             if text:
                 temp_file.write(text + "\n")
@@ -394,7 +421,8 @@ class CLI:
     ) -> List[RenderableType]:
         if self.args.json:
             dump = json_dumps(
-                [r.to_dict() for r in results], indent=self.config.file.indent)
+                [r.to_dict() for r in results], indent=self.config.file.indent
+            )
             return [dump]
         rendered: List[RenderableType] = [""]
         for r in results:
@@ -431,7 +459,8 @@ class CLI:
         if self.args.undo or self.args.redo:
             if self.args.undo and self.args.redo:
                 logger.error(
-                    "Cannot use both --undo and --redo at the same time.")
+                    "Cannot use both --undo and --redo at the same time."
+                )
             action = "undo" if self.args.undo else "redo"
             self._print_results([self.history_action(db_dir, action)])
             return 0
@@ -459,8 +488,13 @@ class CLI:
         if all(not isinstance(ar, RequiresSave) for ar in action_results):
             return 0
         save(
-            self.command, book.todos, action_results, db_dir,
-            self.config.file.backup, self.config.file.indent)
+            self.command,
+            book.todos,
+            action_results,
+            db_dir,
+            self.config.file.backup,
+            self.config.file.indent,
+        )
         return 0
 
 

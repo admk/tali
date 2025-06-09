@@ -2,7 +2,16 @@ import re
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from typing import (
-    get_args, Optional, Sequence, List, Dict, Tuple, Callable, Literal, Any)
+    get_args,
+    Optional,
+    Sequence,
+    List,
+    Dict,
+    Tuple,
+    Callable,
+    Literal,
+    Any,
+)
 
 from box import Box
 
@@ -11,13 +20,22 @@ from ..book.item import TodoItem, Status, Priority
 
 
 FilterBy = Literal[
-    "title", "project", "tag", "status", "priority", "deadline", "created_at"]
+    "title", "project", "tag", "status", "priority", "deadline", "created_at"
+]
 ActBy = Literal["add", "delete"] | FilterBy
 GroupBy = Literal[
-    "id", "project", "tag", "status", "priority", "deadline", "created_at"]
+    "id", "project", "tag", "status", "priority", "deadline", "created_at"
+]
 SortBy = Literal[
-    "id", "status", "title", "project", "tags", "priority",
-    "deadline", "created_at"]
+    "id",
+    "status",
+    "title",
+    "project",
+    "tags",
+    "priority",
+    "deadline",
+    "created_at",
+]
 FilterValue = str | Tuple[datetime, datetime]
 GroupKey = Optional[str | datetime | date]
 GroupFunc = Callable[[TodoItem], GroupKey]
@@ -66,7 +84,7 @@ class FilterMixin(SelectMixin):
         return all(t in todo.tags for t in tags) if tags else not todo.tags
 
     def filter_by_status(self, todo: TodoItem, status: Status) -> bool:
-        new_status = self._resolve_alias('status', status)
+        new_status = self._resolve_alias("status", status)
         if new_status not in get_args(Status):
             raise FilterError(f"Unrecognized status {status!r}.")
         return todo.status == new_status
@@ -94,7 +112,7 @@ class FilterMixin(SelectMixin):
         if len(date_range) == 1:
             date_range = (datetime.min, date_range[0])
         if len(date_range) != 2:
-            raise FilterError(f'Invalid date range: {date_range!r}.')
+            raise FilterError(f"Invalid date range: {date_range!r}.")
         return self._filter_by_date_range(todo.deadline, date_range)
 
     def filter_by_created_at(
@@ -142,7 +160,9 @@ class SortMixin(SelectMixin):
         return todo.created_at
 
     def sort_by(
-        self, todos: List[TodoItem], mode: SortBy,
+        self,
+        todos: List[TodoItem],
+        mode: SortBy,
     ) -> List[TodoItem]:
         return sorted(todos, key=getattr(self, f"sort_by_{mode}"))
 
@@ -153,6 +173,7 @@ class GroupMixin(SortMixin):
     ) -> Tuple[GroupFunc, Optional[SortFunc]]:
         def gfunc(todo):
             return getattr(todo, name)
+
         sfunc = getattr(self, f"sort_by_{name}")
         return gfunc, sfunc
 
@@ -167,6 +188,7 @@ class GroupMixin(SortMixin):
     def group_by_tag(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         def gfunc(todo):
             return todo.tags if todo.tags else "_untagged"
+
         return gfunc, self.sort_by_tags
 
     def group_by_status(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
@@ -186,8 +208,10 @@ class GroupMixin(SortMixin):
             if delta < 86400:  # 1 day in seconds
                 return "today"
             return dt.date()
+
         def sfunc(todo):
             return todo.deadline or datetime(9999, 12, 31)
+
         return gfunc, sfunc
 
     def group_by_created_at(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
@@ -197,15 +221,19 @@ class GroupMixin(SortMixin):
             if delta.days > 1:
                 return dt.date()
             return "_today"
+
         def sfunc(todo):
             return todo.created_at
+
         return gfunc, sfunc
 
     def group_by_description(self):
         raise GroupError("Grouping by description is not supported.")
 
     def group_by(
-        self, todos: List[TodoItem], group_by: GroupBy,
+        self,
+        todos: List[TodoItem],
+        group_by: GroupBy,
     ) -> Dict[GroupKey, List[TodoItem]]:
         group_func, group_sort_func = getattr(self, f"group_by_{group_by}")()
         groups = {}

@@ -18,7 +18,7 @@ something else"""
             "this is great",
             "this is awesome stuff",
             "this is awesome thing",
-            "something else"
+            "something else",
         ]
         self.run_test(input_text, expected)
 
@@ -33,7 +33,7 @@ second prefix
         expected = [
             "first second",
             "first third fourth",
-            "second prefix continuation"
+            "second prefix continuation",
         ]
         self.run_test(input_text, expected)
 
@@ -59,10 +59,7 @@ a
       d
   e
     f"""
-        expected = [
-            "a b c d",
-            "a e f"
-        ]
+        expected = ["a b c d", "a e f"]
         self.run_test(input_text, expected)
 
     def test_nothing_changed(self):
@@ -72,7 +69,8 @@ a
         identical lines
         """
         expected = [
-            line.strip() for line in input_text.splitlines() if line.strip()]
+            line.strip() for line in input_text.splitlines() if line.strip()
+        ]
         self.run_test(input_text, expected)
 
     def run_test(self, input_text, expected):

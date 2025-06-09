@@ -42,9 +42,7 @@ def load(path: str) -> List[TodoItem]:
         return [TodoItem.from_dict(todo) for todo in json.load(f)]
 
 
-def to_commit(
-    commit: GitCommit
-) -> Commit:
+def to_commit(commit: GitCommit) -> Commit:
     message, _, *data = str(commit.message).split("\n")
     data = "\n".join(data)
     try:
@@ -54,8 +52,12 @@ def to_commit(
         logger.warn(f"Failed to parse commit data: {repr(data)}")
         action_results = []
     return Commit(
-        message, commit.hexsha, commit.committed_datetime,
-        commit.hexsha == commit.repo.head.commit.hexsha, action_results)
+        message,
+        commit.hexsha,
+        commit.committed_datetime,
+        commit.hexsha == commit.repo.head.commit.hexsha,
+        action_results,
+    )
 
 
 def checkout(path: str, commit_hash: str) -> Commit:
@@ -66,9 +68,7 @@ def checkout(path: str, commit_hash: str) -> Commit:
     return to_commit(c)
 
 
-def _undo_redo(
-    path: str, action: Literal["undo", "redo"]
-) -> SwitchResult:
+def _undo_redo(path: str, action: Literal["undo", "redo"]) -> SwitchResult:
     """Restore the previous version from git history."""
     repo = _repo(path)
     commits = list(repo.iter_commits("main"))
@@ -105,23 +105,28 @@ def redo(path: str) -> SwitchResult:
 
 def history(path: str) -> HistoryResult:
     return HistoryResult(
-        [to_commit(c) for c in _repo(path).iter_commits("main")])
+        [to_commit(c) for c in _repo(path).iter_commits("main")]
+    )
 
 
 def save(
-    commit_message: str, todos: List[TodoItem],
+    commit_message: str,
+    todos: List[TodoItem],
     action_results: List[ActionResult],
-    path: str, backup: bool = True, indent: int = 2,
+    path: str,
+    backup: bool = True,
+    indent: int = 2,
 ):
     """
     Save the list of TODOs to a file using git for version control.
     Commits changes if backup is enabled and we're at HEAD.
     """
-    logger.debug(f"Saving todos to {path} with commit message: {commit_message}")
+    logger.debug(
+        f"Saving todos to {path} with commit message: {commit_message}"
+    )
     main_file = os.path.join(path, _MAIN_FILE)
     with open(main_file, "w") as f:
-        data = [
-            todo.to_dict() for todo in todos if not todo.status == "delete"]
+        data = [todo.to_dict() for todo in todos if not todo.status == "delete"]
         json_dump(data, f, indent=indent)
     if not backup:
         return
@@ -135,7 +140,8 @@ def save(
         if not repo.is_dirty():
             return
         result = json_dumps(
-            [ar.to_dict() for ar in action_results], indent=indent)
+            [ar.to_dict() for ar in action_results], indent=indent
+        )
         repo.index.commit(commit_message + "\n\n" + result)
     except GitCommandError as e:
         raise CommitError(f"Failed to commit changes: {e}")

@@ -2,9 +2,7 @@ from typing import List
 
 
 def _min_indent(lines):
-    return min(
-        len(line) - len(line.lstrip())
-        for line in lines if line.strip())
+    return min(len(line) - len(line.lstrip()) for line in lines if line.strip())
 
 
 def _process_block(block: List[str]) -> List[str]:
@@ -24,7 +22,8 @@ def process_prefix_sharing_lines(lines: List[str]) -> List[str]:
     indent = _min_indent(lines)
     lines = [line[indent:] for line in lines if line.strip()]
     block_indices = [
-        i for i, line in enumerate(lines) if not line.startswith(" ")]
+        i for i, line in enumerate(lines) if not line.startswith(" ")
+    ]
     processed = []
     for start, end in zip([0] + block_indices, block_indices + [len(lines)]):
         block = lines[start:end]
