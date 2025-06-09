@@ -6,10 +6,10 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
-from .common import CommonMixin
+from .common import CommonMixin, ParserError as CommonParserError
 
 
-class DateTimeParseError(Exception):
+class DateTimeParseError(CommonParserError):
     pass
 
 

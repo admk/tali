@@ -1,3 +1,7 @@
+class ParserError(Exception):
+    pass
+
+
 class CommonMixin:
     def _unquote_str(self, text: str) -> str:
         if text.startswith('"') and text.endswith('"'):

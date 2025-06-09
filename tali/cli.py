@@ -40,7 +40,7 @@ from .common import (
     os_env_swap,
     rich_console,
 )
-from .parser import CommandParser
+from .parser import CommandParser, ParserError
 from .parser.editor import process_prefix_sharing_lines, strip_comments
 from .render.cheatsheet import CheatSheet
 from .render.cli import Renderer
@@ -268,9 +268,11 @@ class CLI:
     def _process_action(
         self, book: TaskBook, command: str, nested: bool = False
     ) -> List[ActionResult]:
-        selection, group, sort, query, action = self.command_parser.parse(
-            command
-        )
+        try:
+            parsed = self.command_parser.parse(command)
+        except ParserError as e:
+            logger.error(e)
+        selection, group, sort, query, action = parsed
         logger.debug(f"Selection: {selection}")
         logger.debug(f"Group: {group}")
         logger.debug(f"Sort: {sort}")

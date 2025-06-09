@@ -96,6 +96,8 @@ class Logger:
         self.logger.warning(msg, *args, **kwargs)
 
     def error(self, msg: Any, *args, **kwargs) -> NoReturn:
+        if isinstance(msg, Exception) and self.is_enabled_for(logging.DEBUG):
+            raise msg
         msg = self._format_msg("error", msg)
         self.logger.error(msg, *args, **kwargs)
         sys.exit(1)
