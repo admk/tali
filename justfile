@@ -2,7 +2,7 @@ default:
     @just --list
 
 lint:
-    isort --atomic --py=311 -m VERTICAL_HANGING_INDENT .
+    isort .
     ruff check --fix
     ruff format
 
@@ -10,7 +10,7 @@ test:
     python -m unittest discover -s tests
 
 build:
-    rm -rf dist && python -m build
+    python -m build
 
 install:
     uv tool install -U .
@@ -18,4 +18,4 @@ install:
 release:
     twine upload dist/*
 
-all: test build install release
+all: lint test build
