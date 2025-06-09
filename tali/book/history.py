@@ -27,12 +27,14 @@ class CommitError(HistoryError):
 _MAIN_FILE = "main"
 
 
-def _repo(path: str) -> Repo:
-    os.makedirs(path, exist_ok=True)
+def _repo(path: str, create: bool = False) -> Repo:
     try:
         return Repo(path)
-    except InvalidGitRepositoryError:
-        return Repo.init(path)
+    except InvalidGitRepositoryError as e:
+        if not create:
+            raise e
+    os.makedirs(path, exist_ok=True)
+    return Repo.init(path)
 
 
 def load(path: str) -> List[TodoItem]:
@@ -131,7 +133,7 @@ def save(
         json_dump(data, f, indent=indent)
     if not backup:
         return
-    repo = _repo(path)
+    repo = _repo(path, create=True)
     if repo.head.is_detached:
         backup_branch = f"backup-{datetime.now():%Y-%m-%d-%H-%M-%S}"
         repo.git.branch("-m", "main", backup_branch)

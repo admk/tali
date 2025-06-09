@@ -385,6 +385,10 @@ class CLI:
     def history_action(
         self, db_dir: str, action: Literal["undo", "redo"]
     ) -> ActionResult:
+        if not self.config.file.backup:
+            logger.error(
+                "History is disabled. "
+                "Please set `file.backup` to `true`.")
         func = undo if action == "undo" else redo
         return func(db_dir)
 
