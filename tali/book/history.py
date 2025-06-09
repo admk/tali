@@ -1,14 +1,15 @@
-import os
 import json
-from typing import List, Literal
+import os
 from datetime import datetime
+from typing import List, Literal
 
-from git import InvalidGitRepositoryError, GitCommandError, Commit as GitCommit
+from git import Commit as GitCommit
+from git import GitCommandError, InvalidGitRepositoryError
 from git.repo import Repo
 
-from ..common import logger, json_dump, json_dumps
-from .result import Commit, ActionResult, HistoryResult, SwitchResult
+from ..common import json_dump, json_dumps, logger
 from .item import TodoItem
+from .result import ActionResult, Commit, HistoryResult, SwitchResult
 
 
 class HistoryError(Exception):

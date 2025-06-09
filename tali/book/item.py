@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional, List, Literal
 from datetime import datetime
-
+from typing import List, Literal, Optional
 
 Status = Literal["pending", "done", "note", "delete", "archive"]
 Priority = Literal["high", "normal", "low"]

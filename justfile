@@ -1,6 +1,11 @@
 default:
     @just --list
 
+lint:
+    isort --atomic --py=311 -m VERTICAL_HANGING_INDENT .
+    ruff check --fix
+    ruff format
+
 test:
     python -m unittest discover -s tests
 

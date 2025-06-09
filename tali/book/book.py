@@ -1,21 +1,21 @@
 import copy
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
-from typing import get_args, Optional, Literal, List, Dict, Tuple
+from typing import Dict, List, Literal, Optional, Tuple, get_args
 
 from box import Box
+from dateutil.relativedelta import relativedelta
 
 from ..common import logger
-from .item import TodoItem, Status, Priority
-from .result import AddResult, EditResult, ViewResult, QueryResult
+from .item import Priority, Status, TodoItem
+from .result import AddResult, EditResult, QueryResult, ViewResult
 from .select import (
-    FilterMixin,
-    GroupMixin,
-    SortMixin,
     FilterBy,
+    FilterMixin,
     FilterValue,
     GroupBy,
+    GroupMixin,
     SortBy,
+    SortMixin,
 )
 
 

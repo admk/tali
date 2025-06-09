@@ -1,23 +1,22 @@
 import re
-from datetime import datetime, date
-from dateutil.relativedelta import relativedelta
+from datetime import date, datetime
 from typing import (
-    get_args,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
     Optional,
     Sequence,
-    List,
-    Dict,
     Tuple,
-    Callable,
-    Literal,
-    Any,
+    get_args,
 )
 
 from box import Box
+from dateutil.relativedelta import relativedelta
 
+from ..book.item import Priority, Status, TodoItem
 from ..common import has_prefix
-from ..book.item import TodoItem, Status, Priority
-
 
 FilterBy = Literal[
     "title", "project", "tag", "status", "priority", "deadline", "created_at"

@@ -1,18 +1,16 @@
 import os
-from typing import Literal, Optional, Dict, List, Tuple
 from datetime import datetime
+from typing import Dict, List, Literal, Optional, Tuple
 
+from box import Box
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor, VisitationError
 
-from box import Box
-
+from ..book.select import FilterBy, FilterValue, GroupBy, SortBy
 from ..common import logger
-from ..book.select import GroupBy, SortBy, FilterBy, FilterValue
 from .common import CommonMixin
 from .datetime import DateTimeParser
-
 
 Mode = Literal["selection", "action"]
 

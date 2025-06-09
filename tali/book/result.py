@@ -1,10 +1,10 @@
-from datetime import datetime
 from dataclasses import dataclass
-from typing import List, Dict, Literal
+from datetime import datetime
+from typing import Dict, List, Literal
 
 from ..common import flatten
 from .item import TodoItem
-from .select import GroupBy, SortBy, GroupKey
+from .select import GroupBy, GroupKey, SortBy
 
 
 @dataclass

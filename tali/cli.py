@@ -1,47 +1,49 @@
-import os
-import sys
-import yaml
 import argparse
-import tempfile
 import contextlib
+import os
 import subprocess
-from typing import Literal, Optional, List, Sequence
+import sys
+import tempfile
+from typing import List, Literal, Optional, Sequence
 
+import yaml
 from box import Box
+from rich.console import Group, RenderableType
 from rich.padding import Padding
-from rich.console import RenderableType, Group
 from rich_argparse import RawDescriptionRichHelpFormatter
 
-from . import __name__ as _NAME, __version__, __description__, __epilog__
-from .common import (
-    format_config,
-    logger,
-    rich_console,
-    os_env_swap,
-    flatten,
-    json_dumps,
-)
+from . import __description__, __epilog__
+from . import __name__ as _NAME
+from . import __version__
 from .book import (
-    load,
-    save,
-    undo,
-    redo,
-    history,
-    TaskBook,
-    TodoItem,
-    EditResult,
-    AddResult,
     ActionResult,
-    ViewResult,
+    ActionValueError,
+    AddResult,
+    EditResult,
     QueryResult,
     RequiresSave,
-    ActionValueError,
+    TaskBook,
+    TodoItem,
+    ViewResult,
+    history,
+    load,
+    redo,
+    save,
+    undo,
+)
+from .common import (
+    flatten,
+    format_config,
+    json_dumps,
+    logger,
+    os_env_swap,
+    rich_console,
 )
 from .parser import CommandParser
 from .parser.indent import process_prefix_sharing_lines
+from .render.cheatsheet import CheatSheet
 from .render.cli import Renderer
 from .render.common import strip_rich
-from .render.cheatsheet import CheatSheet
 
 
 class CLI:

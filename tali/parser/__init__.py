@@ -1,5 +1,5 @@
-from .command import CommandParser, CommandSyntaxError, CommandSemanticError
-from .datetime import DateTimeParser, DateTimeSyntaxError, DateTimeSemanticError
+from .command import CommandParser, CommandSemanticError, CommandSyntaxError
+from .datetime import DateTimeParser, DateTimeSemanticError, DateTimeSyntaxError
 
 __all__ = [
     "CommandParser",

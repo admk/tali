@@ -1,27 +1,26 @@
 import copy
 from datetime import date, datetime
-from typing import get_args, Optional, Any, List, Dict, Literal, Callable
+from typing import Any, Callable, Dict, List, Literal, Optional, get_args
 
 from box import Box
 from rich import box
+from rich.console import Group, RenderableType
 from rich.panel import Panel
-from rich.console import RenderableType, Group
 from rich.table import Table
 
-from ..common import json_dumps, has_prefix
-from ..book.item import TodoItem, Status, Priority
-from ..book.select import GroupBy
+from ..book.item import Priority, Status, TodoItem
 from ..book.result import (
     ActionResult,
-    ViewResult,
-    QueryResult,
     AddResult,
     EditResult,
     HistoryResult,
+    QueryResult,
     SwitchResult,
+    ViewResult,
 )
-from .common import shorten, strip_rich, timedelta_format, pluralize
-
+from ..book.select import GroupBy
+from ..common import has_prefix, json_dumps
+from .common import pluralize, shorten, strip_rich, timedelta_format
 
 RenderStats = Literal[True, False, "all"]
 

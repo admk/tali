@@ -1,8 +1,8 @@
 from typing import List, Tuple
 
 from box import Box
-from rich.table import Table
 from rich import box
+from rich.table import Table
 
 from .. import __toolname__ as _NAME
 

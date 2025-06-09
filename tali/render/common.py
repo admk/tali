@@ -1,6 +1,6 @@
 import re
 from datetime import timedelta
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 
 def shorten(text: str, max_len: int, ellipsis: str = "…") -> str:
