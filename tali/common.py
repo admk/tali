@@ -19,8 +19,8 @@ rich_console = Console()
 T = TypeVar('T')
 
 
-def flatten(l: Sequence[Sequence[T]]) -> List[T]:
-    return [item for sublist in l for item in sublist]
+def flatten(sequence: Sequence[Sequence[T]]) -> List[T]:
+    return [item for subseq in sequence for item in subseq]
 
 
 def json_dumps(obj: Any, indent=2, **kwargs) -> str:

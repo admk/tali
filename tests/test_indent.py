@@ -71,7 +71,8 @@ a
         this is just to test
         identical lines
         """
-        expected = [l.strip() for l in input_text.splitlines() if l.strip()]
+        expected = [
+            line.strip() for line in input_text.splitlines() if line.strip()]
         self.run_test(input_text, expected)
 
     def run_test(self, input_text, expected):
