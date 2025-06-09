@@ -10,7 +10,7 @@ query = query_token (group / query_token)
 sort = sort_token group
 group =
     id_token / project_token / tag_token / priority_token /
-    status_token / deadline_token / description_token
+    status_token / deadline_token
 task_range = task_id (id_token task_id)?
 project = project_token project_name
 tag = tag_token pm? tag_name
