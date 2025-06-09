@@ -25,6 +25,7 @@ from .book import (
     TaskBook,
     TodoItem,
     ViewResult,
+    UndoRedoError,
     history,
     load,
     redo,
@@ -391,7 +392,10 @@ class CLI:
                 "History is disabled. Please set `file.backup` to `true`."
             )
         func = undo if action == "undo" else redo
-        return func(db_dir)
+        try:
+            return func(db_dir)
+        except UndoRedoError as e:
+            logger.error(e)
 
     def history(self, db_dir: str) -> ActionResult:
         return history(db_dir)
