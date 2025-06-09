@@ -166,7 +166,7 @@ class CheatSheet:
              f"Open an [underline]editor[/underline] "
              f"for {project('home')} tasks"),
             (f"{sep}",
-             f"Edit everything in the [underline]editor[/underline]"),
+             "Edit everything in the [underline]editor[/underline]"),
         ]
 
     def render_examples(self) -> Table:

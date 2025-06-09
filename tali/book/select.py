@@ -6,7 +6,7 @@ from typing import (
 
 from box import Box
 
-from ..common import logger, has_prefix
+from ..common import has_prefix
 from ..book.item import TodoItem, Status, Priority
 
 

@@ -2,11 +2,10 @@ import os
 import sys
 import yaml
 import argparse
-import textwrap
 import tempfile
 import contextlib
 import subprocess
-from typing import Literal, Optional, List, Tuple, Sequence
+from typing import Literal, Optional, List, Sequence
 
 from box import Box
 from rich.padding import Padding
@@ -14,7 +13,7 @@ from rich.console import RenderableType, Group
 from rich_argparse import RawDescriptionRichHelpFormatter
 
 from . import (
-    __name__ as _NAME, __version__, __description__, __url__, __epilog__)
+    __name__ as _NAME, __version__, __description__, __epilog__)
 from .common import (
     format_config, logger, rich_console, os_env_swap, flatten, json_dumps)
 from .book import (

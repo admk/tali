@@ -2,7 +2,6 @@ import os
 from typing import Literal, Optional, Dict, List, Tuple
 from datetime import datetime
 
-from dateutil.relativedelta import relativedelta
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor, VisitationError
@@ -72,7 +71,7 @@ class CommandParser(NodeVisitor, CommonMixin):
             commands = text.split(f" {separator} ")
             try:
                 selection, action = commands
-            except ValueError as e:
+            except ValueError:
                 raise CommandSyntaxError(
                     "Invalid command format. "
                     f"Expected '(selection) {separator} (action)'.")

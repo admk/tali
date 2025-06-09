@@ -1,5 +1,3 @@
-from argparse import Action
-import re
 import copy
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -137,7 +135,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
             return deadline
         if not todo.deadline:
             logger.warn(
-                f"Cannot relative adjust an item without a deadline.")
+                "Cannot relative adjust an item without a deadline.")
             return None
         return todo.deadline + deadline
 
