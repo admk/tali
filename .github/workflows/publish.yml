@@ -1,15 +1,14 @@
 name: Publish Python Package
 
 on:
-  workflow_run:
-    workflows: ["CI"]
-    branches: [main]
-    types:
-      - completed
+  push:
+    paths:
+      - 'tali/__init__.py'
+    branches:
+      - main
 
 jobs:
   publish:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Publish to PyPI
     runs-on: ubuntu-latest
     environment:
@@ -21,26 +20,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Check if `tali/__init__.py` was changed
-        run: |
-          sha="${{ github.event.workflow_run.head_sha }}"
-          git fetch origin main
-          if git diff-tree --no-commit-id --name-only -r "$sha" | grep -q "^tali/__init__.py$"; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-      - name: Stop if `tali/__init__.py` was not changed
-        if: steps.filecheck.outputs.changed != 'true'
-        run: |
-          echo "tali/__init__.py was not changed. Skipping publish."
-          exit 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-      - name: Install build tools
-        run: pip install build twine
+      - name: Install dependencies
+        run: |
+          pip install build twine
+          pip install -e .
+      - name: Run tests
+        run: python -m unittest discover tests/
       - name: Build package
         run: python -m build
       - name: Publish package to PyPI
