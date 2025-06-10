@@ -21,6 +21,20 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Check if `tali/__init__.py` was changed
+        run: |
+          sha="${{ github.event.workflow_run.head_sha }}"
+          git fetch origin main
+          if git diff-tree --no-commit-id --name-only -r "$sha" | grep -q "^tali/__init__.py$"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Stop if `tali/__init__.py` was not changed
+        if: steps.filecheck.outputs.changed != 'true'
+        run: |
+          echo "tali/__init__.py was not changed. Skipping publish."
+          exit 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
