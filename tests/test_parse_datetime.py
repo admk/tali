@@ -1,7 +1,6 @@
 import unittest
 from datetime import datetime
 
-
 from tali.parser.datetime import DateTimeParseError, DateTimeParser
 
 
