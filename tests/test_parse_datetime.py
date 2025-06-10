@@ -1,7 +1,6 @@
 import unittest
 from datetime import datetime
 
-from parsimonious.exceptions import VisitationError
 
 from tali.parser.datetime import DateTimeParseError, DateTimeParser
 

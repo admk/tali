@@ -9,9 +9,9 @@ from parsimonious.nodes import NodeVisitor, VisitationError
 
 from ..book.select import FilterBy, FilterValue, GroupBy, SortBy
 from ..common import logger
-from .common import CommonMixin, ParserError as CommonParserError
+from .common import CommonMixin
+from .common import ParserError as CommonParserError
 from .datetime import DateTimeParser
-
 
 Mode = Literal["selection", "action"]
 

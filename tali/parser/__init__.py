@@ -1,5 +1,5 @@
-from .common import ParserError
 from .command import CommandParser, CommandSemanticError, CommandSyntaxError
+from .common import ParserError
 from .datetime import DateTimeParser, DateTimeSemanticError, DateTimeSyntaxError
 
 __all__ = [
