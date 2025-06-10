@@ -39,7 +39,7 @@ message:
   redo: ':hourglass_flowing_sand: [italic blue]Commit `{}` redone with change:[/]'
   redo_add: '{.message.add}'
   undo_add: ':boom: [italic red]Removed {} {}.[/]'
-  undo_edit: ':hourglass_flowing_sand: [italic cyan]Updated {} {}.[/]'
+  undo_edit: '{.message.edit}'
 group:
   format:
     id: '{id}{status}{title}{project}{tags}{priority}{deadline}{description}'

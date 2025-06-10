@@ -1,3 +1,4 @@
+import re
 import copy
 from datetime import date, datetime
 from typing import Any, Callable, Dict, List, Literal, Optional, get_args
@@ -109,13 +110,14 @@ class Renderer:
     def _render_title(
         self, todo: Optional[TodoItem], title: str
     ) -> Optional[str]:
-        for token in self.config.token.values():
-            title = title.replace(f"\\{token}", token)
-        style = self.config.item.title
         if self.idempotent:
-            for token in self.config.token.values():
-                title = title.replace(token, f"\\{token}")
+            tokens = "".join(rf"\b(\{v})" for v in self.config.token.values())
+            title = re.sub(tokens, r"\1", title)
             return title
+        else:
+            for token in self.config.token.values():
+                title = title.replace(f"\\{token}", token)
+        style = self.config.item.title
         title = shorten(title, style.max_length, style.ellipsis)
         return self._render_by_format_map(todo, style.format, title)
 
