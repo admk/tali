@@ -16,7 +16,7 @@ class TestDateTimeParser(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def _assert_parse_error(self, text):
-        with self.assertRaises((DateTimeParseError, VisitationError)):
+        with self.assertRaises(DateTimeParseError):
             self.parser.parse(text)
 
     def test_absolute_dates(self):

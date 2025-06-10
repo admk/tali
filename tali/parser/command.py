@@ -53,7 +53,10 @@ class CommandParser(NodeVisitor, CommonMixin):
             arrow = " " * e.pos + "[bold red]⌃[/bold red] "
             msg = f"Syntax Error:\n  {e.text}\n  {arrow}\n  {e}"
             raise CommandSyntaxError(msg) from e
-        return super().visit(ast)
+        try:
+            return super().visit(ast)
+        except VisitationError as e:
+            raise CommandSemanticError(e) from e
 
     def parse(
         self, text: str, pos: int = 0

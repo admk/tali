@@ -2,7 +2,7 @@ import os
 from datetime import datetime, time, timedelta
 
 from dateutil.relativedelta import relativedelta
-from parsimonious.exceptions import ParseError
+from parsimonious.exceptions import ParseError, VisitationError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
@@ -78,8 +78,11 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         try:
             ast = self.grammar.parse(text.strip())
         except ParseError as e:
-            raise DateTimeSyntaxError(e)
-        return self.visit(ast)
+            raise DateTimeSyntaxError(e) from e
+        try:
+            return self.visit(ast)
+        except VisitationError as e:
+            raise DateTimeSemanticError(e) from e
 
     @staticmethod
     def _datetime(*args, **kwargs) -> datetime:
