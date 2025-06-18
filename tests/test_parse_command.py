@@ -70,13 +70,13 @@ class TestCommandParser(unittest.TestCase):
         self._assert_parse_result(". Fix bug /tali !high @urgent", expected)
 
     def test_edit(self):
-        expected = ({"ids": [42]}, None, None, None, {"status": ""})
+        expected = ({"id": [42]}, None, None, None, {"status": ""})
         self._assert_parse_result("42 . ,", expected)
-        expected = ({"ids": [42]}, None, None, None, {"status": "x"})
+        expected = ({"id": [42]}, None, None, None, {"status": "x"})
         self._assert_parse_result("42 . ,x", expected)
-        expected = ({"ids": [42]}, None, None, None, {"status": "done"})
+        expected = ({"id": [42]}, None, None, None, {"status": "done"})
         self._assert_parse_result("42 . ,done", expected)
-        expected = ({"ids": [42]}, None, None, None, {"priority": "h"})
+        expected = ({"id": [42]}, None, None, None, {"priority": "h"})
         self._assert_parse_result("42 . !h", expected)
         expected = (
             {"deadline": [self.parser.datetime_parser.parse("today")]},
@@ -87,7 +87,7 @@ class TestCommandParser(unittest.TestCase):
         )
         self._assert_parse_result("^today . @star", expected)
         expected = (
-            {"ids": [42]},
+            {"id": [42]},
             None,
             None,
             None,
@@ -119,12 +119,12 @@ class TestCommandParser(unittest.TestCase):
                 continue
             if key == "query":
                 key = "title"
-            expected = ({"ids": [42]}, None, None, [key], None)
+            expected = ({"id": [42]}, None, None, [key], None)
             self._assert_parse_result(f"42 ?{value}", expected)
 
     def test_description(self):
         expected = (
-            {"ids": [42]},
+            {"id": [42]},
             None,
             None,
             None,
@@ -138,12 +138,12 @@ class TestCommandParser(unittest.TestCase):
             if value == "oo":
                 deadline = None
             deadline = {"deadline": deadline}
-            expected = ({"ids": [42]}, None, None, None, deadline)
+            expected = ({"id": [42]}, None, None, None, deadline)
             self._assert_parse_result(f"42 . ^{value}", expected)
 
     def test_id_range(self):
         expected = (
-            {"ids": list(range(1, 6))},
+            {"id": list(range(1, 6))},
             None,
             None,
             None,
