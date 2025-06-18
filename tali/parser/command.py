@@ -116,8 +116,9 @@ class CommandParser(NodeVisitor, CommonMixin):
                 "group",
                 "sort",
                 "description",
+                "parent",
             ],
-            "list": ["ids", "tag", "deadline", "title", "query"],
+            "list": ["id", "tag", "deadline", "title", "query"],
         }
         for item in items:
             if isinstance(item, tuple):
@@ -140,8 +141,8 @@ class CommandParser(NodeVisitor, CommonMixin):
                     kind_list.append(value)
             else:
                 raise CommandSemanticError(f"Unknown kind {kind!r}.")
-        if "ids" in parsed:
-            parsed["ids"] = list(sorted(set(parsed["ids"])))
+        if "id" in parsed:
+            parsed["id"] = list(sorted(set(parsed["id"])))
         if "title" in parsed:
             parsed["title"] = " ".join(parsed["title"]).strip()
         if "deadline" in parsed:
@@ -156,6 +157,8 @@ class CommandParser(NodeVisitor, CommonMixin):
             parsed["deadline"] = dts
         if "tag" in parsed:
             parsed["tags"] = parsed.pop("tag")
+        if "parent" in parsed:
+            parsed["parent"] = parsed.pop("parent")
         return parsed
 
     def visit_action_chain(self, node, visited_children):
@@ -205,9 +208,9 @@ class CommandParser(NodeVisitor, CommonMixin):
     def visit_task_range(self, node, visited_children):
         first, last = visited_children
         if not last:
-            return "ids", [first]
+            return "id", [first]
         last = last[0][1]
-        return "ids", list(range(first, last + 1))
+        return "id", list(range(first, last + 1))
 
     def visit_project(self, node, visited_children):
         _, project = visited_children
@@ -231,6 +234,10 @@ class CommandParser(NodeVisitor, CommonMixin):
         _, priority = visited_children
         priority = priority[0] if priority else ""
         return "priority", priority
+
+    def visit_parent(self, node, visited_children):
+        _, task_id = visited_children
+        return "parent", task_id
 
     def visit_description(self, node, visited_children):
         text = node.text.strip().lstrip(self.config.token.description).lstrip()

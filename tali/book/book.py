@@ -1,6 +1,6 @@
 import copy
 from datetime import datetime
-from typing import Dict, List, Literal, Optional, Tuple, get_args
+from typing import Dict, List, Literal, Optional, Tuple, TypeVar, get_args
 
 from box import Box
 from dateutil.relativedelta import relativedelta
@@ -18,6 +18,8 @@ from .select import (
     SortMixin,
 )
 
+T = TypeVar("T")
+
 
 class ActionError(Exception):
     pass
@@ -28,7 +30,7 @@ class ActionValueError(ActionError):
 
 
 class TaskBook(FilterMixin, GroupMixin, SortMixin):
-    todos: List[TodoItem]
+    todos: Dict[int, TodoItem]
     path: Optional[str]
 
     def __init__(
@@ -38,8 +40,15 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     ):
         super().__init__()
         self.config = config
-        self.todos = todos or []
-        self.next_id = max([todo.id for todo in self.todos], default=0) + 1
+        self.todos = {todo.id: todo for todo in (todos or [])}
+        self._id_todo_map = None
+
+    @property
+    def next_id(self) -> int:
+        return max(self.todos.keys(), default=0) + 1
+
+    def append(self, todo: TodoItem) -> None:
+        self.todos[self.next_id] = todo
 
     def add(
         self,
@@ -49,6 +58,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         tags: Optional[List[str]] = None,
         status: Status = "pending",
         priority: Priority = "normal",
+        parent: Optional[int] = None,
         deadline: Optional[datetime] = None,
     ) -> AddResult:
         if tags is None:
@@ -61,8 +71,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         todo.status = self.status(todo, status)
         todo.priority = self.priority(todo, priority)
         todo.deadline = self.deadline(todo, deadline)
-        self.todos.append(todo)
-        self.next_id += 1
+        self.parent(todo, parent)
+        self.append(todo)
         return AddResult([todo])
 
     def id(self, todo: TodoItem, id: int) -> int:
@@ -125,21 +135,36 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     def project(self, todo: TodoItem, project: str) -> str:
         return self._resolve_alias("project", project)
 
-    def tags(self, todo: TodoItem, tags: List[str]) -> List[str]:
-        new_tags: List[str] = list(todo.tags)
-        for tag in tags:
-            tag = self._resolve_alias("tag", tag.strip())
-            if tag.startswith("+"):
-                if tag[1:] not in new_tags:
-                    new_tags.append(tag[1:])
-            elif tag.startswith("-"):
-                if tag[1:] in new_tags:
-                    new_tags.remove(tag[1:])
-            elif tag not in new_tags:
-                new_tags.append(tag)
+    def _update_list(
+        self,
+        alias_key: str,
+        old_values: List[str],
+        values: List[str],
+    ) -> List[str]:
+        new_values: List[str] = list(old_values)
+        for value in values:
+            value = self._resolve_alias(alias_key, value.strip())
+            if value.startswith("+"):
+                if value[1:] not in new_values:
+                    new_values.append(value[1:])
+            elif value.startswith("-"):
+                if value[1:] in new_values:
+                    new_values.remove(value[1:])
+            elif value not in new_values:
+                new_values.append(value)
             else:
-                new_tags.remove(tag)
-        return new_tags
+                new_values.remove(value)
+        return new_values
+
+    def tags(self, todo: TodoItem, tags: List[str]) -> List[str]:
+        return self._update_list("tag", todo.tags, tags)
+
+    def parent(self, todo: TodoItem, id: Optional[int]) -> Optional[int]:
+        if id is not None and id not in self.todos:
+            logger.error(
+                f"Cannot set parent to a non-existing todo with id {id}."
+            )
+        return id
 
     def deadline(
         self, todo: TodoItem, deadline: Optional[datetime | relativedelta]
@@ -157,9 +182,9 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         group_by: GroupBy = "id",
         sort_by: SortBy = "id",
     ) -> ViewResult:
-        filtered_todos = self.todos
+        filtered_todos = list(self.todos.values())
         if filters is not None:
-            filtered_todos = self.filter(self.todos, filters)
+            filtered_todos = self.filter(filtered_todos, filters)
         gtodos = self.group_by(filtered_todos, group_by)
         for group, todos in gtodos.items():
             gtodos[group] = self.sort_by(todos, sort_by)
@@ -178,10 +203,9 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         before_id_todos = {t.id: t for t in before}
         after_id_todos = {t.id: t for t in after}
         all_id_todos = {
-            t.id: t for t in self.todos if t.id not in before_id_todos
+            i: t for i, t in self.todos.items() if i not in before_id_todos
         }
-        all_id_todos |= after_id_todos
-        self.todos = list(sorted(all_id_todos.values(), key=lambda t: t.id))
+        self.todos = all_id_todos | after_id_todos
         updates = []
         for b, a in zip(before, after):
             if b != a:
@@ -213,8 +237,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         return self._update_and_return(todos, after)
 
     def re_index(self) -> EditResult:
-        before = copy.deepcopy(self.todos)
-        for i, todo in enumerate(self.todos):
+        before = copy.deepcopy(list(self.todos.values()))
+        for i, todo in enumerate(self.todos.values()):
             todo.id = self.id(todo, i + 1)
         updates = [(b, a) for b, a in zip(before, self.todos) if b != a]
         if not updates:

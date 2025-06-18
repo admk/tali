@@ -15,19 +15,9 @@ class TodoItem:
     tags: List[str]
     status: Status
     priority: Priority
+    parent: Optional[int]
     deadline: Optional[datetime]
     created_at: datetime
-    _keys = [
-        "id",
-        "title",
-        "description",
-        "project",
-        "tags",
-        "status",
-        "priority",
-        "deadline",
-        "created_at",
-    ]
 
     def __init__(
         self,
@@ -38,6 +28,7 @@ class TodoItem:
         tags: Optional[List[str]] = None,
         status: Status = "pending",
         priority: Priority = "normal",
+        parent: Optional[int] = None,
         deadline: Optional[datetime] = None,
         created_at: Optional[datetime] = None,
     ):
@@ -46,9 +37,10 @@ class TodoItem:
         self.description = description
         self.project = project
         self.tags = tags or []
-        self.deadline = deadline
         self.status = status
         self.priority = priority
+        self.parent = parent
+        self.deadline = deadline
         self.created_at = created_at or datetime.now()
 
     def __repr__(self):
@@ -78,6 +70,7 @@ class TodoItem:
             "tags": self.tags,
             "status": self.status,
             "priority": self.priority,
+            "parent": self.parent,
             "deadline": self._datetime_to_str(self.deadline),
             "created_at": self._datetime_to_str(self.created_at),
         }
@@ -92,6 +85,7 @@ class TodoItem:
             tags=data["tags"],
             status=data["status"],
             priority=data["priority"],
+            parent=data.get("parent"),
             deadline=cls._str_to_datetime(data["deadline"]),
             created_at=cls._str_to_datetime(data["created_at"]),
         )

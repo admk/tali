@@ -425,7 +425,7 @@ class CLI:
         todos = result.flatten()
         if self.args.idempotent or not todos:
             return
-        stats = self.renderer.render_stats(todos, book.todos)
+        stats = self.renderer.render_stats(todos, list(book.todos.values()))
         return Padding(stats, (1, 0, 0, 2), expand=False)
 
     def _render_results(
@@ -501,7 +501,7 @@ class CLI:
             return 0
         save(
             self.command,
-            book.todos,
+            list(book.todos.values()),
             action_results,
             db_dir,
             self.config.file.backup,

@@ -158,6 +158,17 @@ class Renderer:
             todo, self.config.item.priority.format, priority
         )
 
+    def _render_parent(
+        self, todo: Optional[TodoItem], parent: Optional[int]
+    ) -> Optional[str]:
+        if parent is None:
+            return None
+        if self.idempotent:
+            return f"{self.config.token.parent}{parent}"
+        return self._render_by_format_map(
+            todo, self.config.item.parent.format, str(parent)
+        )
+
     def _render_deadline(
         self,
         deadline: Optional[date | datetime],
@@ -233,6 +244,8 @@ class Renderer:
             return self._render_priority(None, value)
         if group_by == "status":
             return self._render_status(None, value)
+        if group_by == "parent":
+            return self._render_parent(None, value)
         if group_by == "deadline":
             return self._render_deadline(value, "pending", True)
         if group_by == "created_at":
@@ -247,6 +260,7 @@ class Renderer:
             "tags": self._render_tags(todo, todo.tags),
             "priority": self._render_priority(todo, todo.priority),
             "project": self._render_project(todo, todo.project),
+            "parent": self._render_parent(todo, todo.parent),
             "deadline": self._render_deadline(todo.deadline, todo.status),
             "description": self._render_description(todo, todo.description),
         }
@@ -321,7 +335,6 @@ class Renderer:
         self,
         grouped_todos: Dict[Any, List[TodoItem]],
         group_by: GroupBy,
-        render_stats: bool = True,
         idempotent: Optional[bool] = None,
     ) -> str:
         old_idempotent = self.idempotent

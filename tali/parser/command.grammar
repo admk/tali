@@ -5,18 +5,19 @@ action_chain = action (ws action)*
 action = description / shared / word
 
 # components
-shared = project / tag / priority / status / deadline
+shared = project / tag / priority / status / deadline / parent
 query = query_token (group / query_token)
 sort = sort_token group
 group =
     id_token / project_token / tag_token / priority_token /
-    status_token / deadline_token
+    status_token / deadline_token / parent_token
 task_range = task_id (id_token task_id)?
 project = project_token project_name
 tag = tag_token pm? tag_name
-deadline = deadline_token word
-status = status_token word?
 priority = priority_token word?
+status = status_token word?
+deadline = deadline_token word
+parent = parent_token task_id
 description = description_token (ws word (ws word)*)?
 
 # literals
@@ -25,11 +26,12 @@ separator_token = "{separator}"
 id_token = "{id}"
 project_token = "{project}"
 tag_token = "{tag}"
-deadline_token = "{deadline}"
 priority_token = "{priority}"
 status_token = "{status}"
-sort_token = "{sort}"
+deadline_token = "{deadline}"
+parent_token = "{parent}"
 description_token = "{description}"
+sort_token = "{sort}"
 query_token = "{query}"
 task_id = ~r"\d+"
 project_name = ~r"[a-zA-Z0-9_\-/]+"

@@ -59,6 +59,7 @@ class GroupError(SelectError):
 
 class SelectMixin:
     config: Box
+    todos: Dict[int, TodoItem]
 
 
 class FilterMixin(SelectMixin):
@@ -67,7 +68,7 @@ class FilterMixin(SelectMixin):
             value = re.sub(k, v, value)
         return value
 
-    def filter_by_ids(self, todos, ids: List[int]) -> bool:
+    def filter_by_id(self, todos, ids: List[int]) -> bool:
         return todos.id in ids
 
     def filter_by_title(self, todos, title: str) -> bool:
@@ -90,6 +91,9 @@ class FilterMixin(SelectMixin):
 
     def filter_by_priority(self, todo: TodoItem, priority: Priority) -> bool:
         return todo.priority == priority
+
+    def filter_by_parent(self, todo: TodoItem, parent: int) -> bool:
+        return todo.parent == parent
 
     def _filter_by_date_range(
         self, date: datetime, date_range: Sequence[datetime | relativedelta]
@@ -120,7 +124,7 @@ class FilterMixin(SelectMixin):
         return self._filter_by_date_range(todo.created_at, date_range)
 
     def filter(
-        self, todos, filters: Dict[FilterBy, FilterValue]
+        self, todos: Sequence[TodoItem], filters: Dict[FilterBy, FilterValue]
     ) -> List[TodoItem]:
         filtered_todos = []
         for todo in todos:
@@ -151,6 +155,9 @@ class SortMixin(SelectMixin):
 
     def sort_by_priority(self, todo: TodoItem) -> int:
         return list(self.config.group.header.priority).index(todo.priority)
+
+    def sort_by_parent(self, todo: TodoItem) -> Optional[int]:
+        return todo.parent if todo.parent is not None else -1
 
     def sort_by_deadline(self, todo: TodoItem) -> datetime:
         return todo.deadline or datetime(9999, 12, 31)
@@ -195,6 +202,9 @@ class GroupMixin(SortMixin):
 
     def group_by_priority(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         return self._group_by_value("priority")
+
+    def group_by_parent(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
+        return self._group_by_value("parent")
 
     def group_by_deadline(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         def gfunc(todo: TodoItem) -> GroupKey:
