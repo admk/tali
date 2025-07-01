@@ -4,12 +4,16 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
+from datetime import datetime
 from typing import List, Literal, Optional, Sequence
 
 import yaml
 from box import Box
 from rich.console import Group, RenderableType
+from rich.live import Live
 from rich.padding import Padding
+from rich.rule import Rule
 from rich_argparse import RawDescriptionRichHelpFormatter
 
 from . import __description__, __epilog__
@@ -146,6 +150,12 @@ class CLI:
         ("-R", "--re-index"): {
             "action": "store_true",
             "help": "Re-index all items.",
+        },
+        ("--interval",): {
+            "type": int,
+            "default": None,
+            "metavar": "<n>",
+            "help": "Refresh display every <n> seconds instead of printing directly to stdout and exit.",
         },
     }
     epilog = __epilog__
@@ -464,11 +474,48 @@ class CLI:
     def _print_results(self, results: List[ActionResult]) -> None:
         self._print_rendered(self._render_results(results))
 
+    def _live_display_loop(self, live: Live, db_dir: str) -> None:
+        todos = load(db_dir)
+        book = TaskBook(self.config, todos)
+        action_results = self._process_action(book, self.command)
+        rendered = self._render_results(action_results)
+        if action_results:
+            fr = action_results[-1]
+            if isinstance(fr, ViewResult):
+                stats = self._render_stats(book, fr)
+                if stats:
+                    rendered.append(stats)
+            else:
+                logger.error(f"Cannot show live display for edits: {fr!r}.")
+        time_str = f"[italic dim]Updated: {datetime.now():%H:%M:%S} "
+        time_str += f"(refresh every {self.args.interval}s)[/]"
+        rendered += ["", Rule(time_str, characters="~")]
+        live.update(Group(*rendered))
+        live.refresh()
+
+    def _live_display(self, db_dir: str) -> int:
+        if self.args.interval <= 0:
+            logger.error("Interval must be a positive integer.")
+        with Live(
+            console=rich_console,
+            screen=True,
+            auto_refresh=False,
+        ) as live:
+            while True:
+                try:
+                    self._live_display_loop(live, db_dir)
+                    time.sleep(self.args.interval)
+                except KeyboardInterrupt:
+                    break
+        return 0
+
     def main(self) -> int:
         db_dir = self._data_dir()
         if self.args.cheatsheet:
             self._print_rendered(CheatSheet(self.config).render())
             return 0
+        if self.args.interval is not None:
+            return self._live_display(db_dir)
         if self.args.edit_rc:
             config_path = self._config_paths()[-1]
             self._edit_file(config_path)
