@@ -20,6 +20,9 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.traceback import install as _rich_traceback_install
 
+
+if "--color" in sys.argv:
+    os.environ["FORCE_COLOR"] = "1"
 _rich_traceback_install()
 rich_console = Console()
 

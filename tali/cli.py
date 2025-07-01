@@ -59,13 +59,17 @@ class CLI:
             "version": f"{_NAME} {__version__}",
             "help": "Show the version number and exit.",
         },
+        ("-d", "--debug"): {
+            "action": "store_true",
+            "help": "Enable debug output.",
+        },
+        ("--color",): {
+            "action": "store_true",
+            "help": "Enable colored output.",
+        },
         ("-c", "--cheatsheet"): {
             "action": "store_true",
             "help": "Print the cheatsheet and exit. ",
-        },
-        ("-d", "--debug"): {
-            "action": "store_true",
-            "help": "Enable debug output. ",
         },
         ("-rc", "--rc-file"): {
             "type": str,
