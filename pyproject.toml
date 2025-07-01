@@ -32,6 +32,7 @@ dependencies = [
 
 [project.scripts]
 tali = "tali.cli:main"
+tali-cli = "tali.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/admk/tali"
