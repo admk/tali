@@ -13,7 +13,7 @@ build:
     python -m build
 
 install:
-    uv tool install -U .
+    uv tool install --force-reinstall -e .
 
 release:
     twine upload dist/*
