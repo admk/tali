@@ -474,7 +474,7 @@ class CLI:
     def _print_results(self, results: List[ActionResult]) -> None:
         self._print_rendered(self._render_results(results))
 
-    def _live_display_loop(self, live: Live, db_dir: str) -> None:
+    def _live_display_get_renderable(self, db_dir: str) -> RenderableType:
         todos = load(db_dir)
         book = TaskBook(self.config, todos)
         action_results = self._process_action(book, self.command)
@@ -490,21 +490,30 @@ class CLI:
         time_str = f"[italic dim]Updated: {datetime.now():%H:%M:%S} "
         time_str += f"(refresh every {self.args.interval}s)[/]"
         rendered += ["", Rule(time_str, characters="~")]
-        live.update(Group(*rendered))
-        live.refresh()
+        return Group(*rendered)
 
     def _live_display(self, db_dir: str) -> int:
         if self.args.interval <= 0:
             logger.error("Interval must be a positive integer.")
+        elapsed = self.args.interval
+        renderable = None
+        refresh_interval = 5
         with Live(
             console=rich_console,
             screen=True,
-            auto_refresh=False,
+            refresh_per_second=1 / refresh_interval,
         ) as live:
             while True:
                 try:
-                    self._live_display_loop(live, db_dir)
-                    time.sleep(self.args.interval)
+                    if elapsed >= self.args.interval:
+                        renderable = self._live_display_get_renderable(db_dir)
+                        elapsed = 0
+                    else:
+                        elapsed += 1
+                    if renderable:
+                        live.update(renderable)
+                        live.refresh()
+                    time.sleep(refresh_interval)
                 except KeyboardInterrupt:
                     break
         return 0
