@@ -15,7 +15,6 @@ authors = [
 ]
 keywords = ["cli", "task", "todo", "productivity"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Programming Language :: Python :: 3",
     "Topic :: Utilities",
