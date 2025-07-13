@@ -189,6 +189,8 @@ class CommandParser(NodeVisitor, CommonMixin):
         name = node.children[1].children[0].expr_name
         if name == "group":
             query = visited_children[1][0][1]
+        elif name == "description_token":
+            query = "description"
         elif name == "query_token":
             query = "title"
         else:

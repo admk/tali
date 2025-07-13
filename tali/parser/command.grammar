@@ -6,7 +6,7 @@ action = description / shared / word
 
 # components
 shared = project / tag / priority / status / deadline / parent
-query = query_token (group / query_token)
+query = query_token (group / description_token / query_token)
 sort = sort_token group
 group =
     id_token / project_token / tag_token / priority_token /

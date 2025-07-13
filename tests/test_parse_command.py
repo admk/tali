@@ -115,7 +115,7 @@ class TestCommandParser(unittest.TestCase):
 
     def test_query(self):
         for key, value in self.config.token.items():
-            if key in ["separator", "sort", "description", "stdin"]:
+            if key in ["separator", "sort", "stdin"]:
                 continue
             if key == "query":
                 key = "title"
