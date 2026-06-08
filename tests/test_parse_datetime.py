@@ -1,6 +1,8 @@
 import unittest
 from datetime import datetime
 
+from dateutil.relativedelta import relativedelta
+
 from tali.parser.datetime import DateTimeParseError, DateTimeParser
 
 
@@ -49,10 +51,11 @@ class TestDateTimeParser(unittest.TestCase):
 
     def test_relative_offsets(self):
         test_cases = [
-            ("+M", datetime(2025, 6, 11, 11, 0, 0)),
-            ("+1M", datetime(2025, 6, 11, 11, 0, 0)),
-            ("+Md", datetime(2025, 6, 12, 11, 0, 0)),
-            ("+M1d", datetime(2025, 6, 12, 11, 0, 0)),
+            ("+M", relativedelta(months=1)),
+            ("+1M", relativedelta(months=1)),
+            ("+Md", relativedelta(months=1, days=1)),
+            ("+M1d", relativedelta(months=1, days=1)),
+            ("-1w", relativedelta(weeks=-1)),
         ]
         for text, expected in test_cases:
             with self.subTest(text=text):

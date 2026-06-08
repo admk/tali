@@ -171,10 +171,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     ) -> Optional[datetime]:
         if not isinstance(deadline, relativedelta):
             return deadline
-        if not todo.deadline:
-            logger.warn("Cannot relative adjust an item without a deadline.")
-            return None
-        return todo.deadline + deadline
+        base = todo.deadline or datetime.now()
+        return base + deadline
 
     def select(
         self,

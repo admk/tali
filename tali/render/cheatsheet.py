@@ -421,7 +421,8 @@ class AgentCheatSheet(CheatSheet):
             ),
             (
                 "Relative",
-                "Signed offset from now; combine y, M, w, d, h, and m units.",
+                "Action offset from item deadline, or now if absent; "
+                "selection offset from now.",
                 "`+3d`, `-1w`, `+M1d`",
             ),
         ]

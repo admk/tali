@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Dict, List, Literal, Optional, Tuple
 
 from box import Box
+from dateutil.relativedelta import relativedelta
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor, VisitationError
@@ -173,8 +174,10 @@ class CommandParser(NodeVisitor, CommonMixin):
                     "Multiple deadlines are not allowed."
                 )
             dt = parsed["deadline"][0]
-            years = (dt - datetime.now()).days / 365
-            parsed["deadline"] = None if years >= 1000 else dt
+            if not isinstance(dt, relativedelta):
+                years = (dt - datetime.now()).days / 365
+                dt = None if years >= 1000 else dt
+            parsed["deadline"] = dt
         return parsed
 
     def visit_selection_chain(self, node, visited_children):

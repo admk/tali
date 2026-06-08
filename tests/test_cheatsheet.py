@@ -38,7 +38,10 @@ class TestAgentCheatSheet(unittest.TestCase):
         self.assertIn("| `??` | `title` |", text)
         self.assertIn("## Date Expressions", text)
         self.assertIn("Date-only forms resolve to end-of-day.", text)
-        self.assertIn("| Relative | Signed offset from now", text)
+        self.assertIn(
+            "| Relative | Action offset from item deadline, or now if absent",
+            text,
+        )
         self.assertIn("`+3d`, `-1w`, `+M1d`", text)
         self.assertIn("`tali . Meeting /work ^'tue 4pm' ,n`", text)
 

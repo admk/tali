@@ -75,7 +75,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
         with open(os.path.join(root, "datetime.grammar"), "r") as f:
             self.grammar = Grammar(f.read())
 
-    def parse(self, text: str, pos: int = 0) -> datetime:
+    def parse(self, text: str, pos: int = 0) -> datetime | relativedelta:
         try:
             ast = self.grammar.parse(text.strip())
         except ParseError as e:
@@ -98,7 +98,7 @@ class DateTimeParser(NodeVisitor, CommonMixin):
     def visit_relative_datetime(self, node, visited_children):
         pm, count_units = visited_children
         units = {u: -c if pm == "-" else c for c, u in count_units}
-        return self.now + relativedelta(**units)
+        return relativedelta(**units)
 
     def visit_count_unit(self, node, visited_children):
         ordinal, unit, _ = visited_children
