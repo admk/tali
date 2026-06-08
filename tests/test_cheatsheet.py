@@ -36,6 +36,12 @@ class TestAgentCheatSheet(unittest.TestCase):
         self.assertIn("| `tali <selection> . <action>` |", text)
         self.assertIn("`tali 1 . @tag`: Toggle tag", text)
         self.assertIn("| `??` | `title` |", text)
+        self.assertIn("| `?_` | `parent` |", text)
+        self.assertIn("## Item Nesting", text)
+        self.assertIn("| `_` | parent | Parent item for nesting | `_3` |", text)
+        self.assertIn("`tali . Write tests _1`", text)
+        self.assertIn("`tali 2 . _0`", text)
+        self.assertIn("`tali 2 ?_`", text)
         self.assertIn("## Date Expressions", text)
         self.assertIn("Date-only forms resolve to end-of-day.", text)
         self.assertIn(
