@@ -261,6 +261,8 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                 filtered_todos = self._extend_filtered_with_descendants(
                     filtered_todos
                 )
+        for todo in filtered_todos:
+            todo._effective_status = self._effective_status(todo)
         gtodos = self.group_by(filtered_todos, group_by)
         for group, todos in gtodos.items():
             gtodos[group] = self.sort_by(todos, sort_by)

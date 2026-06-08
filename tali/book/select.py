@@ -76,6 +76,30 @@ class SelectMixin:
     config: Box
     todos: Dict[int, TodoItem]
 
+    def _effective_status(self, todo: TodoItem) -> Status:
+        lineage = []
+        seen_ids = set()
+        current = todo
+        while current.id not in seen_ids:
+            seen_ids.add(current.id)
+            lineage.append(current)
+            if current.parent is None:
+                break
+            parent = self.todos.get(current.parent)
+            if parent is None:
+                break
+            current = parent
+
+        inherited_status = None
+        effective_status = todo.status
+        for current in reversed(lineage):
+            effective_status = inherited_status or current.status
+            if effective_status in ["done", "archive"]:
+                inherited_status = effective_status
+            else:
+                inherited_status = None
+        return effective_status
+
     def _effective_tags(self, todo: TodoItem) -> List[str]:
         tags = []
         seen_tags = set()
@@ -126,7 +150,7 @@ class FilterMixin(SelectMixin):
         new_status = self._resolve_alias("status", status)
         if new_status not in get_args(Status):
             raise FilterError(f"Unrecognized status {status!r}.")
-        return todo.status == new_status
+        return self._effective_status(todo) == new_status
 
     def filter_by_priority(self, todo: TodoItem, priority: Priority) -> bool:
         return todo.priority == priority
@@ -183,7 +207,9 @@ class SortMixin(SelectMixin):
         return todo.id
 
     def sort_by_status(self, todo: TodoItem) -> int:
-        return list(self.config.group.header.status).index(todo.status)
+        return list(self.config.group.header.status).index(
+            self._effective_status(todo)
+        )
 
     def sort_by_title(self, todo: TodoItem) -> str:
         return todo.title
@@ -240,7 +266,7 @@ class GroupMixin(SortMixin):
         return gfunc, self.sort_by_tags
 
     def group_by_status(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
-        return self._group_by_value("status")
+        return self._effective_status, self.sort_by_status
 
     def group_by_priority(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         return self._group_by_value("priority")
