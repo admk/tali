@@ -77,3 +77,33 @@ class TestCLIAction(unittest.TestCase):
         result = cli._process_action(book, cli.command)[0]
 
         self.assertEqual([todo.id for todo in result.flatten()], [80])
+
+    def test_query_parent_renders_parent_id(self):
+        cli = self._cli("80", "?_")
+        child = TodoItem(80, "Child", project="work", parent=79)
+        book = TaskBook(cli.config, [child])
+
+        result = cli._process_action(book, cli.command)[0]
+        text = cli.renderer.render_result(result)
+
+        self.assertEqual(text, "79")
+
+    def test_query_parent_renders_null_without_parent(self):
+        cli = self._cli("80", "?_")
+        todo = TodoItem(80, "Task", project="work")
+        book = TaskBook(cli.config, [todo])
+
+        result = cli._process_action(book, cli.command)[0]
+        text = cli.renderer.render_result(result)
+
+        self.assertEqual(text, "null")
+
+    def test_query_id_renders_integer(self):
+        cli = self._cli("80", "?..")
+        todo = TodoItem(80, "Task", project="work")
+        book = TaskBook(cli.config, [todo])
+
+        result = cli._process_action(book, cli.command)[0]
+        text = cli.renderer.render_result(result)
+
+        self.assertEqual(text, "80")
