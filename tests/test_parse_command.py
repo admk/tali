@@ -69,6 +69,16 @@ class TestCommandParser(unittest.TestCase):
         )
         self._assert_parse_result(". Fix bug /tali !high @urgent", expected)
 
+    def test_escaped_title_tokens(self):
+        expected = (
+            None,
+            None,
+            None,
+            None,
+            {"title": "literal # and : characters"},
+        )
+        self._assert_parse_result(r". literal \# and \: characters", expected)
+
     def test_edit(self):
         expected = ({"id": [42]}, None, None, None, {"status": ""})
         self._assert_parse_result("42 . ,", expected)
@@ -157,6 +167,17 @@ class TestCommandParser(unittest.TestCase):
             {"description": '"Details..."'},
         )
         self._assert_parse_result('42 . : "Details..."', expected)
+
+        expected = (
+            {"id": [42]},
+            None,
+            None,
+            None,
+            {"description": "literal # and : characters"},
+        )
+        self._assert_parse_result(
+            r"42 . : literal \# and \: characters", expected
+        )
 
     def test_set_deadline(self):
         for value in ["+3d", "2mon", "oo"]:
