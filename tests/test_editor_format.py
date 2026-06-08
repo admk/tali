@@ -2,7 +2,12 @@ import unittest
 
 from tali.book.item import TodoItem
 from tali.cli import CLI
-from tali.parser.editor import process_prefix_sharing_lines, strip_comments
+from tali.parser.editor import (
+    escape_command_text,
+    process_prefix_sharing_lines,
+    strip_comments,
+    unescape_command_text,
+)
 
 
 class TestStripComments(unittest.TestCase):
@@ -19,7 +24,33 @@ class TestStripComments(unittest.TestCase):
         self.assertEqual(strip_comments(lines), ['task "issue #42"'])
 
 
+class TestEditorEscaping(unittest.TestCase):
+    def test_escape_text_protects_comment_tokens(self):
+        tokens = [".", "#", ":", "/", "@"]
+        text = r"Fix /project @tag #42 . keep \# literal"
+
+        escaped = escape_command_text(text, tokens)
+
+        self.assertEqual(
+            escaped,
+            r"Fix \/project \@tag \#42 \. keep \\\# literal",
+        )
+        self.assertEqual(strip_comments([escaped]), [escaped])
+        self.assertEqual(unescape_command_text(escaped, tokens), text)
+
+
 class TestEditorAction(unittest.TestCase):
+    def test_noop_editor_escapes_raw_comment_token(self):
+        cli = CLI(["tali"])
+        cli._edit_file = lambda path: None
+        todo = TodoItem(
+            78,
+            "some special characters such as # and : are not escaped",
+            tags=["bug"],
+        )
+
+        self.assertEqual(cli.editor_action([todo]), [])
+
     def test_noop_editor_preserves_escaped_comment_token(self):
         cli = CLI(["tali"])
         cli._edit_file = lambda path: None

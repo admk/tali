@@ -13,6 +13,7 @@ from ..common import logger
 from .common import CommonMixin
 from .common import ParserError as CommonParserError
 from .datetime import DateTimeParser
+from .editor import unescape_command_text
 
 Mode = Literal["selection", "action"]
 
@@ -164,8 +165,11 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def visit_action_chain(self, node, visited_children):
         parsed = self._visit_chain(node, visited_children)
-        if "!" in parsed.get("title", ""):
+        if self._has_unescaped_token(
+            parsed.get("title", ""), self.config.token.priority
+        ):
             parsed["priority"] = "high"
+        self._unescape_parsed_text(parsed)
         if parsed.get("priority") == "":
             parsed["priority"] = "high"
         if "deadline" in parsed:
@@ -182,6 +186,7 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def visit_selection_chain(self, node, visited_children):
         parsed = self._visit_chain(node, visited_children)
+        self._unescape_parsed_text(parsed)
         for group in ["priority", "status"]:
             if parsed.get(group) == "":
                 del parsed[group]
@@ -246,7 +251,34 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def visit_description(self, node, visited_children):
         text = node.text.strip().lstrip(self.config.token.description).lstrip()
-        return "description", text
+        return "description", self._unescape_command_text(text)
+
+    def _unescape_command_text(self, text: str) -> str:
+        tokens = [
+            value
+            for key, value in self.config.token.items()
+            if key != "stdin"
+        ]
+        return unescape_command_text(text, tokens)
+
+    def _unescape_parsed_text(self, parsed: Dict[str, str | List[str]]) -> None:
+        if "title" in parsed:
+            parsed["title"] = self._unescape_command_text(parsed["title"])
+
+    def _has_unescaped_token(self, text: str, token: str) -> bool:
+        if not token:
+            return False
+        escaped = False
+        for i, char in enumerate(text):
+            if escaped:
+                escaped = False
+                continue
+            if char == "\\":
+                escaped = True
+                continue
+            if text.startswith(token, i):
+                return True
+        return False
 
     visit_task_id = CommonMixin._visit_int
     visit_word = visit_project_name = visit_tag_name = visit_pm = (

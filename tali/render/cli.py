@@ -21,6 +21,7 @@ from ..book.result import (
 )
 from ..book.select import GroupBy
 from ..common import has_prefix, json_dumps
+from ..parser.editor import escape_command_text
 from .common import pluralize, shorten, strip_rich, timedelta_format
 
 RenderStats = Literal[True, False, "all"]
@@ -87,6 +88,21 @@ class Renderer:
                 return rendered
         return rendered
 
+    def _idempotent_escape_tokens(self) -> List[str]:
+        token = self.config.token
+        return [
+            token.id,
+            token.status,
+            token.separator,
+            token.project,
+            token.tag,
+            token.priority,
+            token.deadline,
+            token.parent,
+            token.description,
+            token.comment,
+        ]
+
     def _render_id(self, todo: Optional[TodoItem], id: int) -> Optional[str]:
         if self.idempotent:
             return f"{id} {self.config.token.separator}"
@@ -111,7 +127,7 @@ class Renderer:
         self, todo: Optional[TodoItem], title: str
     ) -> Optional[str]:
         if self.idempotent:
-            return title
+            return escape_command_text(title, self._idempotent_escape_tokens())
         else:
             for token in self.config.token.values():
                 title = title.replace(f"\\{token}", token)
@@ -224,6 +240,9 @@ class Renderer:
         if description is None:
             return None
         if self.idempotent:
+            description = escape_command_text(
+                description, self._idempotent_escape_tokens()
+            )
             return f"{self.config.token.description} {description}"
         style = self.config.item.description
         desc = shorten(description, style.max_length, style.ellipsis)

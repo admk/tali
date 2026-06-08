@@ -1,4 +1,38 @@
-from typing import List
+from typing import Iterable, List
+
+
+def _token_chars(tokens: Iterable[str]) -> set[str]:
+    return {char for token in tokens if token for char in token}
+
+
+def escape_command_text(text: str, tokens: Iterable[str]) -> str:
+    special_chars = _token_chars(tokens)
+    escaped = []
+    for char in text:
+        if char == "\\" or char in special_chars:
+            escaped.append("\\")
+        escaped.append(char)
+    return "".join(escaped)
+
+
+def unescape_command_text(text: str, tokens: Iterable[str]) -> str:
+    special_chars = _token_chars(tokens) | {"\\"}
+    unescaped = []
+    escaped = False
+    for char in text:
+        if escaped:
+            if char not in special_chars:
+                unescaped.append("\\")
+            unescaped.append(char)
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        unescaped.append(char)
+    if escaped:
+        unescaped.append("\\")
+    return "".join(unescaped)
 
 
 def _strip_comment(line: str, comment_token: str) -> str:

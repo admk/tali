@@ -95,6 +95,32 @@ class TestCommandParser(unittest.TestCase):
         )
         self._assert_parse_result("42 . New title /newproject ,n", expected)
 
+        expected = (
+            {"id": [42]},
+            None,
+            None,
+            None,
+            {
+                "title": "Fix /project @tag #42 . now",
+                "project": "inbox",
+                "tags": ["bug"],
+                "status": "done",
+            },
+        )
+        self._assert_parse_result(
+            r"42 . ,done Fix \/project \@tag \#42 \. now /inbox @bug",
+            expected,
+        )
+
+        expected = (
+            {"id": [42]},
+            None,
+            None,
+            None,
+            {"title": "literal ! priority"},
+        )
+        self._assert_parse_result(r"42 . literal \! priority", expected)
+
     def test_filter(self):
         expected = (
             {
