@@ -305,8 +305,11 @@ class Renderer:
         group_by: GroupBy = "id",
         effective_status: Optional[Status] = None,
         depth: int = 0,
+        hide_parent: bool = False,
     ) -> str:
         fields = self._render_fields(todo, effective_status)
+        if hide_parent:
+            fields["parent"] = ""
         format = self.config.group.format[group_by]
         item = format.format(**fields)[1:]
         if depth > 0 and not self.idempotent:
@@ -437,11 +440,13 @@ class Renderer:
                 if self.idempotent:
                     effective_status = None
                     depth = 0
+                hide_parent = depth > 0 and not self.idempotent
                 item = self.render_item(
                     todo,
                     group_by,
                     effective_status,
                     depth,
+                    hide_parent,
                 )
                 text.append(item)
             text.append("")

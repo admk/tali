@@ -212,11 +212,15 @@ class TestSubItems(unittest.TestCase):
         self.assertIn("✔", human_lines[1])
         self.assertTrue(human_lines[2].startswith("    "))
         self.assertIn("✔", human_lines[2])
+        self.assertNotIn("_1", human_lines[1])
+        self.assertNotIn("_2", human_lines[2])
         self.assertEqual(child.status, "pending")
         self.assertFalse(idempotent_lines[1].startswith("  "))
         self.assertIn(",pending", idempotent_lines[1])
+        self.assertIn("_1", idempotent_lines[1])
         self.assertFalse(idempotent_lines[2].startswith("  "))
         self.assertIn(",pending", idempotent_lines[2])
+        self.assertIn("_2", idempotent_lines[2])
 
     def test_render_uses_effective_status_when_parent_is_hidden(self):
         parent = TodoItem(1, "Parent", project="work")
