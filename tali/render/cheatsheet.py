@@ -5,6 +5,11 @@ from rich import box
 from rich.table import Table
 
 from .. import __toolname__ as _NAME
+from .common import strip_rich
+
+CommandRows = List[Tuple[str, str]]
+CommandSections = List[Tuple[str, CommandRows]]
+TokenRows = List[Tuple[str, str, str, str]]
 
 
 class CheatSheet:
@@ -59,7 +64,7 @@ class CheatSheet:
             return f"[bold]{self.config.token.separator}[/bold]"
         return "[bold]separator[/bold]"
 
-    def _creation_commands(self) -> List[Tuple[str, str]]:
+    def _creation_commands(self) -> CommandRows:
         sep = self._separator()
         title = self._title
         project = self._project
@@ -86,7 +91,7 @@ class CheatSheet:
             ),
         ]
 
-    def _modification_commands(self) -> List[Tuple[str, str]]:
+    def _modification_commands(self) -> CommandRows:
         id = self._id
         title = self._title
         sep = self._separator()
@@ -129,7 +134,7 @@ class CheatSheet:
             ),
         ]
 
-    def _deadline_commands(self) -> List[Tuple[str, str]]:
+    def _deadline_commands(self) -> CommandRows:
         id = self._id
         sep = self._separator()
         deadline = self._deadline
@@ -152,7 +157,7 @@ class CheatSheet:
             ),
         ]
 
-    def _selection_commands(self) -> List[Tuple[str, str]]:
+    def _selection_commands(self) -> CommandRows:
         id = self._id
         project = self._project
         tag = self._tag
@@ -178,7 +183,7 @@ class CheatSheet:
             ),
         ]
 
-    def _batch_commands(self) -> List[Tuple[str, str]]:
+    def _batch_commands(self) -> CommandRows:
         id = self._id
         sep = self._separator()
         project = self._project
@@ -202,18 +207,21 @@ class CheatSheet:
             (f"{sep}", "Edit everything in the [underline]editor[/underline]"),
         ]
 
-    def render_examples(self) -> Table:
-        title = (
-            f"[bold]~ :scroll: {_NAME.capitalize()} Command Reference ~[/bold]"
-        )
-        table = Table("Commands", "Description", title=title, box=box.ROUNDED)
-        sections = [
+    def _command_sections(self) -> CommandSections:
+        return [
             ("Task Creation", self._creation_commands()),
             ("Task Modifications", self._modification_commands()),
             ("Deadlines", self._deadline_commands()),
             ("Selection Operations", self._selection_commands()),
             ("Batch Actions", self._batch_commands()),
         ]
+
+    def render_examples(self) -> Table:
+        title = (
+            f"[bold]~ :scroll: {_NAME.capitalize()} Command Reference ~[/bold]"
+        )
+        table = Table("Commands", "Description", title=title, box=box.ROUNDED)
+        sections = self._command_sections()
         for title, commands in sections:
             table.add_row(f"[italic]# {title}[/italic]")
             for i, (cmd, desc) in enumerate(commands):
@@ -223,13 +231,7 @@ class CheatSheet:
                 )
         return table
 
-    def render_token_cheat(self) -> Table:
-        title = f"[bold]~ :man_mage: {_NAME.capitalize()} Symbol Cheat Sheet ~[/bold]"
-        table = Table(title=title, box=box.ROUNDED)
-        table.add_column("Token", style="bold yellow")
-        table.add_column("Name", style="bold blue")
-        table.add_column("Description")
-        table.add_column("Example", style="italic green")
+    def _token_rows(self) -> TokenRows:
         token = {
             "separator": (
                 "Separates selection from action",
@@ -249,14 +251,226 @@ class CheatSheet:
             ),
             "stdin": ("Reads from stdin and replace", "{stdin}"),
         }
-        for key, (desc, example) in token.items():
-            table.add_row(
+        return [
+            (
                 self.config.token[key],
                 key,
                 desc,
                 example.format(**self.config.token),
             )
+            for key, (desc, example) in token.items()
+        ]
+
+    def render_token_cheat(self) -> Table:
+        title = f"[bold]~ :man_mage: {_NAME.capitalize()} Symbol Cheat Sheet ~[/bold]"
+        table = Table(title=title, box=box.ROUNDED)
+        table.add_column("Token", style="bold yellow")
+        table.add_column("Name", style="bold blue")
+        table.add_column("Description")
+        table.add_column("Example", style="italic green")
+        for token, name, description, example in self._token_rows():
+            table.add_row(token, name, description, example)
         return table
 
     def render(self) -> List[Table]:
         return [self.render_examples(), self.render_token_cheat()]
+
+
+class AgentCheatSheet(CheatSheet):
+    @staticmethod
+    def _plain(text: str) -> str:
+        return strip_rich(text)
+
+    @staticmethod
+    def _cell(text: str) -> str:
+        return text.replace("|", r"\|").replace("\n", " ")
+
+    @classmethod
+    def _table(
+        cls,
+        headers: Tuple[str, ...],
+        rows: List[Tuple[str, ...]],
+    ) -> List[str]:
+        lines = [
+            "| " + " | ".join(headers) + " |",
+            "| " + " | ".join("---" for _ in headers) + " |",
+        ]
+        for row in rows:
+            lines.append(
+                "| " + " | ".join(cls._cell(cell) for cell in row) + " |"
+            )
+        return lines
+
+    def _placeholder_lines(self) -> List[str]:
+        token = self.config.token
+        rows = [
+            (
+                "`<selection>`",
+                "Expression before the separator: IDs, filters, grouping, "
+                "sorting, or queries.",
+            ),
+            (
+                "`<action>`",
+                "Expression after the separator: title words or edits such as "
+                f"`{token.status}done`, `{token.tag}tag`, `{token.priority}h`, "
+                f"or `{token.description} details`.",
+            ),
+            (
+                "`<field>`",
+                f"Query target after `{token.query}`; use one of the Query "
+                "fields below.",
+            ),
+        ]
+        return ["## Placeholders", "", *self._table(("Name", "Meaning"), rows)]
+
+    def _command_form_lines(self) -> List[str]:
+        token = self.config.token
+        rows = [
+            ("`tali -i`", "List current todos with stable IDs before editing."),
+            ("`tali -j <command>`", "Return machine-readable JSON."),
+            ("`tali <selection>`", "List todos matching a selection."),
+            (
+                f"`tali {token.separator} <action>`",
+                "Add a todo. The action must include a title.",
+            ),
+            (
+                f"`tali <selection> {token.separator} <action>`",
+                "Update every todo matched by the selection.",
+            ),
+            (
+                f"`tali <selection> {token.separator}`",
+                "Open the selected todos in the configured editor.",
+            ),
+            (
+                f"`tali <selection> {token.query}<field>`",
+                "Print selected field values.",
+            ),
+            ("`tali --undo`", "Undo the last saved mutation."),
+            ("`tali --redo`", "Redo the last undone mutation."),
+        ]
+        return [
+            "## Command Forms",
+            "",
+            *self._table(("Command", "Meaning"), rows),
+        ]
+
+    def _token_reference_lines(self) -> List[str]:
+        rows = [
+            (f"`{token}`", name, description, f"`{example}`")
+            for token, name, description, example in self._token_rows()
+        ]
+        return [
+            "## Token Reference",
+            "",
+            *self._table(("Token", "Name", "Description", "Example"), rows),
+        ]
+
+    def _query_field_lines(self) -> List[str]:
+        token = self.config.token
+        rows = [
+            (f"`{token.query}{token.query}`", "`title`"),
+            (f"`{token.query}{token.project}`", "`project`"),
+            (f"`{token.query}{token.tag}`", "`tags`"),
+            (f"`{token.query}{token.status}`", "`status`"),
+            (f"`{token.query}{token.priority}`", "`priority`"),
+            (f"`{token.query}{token.deadline}`", "`deadline`"),
+            (f"`{token.query}{token.description}`", "`description`"),
+            (f"`{token.query}{token.parent}`", "`parent`"),
+        ]
+        return ["## Query Fields", "", *self._table(("Query", "Field"), rows)]
+
+    def _date_expression_lines(self) -> List[str]:
+        token = self.config.token
+        intro = [
+            "## Date Expressions",
+            "",
+            f"Use date expressions after `{token.deadline}`, e.g. "
+            f"`{token.deadline}today`.",
+            "Date-only forms resolve to end-of-day.",
+            (
+                "A selection with two deadline expressions creates a range, "
+                f"e.g. `{token.deadline}today {token.deadline}friday`."
+            ),
+            (
+                "For expressions with spaces, make sure quotes reach the "
+                f"parser; through a shell, use `'{token.deadline}\"tue 4pm\"'`."
+            ),
+            "",
+        ]
+        rows = [
+            (
+                "Named",
+                "Today, tomorrow, or distant endpoint sentinels.",
+                "`today`, `tomorrow`, `oo`, `+oo`, `-oo`",
+            ),
+            (
+                "Absolute",
+                "Month/day with optional year; omitted past years roll "
+                "forward.",
+                "`feb 21`, `2026/feb/21`, `february 21 8am`",
+            ),
+            (
+                "Time-only",
+                "Today if still future, otherwise tomorrow.",
+                "`20:00`, `10am`",
+            ),
+            (
+                "End",
+                "End of weekday, month, or unit; numeric prefix selects nth.",
+                "`mon`, `2tue`, `M`, `month`, `3month`",
+            ),
+            (
+                "Relative",
+                "Signed offset from now; combine y, M, w, d, h, and m units.",
+                "`+3d`, `-1w`, `+M1d`",
+            ),
+        ]
+        return [
+            *intro,
+            *self._table(("Form", "Convention", "Examples"), rows),
+        ]
+
+    def _example_lines(self) -> List[str]:
+        lines = ["## Examples"]
+        for title, rows in self._command_sections():
+            lines.extend(["", f"### {title}"])
+            for command, description in rows:
+                plain_command = self._plain(command)
+                plain_description = self._plain(description)
+                lines.append(
+                    f"- `{_NAME} {plain_command}`: {plain_description}"
+                )
+        return lines
+
+    def render_text(self) -> str:
+        lines = [
+            "# Tali Agent Cheatsheet",
+            "",
+            "## Agent Workflow",
+            "",
+            "- Run `tali -i` first to get current IDs before mutating todos.",
+            "- Prefer ID selections for targeted edits.",
+            "- Use `tali -j <command>` when downstream code needs JSON.",
+            (
+                "- Mutations are saved immediately; use `tali --undo` for "
+                "one-step rollback."
+            ),
+            (
+                "- Multi-word parser values must keep quotes after shell "
+                "parsing; wrap the token, e.g. `'^\"tue 4pm\"'`."
+            ),
+        ]
+        sections = [
+            self._placeholder_lines(),
+            self._command_form_lines(),
+            self._token_reference_lines(),
+            self._query_field_lines(),
+            self._date_expression_lines(),
+            self._example_lines(),
+        ]
+        for section in sections:
+            lines.extend(["", *section])
+        return "\n".join(lines)
+
+    def render(self) -> List[str]:
+        return [self.render_text()]

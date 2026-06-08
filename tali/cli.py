@@ -46,7 +46,7 @@ from .common import (
 )
 from .parser import CommandParser, ParserError
 from .parser.editor import process_prefix_sharing_lines, strip_comments
-from .render.cheatsheet import CheatSheet
+from .render.cheatsheet import AgentCheatSheet, CheatSheet
 from .render.cli import Renderer
 from .render.common import strip_rich
 
@@ -74,6 +74,10 @@ class CLI:
         ("-c", "--cheatsheet"): {
             "action": "store_true",
             "help": "Print the cheatsheet and exit. ",
+        },
+        ("--agent-cheatsheet",): {
+            "action": "store_true",
+            "help": "Print the agent cheatsheet and exit.",
         },
         ("-rc", "--rc-file"): {
             "type": str,
@@ -522,6 +526,9 @@ class CLI:
         db_dir = self._data_dir()
         if self.args.cheatsheet:
             self._print_rendered(CheatSheet(self.config).render())
+            return 0
+        if self.args.agent_cheatsheet:
+            self._print_rendered(AgentCheatSheet(self.config).render())
             return 0
         if self.args.interval is not None:
             return self._live_display(db_dir)
