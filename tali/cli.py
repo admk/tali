@@ -315,10 +315,11 @@ class CLI:
                 if nested:
                     raise error
                 logger.error(error)
-            if "project" not in action:
-                action["project"] = self.config.item.project.default
             return [book.add(title, **action)]  # type: ignore
-        before_todos = book.select(selection).flatten()
+        before_todos = book.select(
+            selection,
+            include_descendants=action == "editor",
+        ).flatten()
         if action != "editor":
             return [book.action(before_todos, action)]
         if nested:
