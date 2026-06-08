@@ -309,9 +309,12 @@ class CLI:
             try:
                 title = action.pop("title")
             except KeyError:
-                raise ActionValueError(
+                error = ActionValueError(
                     f"Missing title in command: {command!r}."
                 )
+                if nested:
+                    raise error
+                logger.error(error)
             if "project" not in action:
                 action["project"] = self.config.item.project.default
             return [book.add(title, **action)]  # type: ignore
