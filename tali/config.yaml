@@ -30,6 +30,7 @@ token:
   query: '?'
   parent: '_'
   description: ':'
+  comment: '#'
   stdin: '-'
 message:
   empty: ':dizzy: [italic yellow]Nothing to show.[/]'
