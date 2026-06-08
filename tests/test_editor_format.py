@@ -1,6 +1,35 @@
 import unittest
 
-from tali.parser.editor import process_prefix_sharing_lines
+from tali.book.item import TodoItem
+from tali.cli import CLI
+from tali.parser.editor import process_prefix_sharing_lines, strip_comments
+
+
+class TestStripComments(unittest.TestCase):
+    def test_strip_unescaped_comment(self):
+        lines = ["task title # editor note"]
+        self.assertEqual(strip_comments(lines), ["task title"])
+
+    def test_preserve_escaped_comment_token(self):
+        lines = [r"task title \# not a comment # editor note"]
+        self.assertEqual(strip_comments(lines), [r"task title \# not a comment"])
+
+    def test_preserve_comment_token_inside_quotes(self):
+        lines = ['task "issue #42" # editor note']
+        self.assertEqual(strip_comments(lines), ['task "issue #42"'])
+
+
+class TestEditorAction(unittest.TestCase):
+    def test_noop_editor_preserves_escaped_comment_token(self):
+        cli = CLI(["tali"])
+        cli._edit_file = lambda path: None
+        todo = TodoItem(
+            78,
+            r"some special characters such as \# and \: are not escaped",
+            tags=["bug"],
+        )
+
+        self.assertEqual(cli.editor_action([todo]), [])
 
 
 class TestProcessIndent(unittest.TestCase):

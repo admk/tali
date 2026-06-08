@@ -393,7 +393,7 @@ class CLI:
         self._edit_file(temp_path)
         with open(temp_path, "r") as temp_file:
             edited = temp_file.read().strip().rstrip("\n")
-        edited = strip_comments(edited.splitlines())
+        edited = strip_comments(edited.splitlines(), self.config.token.comment)
         edited = process_prefix_sharing_lines(edited)
         os.unlink(temp_path)
         before = [b.strip() for b in text.strip().rstrip("\n").splitlines()]

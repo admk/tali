@@ -1,11 +1,35 @@
 from typing import List
 
 
-def strip_comments(lines: List[str]) -> List[str]:
+def _strip_comment(line: str, comment_token: str) -> str:
+    if not comment_token:
+        return line.rstrip()
+
+    quote = None
+    escaped = False
+    for i, char in enumerate(line):
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if quote:
+            if char == quote:
+                quote = None
+            continue
+        if char in "'\"":
+            quote = char
+            continue
+        if line.startswith(comment_token, i):
+            return line[:i].rstrip()
+    return line.rstrip()
+
+
+def strip_comments(lines: List[str], comment_token: str = "#") -> List[str]:
     new_lines = []
     for line in lines:
-        line = line.split("#", 1)[0]
-        new_lines.append(line.rstrip())
+        new_lines.append(_strip_comment(line, comment_token))
     return new_lines
 
 
