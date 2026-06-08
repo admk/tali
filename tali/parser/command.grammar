@@ -11,7 +11,7 @@ sort = sort_token group
 group =
     id_token / project_token / tag_token / priority_token /
     status_token / deadline_token / parent_token
-task_range = task_id (id_token task_id)?
+task_range = task_id (id_token task_id)? !~r"\S"
 project = project_token project_name
 tag = tag_token pm? tag_name
 priority = priority_token word?

@@ -151,6 +151,10 @@ class TestCommandParser(unittest.TestCase):
         )
         self._assert_parse_result("1..5 . ,x", expected)
 
+    def test_number_prefixed_word_selection(self):
+        expected = ({"title": "1x"}, None, None, None, None)
+        self._assert_parse_result("1x", expected)
+
     def test_editor(self):
         expected = ({"project": "home"}, None, None, None, "editor")
         self._assert_parse_result("/home .", expected)

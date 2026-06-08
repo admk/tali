@@ -211,7 +211,7 @@ class CommandParser(NodeVisitor, CommonMixin):
         return "sort", sort
 
     def visit_task_range(self, node, visited_children):
-        first, last = visited_children
+        first, last = visited_children[:2]
         if not last:
             return "id", [first]
         last = last[0][1]
