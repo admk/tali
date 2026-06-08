@@ -19,11 +19,25 @@ from ..book.item import Priority, Status, TodoItem
 from ..common import has_prefix
 
 FilterBy = Literal[
-    "title", "project", "tag", "status", "priority", "deadline", "created_at"
+    "title",
+    "project",
+    "tag",
+    "status",
+    "priority",
+    "parent",
+    "deadline",
+    "created_at",
 ]
 ActBy = Literal["add", "delete"] | FilterBy
 GroupBy = Literal[
-    "id", "project", "tag", "status", "priority", "deadline", "created_at"
+    "id",
+    "project",
+    "tag",
+    "status",
+    "priority",
+    "parent",
+    "deadline",
+    "created_at",
 ]
 SortBy = Literal[
     "id",
@@ -32,10 +46,11 @@ SortBy = Literal[
     "project",
     "tags",
     "priority",
+    "parent",
     "deadline",
     "created_at",
 ]
-FilterValue = str | Tuple[datetime, datetime]
+FilterValue = str | int | Tuple[datetime, datetime]
 GroupKey = Optional[str | datetime | date]
 GroupFunc = Callable[[TodoItem], GroupKey]
 SortFunc = Callable[[TodoItem], Any]
@@ -93,6 +108,8 @@ class FilterMixin(SelectMixin):
         return todo.priority == priority
 
     def filter_by_parent(self, todo: TodoItem, parent: int) -> bool:
+        if parent == 0:
+            return todo.parent is None
         return todo.parent == parent
 
     def _filter_by_date_range(

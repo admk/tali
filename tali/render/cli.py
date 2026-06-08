@@ -1,7 +1,7 @@
 import copy
 import re
 from datetime import date, datetime
-from typing import Any, Callable, Dict, List, Literal, Optional, get_args
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, get_args
 
 from box import Box
 from rich import box
@@ -269,7 +269,14 @@ class Renderer:
             return self._render_created_at(value)
         raise ValueError(f"Unknown group_by: {group_by}")
 
-    def _render_fields(self, todo: TodoItem) -> Dict[str, str]:
+    def _render_fields(
+        self,
+        todo: TodoItem,
+        effective_status: Optional[Status] = None,
+    ) -> Dict[str, str]:
+        if effective_status is not None:
+            todo = copy.copy(todo)
+            todo.status = effective_status
         fields = {
             "id": self._render_id(todo, todo.id),
             "status": self._render_status(todo, todo.status),
@@ -283,10 +290,55 @@ class Renderer:
         }
         return {k: " " + v if v else "" for k, v in fields.items()}
 
-    def render_item(self, todo: TodoItem, group_by: GroupBy = "id") -> str:
-        fields = self._render_fields(todo)
+    def render_item(
+        self,
+        todo: TodoItem,
+        group_by: GroupBy = "id",
+        effective_status: Optional[Status] = None,
+        depth: int = 0,
+    ) -> str:
+        fields = self._render_fields(todo, effective_status)
         format = self.config.group.format[group_by]
-        return format.format(**fields)[1:]
+        item = format.format(**fields)[1:]
+        if depth > 0 and not self.idempotent:
+            item = "  " * depth + item
+        return item
+
+    def _tree_rows(
+        self,
+        todos: List[TodoItem],
+    ) -> List[Tuple[TodoItem, int, Optional[Status]]]:
+        todo_by_id = {todo.id: todo for todo in todos}
+        children: Dict[int, List[TodoItem]] = {}
+        for todo in todos:
+            if todo.parent in todo_by_id:
+                children.setdefault(todo.parent, []).append(todo)
+        roots = [todo for todo in todos if todo.parent not in todo_by_id]
+        rows: List[Tuple[TodoItem, int, Optional[Status]]] = []
+        seen = set()
+
+        def visit(
+            todo: TodoItem,
+            depth: int,
+            inherited_status: Optional[Status],
+        ) -> None:
+            if todo.id in seen:
+                return
+            seen.add(todo.id)
+            effective_status = inherited_status or todo.status
+            rows.append((todo, depth, effective_status))
+            if effective_status in ["done", "archive"]:
+                inherited_status = effective_status
+            else:
+                inherited_status = None
+            for child in children.get(todo.id, []):
+                visit(child, depth + 1, inherited_status)
+
+        for todo in roots:
+            visit(todo, 0, None)
+        for todo in todos:
+            visit(todo, 0, None)
+        return rows
 
     def render_item_diff(
         self, before_todo: TodoItem, after_todo: TodoItem
@@ -371,8 +423,16 @@ class Renderer:
                     group=group, progress=progress
                 )
                 text.append(header)
-            for todo in gtodos:
-                item = f"{self.render_item(todo, group_by)}"
+            for todo, depth, effective_status in self._tree_rows(gtodos):
+                if self.idempotent:
+                    effective_status = None
+                    depth = 0
+                item = self.render_item(
+                    todo,
+                    group_by,
+                    effective_status,
+                    depth,
+                )
                 text.append(item)
             text.append("")
         text = text[:-1]  # remove last empty line

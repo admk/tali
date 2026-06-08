@@ -145,6 +145,25 @@ class TestCommandParser(unittest.TestCase):
         )
         self._assert_parse_result("/work !high ^today", expected)
 
+    def test_parent(self):
+        expected = ({"parent": 73}, None, None, None, None)
+        self._assert_parse_result("_73", expected)
+
+        expected = ({"parent": 0}, None, None, None, None)
+        self._assert_parse_result("_0", expected)
+
+        expected = (
+            None,
+            None,
+            None,
+            None,
+            {"title": "Child", "parent": 73},
+        )
+        self._assert_parse_result(". Child _73", expected)
+
+        expected = ({"id": [42]}, None, None, None, {"parent": 0})
+        self._assert_parse_result("42 . _0", expected)
+
     def test_group_sort(self):
         expected = ({}, "tag", "deadline", None, None)
         self._assert_parse_result("@ =^", expected)
