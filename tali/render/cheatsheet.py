@@ -59,6 +59,10 @@ class CheatSheet:
         token = self.config.token.query if symbol else ""
         return f"{token}{text}"
 
+    def _parent(self, text: int | str, symbol: bool = True) -> str:
+        token = self.config.token.parent if symbol else ""
+        return f"[green]{token}{text}[/green]"
+
     def _separator(self, symbol: bool = True) -> str:
         if symbol:
             return f"[bold]{self.config.token.separator}[/bold]"
@@ -72,6 +76,7 @@ class CheatSheet:
         deadline = self._deadline
         status = self._status
         priority = self._priority
+        parent = self._parent
         return [
             (
                 f"{sep} {title('Buy milk')} {project('home', 'grocery')} "
@@ -89,6 +94,10 @@ class CheatSheet:
                 f"{tag('urgent')}",
                 f"{priority('High', False)}-priority task with an {tag('urgent')} tag",
             ),
+            (
+                f"{sep} {title('Write tests')} {parent(1)}",
+                f"Create a child task nested under task {parent(1, False)}",
+            ),
         ]
 
     def _modification_commands(self) -> CommandRows:
@@ -101,6 +110,7 @@ class CheatSheet:
         status = self._status
         priority = self._priority
         description = self._description
+        parent = self._parent
         return [
             (
                 f"{id(1)} {sep} {status('')}",
@@ -131,6 +141,14 @@ class CheatSheet:
                 f"Edit {title('title', False)}, "
                 f"{project('project', symbol=False)} "
                 f"and convert to {status('note', False)}",
+            ),
+            (
+                f"{id(2)} {sep} {parent(1)}",
+                f"Nest task {id(2, False)} under task {parent(1, False)}",
+            ),
+            (
+                f"{id(2)} {sep} {parent(0)}",
+                f"Clear nesting and move task {id(2, False)} to the top level",
             ),
         ]
 
@@ -165,6 +183,7 @@ class CheatSheet:
         priority = self._priority
         sort = self._sort
         query = self._query
+        parent = self._parent
         return [
             (
                 f"{project('work')} {priority('high')} {deadline('today')}",
@@ -180,6 +199,14 @@ class CheatSheet:
                 f"{id(1)} {query(deadline(''))}",
                 f"[bold]Query[/bold] the {deadline('deadline', False)} "
                 f"of task {id(1, False)}",
+            ),
+            (
+                f"{parent(1)}",
+                f"[bold]Filter[/bold] direct children of task {parent(1, False)}",
+            ),
+            (
+                f"{id(2)} {query(parent(''))}",
+                f"[bold]Query[/bold] the parent of task {id(2, False)}",
             ),
         ]
 
@@ -245,6 +272,7 @@ class CheatSheet:
             "deadline": ("Deadline", "{deadline}today"),
             "sort": ("Sort by", "{sort}{priority}"),
             "query": ("Query attributes of the item", "{query}{tag}"),
+            "parent": ("Parent item for nesting", "{parent}3"),
             "description": (
                 "Description of the item",
                 "{description} detailed description.",
@@ -379,6 +407,47 @@ class AgentCheatSheet(CheatSheet):
         ]
         return ["## Query Fields", "", *self._table(("Query", "Field"), rows)]
 
+    def _nesting_lines(self) -> List[str]:
+        token = self.config.token
+        intro = [
+            "## Item Nesting",
+            "",
+            f"Use `{token.parent}<id>` to create or move a todo under a parent.",
+            f"Use `{token.parent}0` to clear a parent and move a todo top-level.",
+            "Child tasks inherit the parent project.",
+            (
+                "Pretty tree output hides the parent token when a child is "
+                "shown directly under its immediate parent; idempotent output "
+                "and orphaned filtered rows keep it."
+            ),
+            (
+                "Done/archive status is effective for descendants in filters, "
+                "groups, stats, and pretty rendering, but child statuses are "
+                "not overwritten unless deleting."
+            ),
+            "",
+        ]
+        rows = [
+            (
+                f"`tali {token.separator} Write tests {token.parent}1`",
+                "Create a child todo under task 1.",
+            ),
+            (
+                f"`tali 2 {token.separator} {token.parent}1`",
+                "Move task 2 under task 1.",
+            ),
+            (
+                f"`tali 2 {token.separator} {token.parent}0`",
+                "Remove task 2 from its parent.",
+            ),
+            (f"`tali {token.parent}1`", "List direct children of task 1."),
+            (
+                f"`tali 2 {token.query}{token.parent}`",
+                "Print task 2's parent id, or `null` if it has none.",
+            ),
+        ]
+        return [*intro, *self._table(("Command", "Meaning"), rows)]
+
     def _date_expression_lines(self) -> List[str]:
         token = self.config.token
         intro = [
@@ -466,6 +535,7 @@ class AgentCheatSheet(CheatSheet):
             self._command_form_lines(),
             self._token_reference_lines(),
             self._query_field_lines(),
+            self._nesting_lines(),
             self._date_expression_lines(),
             self._example_lines(),
         ]
