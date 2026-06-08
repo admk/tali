@@ -111,8 +111,6 @@ class Renderer:
         self, todo: Optional[TodoItem], title: str
     ) -> Optional[str]:
         if self.idempotent:
-            tokens = "".join(rf"\b(\{v})" for v in self.config.token.values())
-            title = re.sub(tokens, r"\1", title)
             return title
         else:
             for token in self.config.token.values():
