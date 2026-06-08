@@ -122,6 +122,43 @@ class TestSubItems(unittest.TestCase):
         self.assertEqual([todo.id for todo in top_level], [1, 4])
         self.assertEqual([todo.id for todo in direct_children], [2])
 
+    def test_tag_selection_matches_parent_tags_on_subitems(self):
+        parent = TodoItem(79, "Parent", project="work", tags=["feat"])
+        child = TodoItem(80, "Child", project="work", parent=79)
+        grandchild = TodoItem(81, "Grandchild", project="work", parent=80)
+        other = TodoItem(82, "Other", project="work")
+        book = self._book([parent, child, grandchild, other])
+
+        tagged_tree = book.select({"tags": ["feat"]}).flatten()
+        child_by_tag_and_id = book.select(
+            {"tags": ["feat"], "id": [80]}
+        ).flatten()
+        strict_child_by_tag_and_id = book.select(
+            {"tags": ["feat"], "id": [80]},
+            include_descendants=False,
+        ).flatten()
+        untagged = book.select({"tags": []}).flatten()
+
+        self.assertEqual([todo.id for todo in tagged_tree], [79, 80, 81])
+        self.assertEqual([todo.id for todo in child_by_tag_and_id], [80, 81])
+        self.assertEqual(
+            [todo.id for todo in strict_child_by_tag_and_id],
+            [80],
+        )
+        self.assertEqual([todo.id for todo in untagged], [82])
+        self.assertEqual(child.tags, [])
+
+    def test_group_by_tag_uses_parent_tags_for_subitems(self):
+        parent = TodoItem(79, "Parent", project="work", tags=["feat"])
+        child = TodoItem(80, "Child", project="work", parent=79)
+        other = TodoItem(81, "Other", project="work")
+        book = self._book([parent, child, other])
+
+        groups = book.select(None, group_by="tag").grouped_todos
+
+        self.assertEqual([todo.id for todo in groups["feat"]], [79, 80])
+        self.assertEqual([todo.id for todo in groups["_untagged"]], [81])
+
     def test_render_tree_uses_effective_status_only_for_human_output(self):
         parent = TodoItem(1, "Parent", project="work", status="done")
         child = TodoItem(2, "Child", project="work", parent=1)
