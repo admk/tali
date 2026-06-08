@@ -76,6 +76,25 @@ class SelectMixin:
     config: Box
     todos: Dict[int, TodoItem]
 
+    def _effective_tags(self, todo: TodoItem) -> List[str]:
+        tags = []
+        seen_tags = set()
+        seen_ids = set()
+        current = todo
+        while current.id not in seen_ids:
+            seen_ids.add(current.id)
+            for tag in current.tags:
+                if tag not in seen_tags:
+                    seen_tags.add(tag)
+                    tags.append(tag)
+            if current.parent is None:
+                break
+            parent = self.todos.get(current.parent)
+            if parent is None:
+                break
+            current = parent
+        return tags
+
 
 class FilterMixin(SelectMixin):
     def _resolve_alias(self, key: str, value: str) -> str:
@@ -96,7 +115,12 @@ class FilterMixin(SelectMixin):
         return has_prefix(todo_splits, splits)
 
     def filter_by_tags(self, todo: TodoItem, tags: List[str]) -> bool:
-        return all(t in todo.tags for t in tags) if tags else not todo.tags
+        effective_tags = self._effective_tags(todo)
+        return (
+            all(t in effective_tags for t in tags)
+            if tags
+            else not effective_tags
+        )
 
     def filter_by_status(self, todo: TodoItem, status: Status) -> bool:
         new_status = self._resolve_alias("status", status)
@@ -168,7 +192,7 @@ class SortMixin(SelectMixin):
         return todo.project
 
     def sort_by_tags(self, todo: TodoItem) -> Tuple[str, ...]:
-        return tuple(sorted(todo.tags))
+        return tuple(sorted(self._effective_tags(todo)))
 
     def sort_by_priority(self, todo: TodoItem) -> int:
         return list(self.config.group.header.priority).index(todo.priority)
@@ -210,7 +234,8 @@ class GroupMixin(SortMixin):
 
     def group_by_tag(self) -> Tuple[GroupFunc, Optional[SortFunc]]:
         def gfunc(todo):
-            return todo.tags if todo.tags else "_untagged"
+            tags = self._effective_tags(todo)
+            return tags if tags else "_untagged"
 
         return gfunc, self.sort_by_tags
 

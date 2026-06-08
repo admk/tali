@@ -67,3 +67,13 @@ class TestCLIAction(unittest.TestCase):
         self.assertTrue(lines[1].startswith("  73."))
         self.assertTrue(lines[2].startswith("    74."))
         self.assertIn("_73", lines[2])
+
+    def test_tag_and_id_command_matches_child_with_parent_tag(self):
+        cli = self._cli("@feat", "80")
+        parent = TodoItem(79, "Parent", project="work", tags=["feat"])
+        child = TodoItem(80, "Child", project="work", parent=79)
+        book = TaskBook(cli.config, [parent, child])
+
+        result = cli._process_action(book, cli.command)[0]
+
+        self.assertEqual([todo.id for todo in result.flatten()], [80])
