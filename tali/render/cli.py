@@ -39,13 +39,16 @@ class Renderer:
         all_todos: Optional[List[TodoItem]] = None,
     ) -> Dict[str, int | float]:
         stats = {}
+        count_statuses = self._count_statuses(count_todos)
+        all_statuses = (
+            self._count_statuses(all_todos) if all_todos is not None else None
+        )
         for status in get_args(Status):
             if status == "delete":
                 continue
-            stats[status] = len([t for t in count_todos if t.status == status])
-            if all_todos is not None:
-                len_all = len([t for t in all_todos if t.status == status])
-                stats[status + "_hidden"] = len_all - stats[status]
+            stats[status] = count_statuses[status]
+            if all_statuses is not None:
+                stats[status + "_hidden"] = all_statuses[status] - stats[status]
         if all_todos is not None:
             stats["hidden"] = len(all_todos) - len(count_todos)
         done = stats["done"]
@@ -56,6 +59,12 @@ class Renderer:
             total += stats["done_hidden"] + stats["pending_hidden"]
             stats["progress_all"] = done / total if total > 0 else None
         return stats
+
+    def _count_statuses(self, todos: List[TodoItem]) -> Dict[Status, int]:
+        statuses = {status: 0 for status in get_args(Status)}
+        for _, _, status in self._tree_rows(todos):
+            statuses[status] += 1
+        return statuses
 
     def _render_by_format_map(
         self,
@@ -325,7 +334,8 @@ class Renderer:
             if todo.id in seen:
                 return
             seen.add(todo.id)
-            effective_status = inherited_status or todo.status
+            todo_status = getattr(todo, "_effective_status", todo.status)
+            effective_status = inherited_status or todo_status
             rows.append((todo, depth, effective_status))
             if effective_status in ["done", "archive"]:
                 inherited_status = effective_status

@@ -80,12 +80,41 @@ class TestSubItems(unittest.TestCase):
     def test_non_delete_status_does_not_mutate_descendants(self):
         parent = TodoItem(1, "Parent", project="work")
         child = TodoItem(2, "Child", project="work", parent=1)
-        book = self._book([parent, child])
+        grandchild = TodoItem(3, "Grandchild", project="work", parent=2)
+        book = self._book([parent, child, grandchild])
 
         book.action([parent], {"status": "done"})
 
         self.assertEqual(book.todos[1].status, "done")
         self.assertEqual(book.todos[2].status, "pending")
+        self.assertEqual(book.todos[3].status, "pending")
+
+    def test_status_selection_uses_effective_descendant_status(self):
+        parent = TodoItem(1, "Parent", project="work")
+        child = TodoItem(2, "Child", project="work", parent=1)
+        grandchild = TodoItem(3, "Grandchild", project="work", parent=2)
+        book = self._book([parent, child, grandchild])
+
+        book.action([parent], {"status": "done"})
+
+        pending = book.select({"status": "pending"}).flatten()
+        done = book.select({"status": "done"}).flatten()
+
+        self.assertEqual([todo.id for todo in pending], [])
+        self.assertEqual([todo.id for todo in done], [1, 2, 3])
+
+    def test_group_by_status_uses_effective_descendant_status(self):
+        parent = TodoItem(1, "Parent", project="work")
+        child = TodoItem(2, "Child", project="work", parent=1)
+        grandchild = TodoItem(3, "Grandchild", project="work", parent=2)
+        book = self._book([parent, child, grandchild])
+
+        book.action([parent], {"status": "done"})
+
+        groups = book.select(None, group_by="status").grouped_todos
+
+        self.assertNotIn("pending", groups)
+        self.assertEqual([todo.id for todo in groups["done"]], [1, 2, 3])
 
     def test_delete_status_cascades_to_subtree(self):
         parent = TodoItem(1, "Parent", project="work")
@@ -162,11 +191,18 @@ class TestSubItems(unittest.TestCase):
     def test_render_tree_uses_effective_status_only_for_human_output(self):
         parent = TodoItem(1, "Parent", project="work", status="done")
         child = TodoItem(2, "Child", project="work", parent=1)
+        grandchild = TodoItem(3, "Grandchild", project="work", parent=2)
         renderer = Renderer(self.config)
 
-        human = strip_rich(renderer.render({None: [parent, child]}, "id"))
+        human = strip_rich(
+            renderer.render({None: [parent, child, grandchild]}, "id")
+        )
         idempotent = strip_rich(
-            renderer.render({None: [parent, child]}, "id", idempotent=True)
+            renderer.render(
+                {None: [parent, child, grandchild]},
+                "id",
+                idempotent=True,
+            )
         )
 
         human_lines = human.splitlines()
@@ -174,9 +210,46 @@ class TestSubItems(unittest.TestCase):
         self.assertIn("✔", human_lines[0])
         self.assertTrue(human_lines[1].startswith("  "))
         self.assertIn("✔", human_lines[1])
+        self.assertTrue(human_lines[2].startswith("    "))
+        self.assertIn("✔", human_lines[2])
         self.assertEqual(child.status, "pending")
         self.assertFalse(idempotent_lines[1].startswith("  "))
         self.assertIn(",pending", idempotent_lines[1])
+        self.assertFalse(idempotent_lines[2].startswith("  "))
+        self.assertIn(",pending", idempotent_lines[2])
+
+    def test_render_uses_effective_status_when_parent_is_hidden(self):
+        parent = TodoItem(1, "Parent", project="work")
+        child = TodoItem(2, "Child", project="work", parent=1)
+        grandchild = TodoItem(3, "Grandchild", project="work", parent=2)
+        book = self._book([parent, child, grandchild])
+        renderer = Renderer(self.config)
+
+        book.action([parent], {"status": "done"})
+        result = book.select({"id": [3]})
+        text = strip_rich(renderer.render_result(result))
+
+        self.assertIn("✔", text)
+        self.assertIn("Grandchild", text)
+
+    def test_stats_use_effective_status(self):
+        parent = TodoItem(1, "Parent", project="work")
+        child = TodoItem(2, "Child", project="work", parent=1)
+        grandchild = TodoItem(3, "Grandchild", project="work", parent=2)
+        book = self._book([parent, child, grandchild])
+        renderer = Renderer(self.config)
+
+        book.action([parent], {"status": "done"})
+        book.select(None)
+        text = strip_rich(
+            renderer.render_stats(
+                list(book.todos.values()),
+                list(book.todos.values()),
+            )
+        )
+
+        self.assertIn("0 pending", text)
+        self.assertIn("3 done", text)
 
     def test_render_orphaned_filtered_child_as_top_level(self):
         child = TodoItem(2, "Child", project="work", parent=1)
