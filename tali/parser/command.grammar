@@ -18,7 +18,7 @@ priority = priority_token word?
 status = status_token word?
 deadline = deadline_token word
 parent = parent_token task_id
-description = description_token (ws word (ws word)*)?
+description = description_token (ws? word (ws word)*)?
 
 # literals
 word = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+"

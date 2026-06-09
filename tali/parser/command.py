@@ -250,7 +250,8 @@ class CommandParser(NodeVisitor, CommonMixin):
         return "parent", task_id
 
     def visit_description(self, node, visited_children):
-        text = node.text.strip().lstrip(self.config.token.description).lstrip()
+        text = node.text.strip()
+        text = text.removeprefix(self.config.token.description).lstrip()
         return "description", self._unescape_command_text(text)
 
     def _unescape_command_text(self, text: str) -> str:

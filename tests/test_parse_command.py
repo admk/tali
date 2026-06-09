@@ -186,6 +186,7 @@ class TestCommandParser(unittest.TestCase):
             {"description": '"Details..."'},
         )
         self._assert_parse_result('42 . : "Details..."', expected)
+        self._assert_parse_result('42 . :"Details..."', expected)
 
         expected = (
             {"id": [42]},
@@ -197,6 +198,22 @@ class TestCommandParser(unittest.TestCase):
         self._assert_parse_result(
             r"42 . : literal \# and \: characters", expected
         )
+        self._assert_parse_result(
+            r"42 . :literal \# and \: characters", expected
+        )
+
+        expected = ({"id": [42]}, None, None, None, {"description": ""})
+        self._assert_parse_result("42 . :", expected)
+
+        expected = (
+            {"id": [42]},
+            None,
+            None,
+            None,
+            {"description": ":leading colon"},
+        )
+        self._assert_parse_result("42 . ::leading colon", expected)
+        self._assert_parse_result("42 . : :leading colon", expected)
 
     def test_set_deadline(self):
         for value in ["+3d", "2mon", "oo"]:
