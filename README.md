@@ -107,6 +107,7 @@ tali ^today . @star  # Toggle star tag for all tasks due today
 
 ```bash
 tali /work !high ^today  # Show high-priority work tasks due today
+tali ^fri  # Select tasks that are due by Friday
 tali @ =^  # Group tasks by tag sorted by deadline
 tali 42 ?^  # Query deadline of task 42
 ```
@@ -200,19 +201,33 @@ for details of how to customize `tali`.
 
 ## 📜 Symbol Cheat Sheet
 
-| Token | Name        | Description                     | Example         |
-|------:|-------------|---------------------------------|-----------------|
-| `.`   | separator   | Separates selection from action | `1..3 . ,done`  |
-| `..`  | id range    | Range of item IDs               | `1..5`          |
-| `,`   | status      | Task status                     | `,pending`      |
-| `/`   | project     | Project category                | `/work`         |
-| `@`   | tag         | Custom tag                      | `@critical`     |
-| `!`   | priority    | Priority level                  | `!high`         |
-| `^`   | deadline    | Due date/time                   | `^tomorrow`     |
-| `=`   | sort        | Sort results                    | `=!` (priority) |
-| `?`   | query       | Query attributes                | `?^` (deadline) |
-| `:`   | description | Long description                | `: details...`  |
-| `-`   | stdin       | Read from standard input        | `-`             |
+| Token | Name        | Description                       | Example         |
+|------:|-------------|-----------------------------------|-----------------|
+| `.`   | separator   | Separates selection from action   | `1..3 . ,done`  |
+| `..`  | id range    | Range of item IDs                 | `1..5`          |
+| `,`   | status      | Task status (see values below)    | `,pending`      |
+| `/`   | project     | Project category                  | `/work`         |
+| `@`   | tag         | Custom tag                        | `@critical`     |
+| `!`   | priority    | Priority level (see values below) | `!high`         |
+| `^`   | deadline    | Due date/time expression          | `^tomorrow`     |
+| `=`   | sort        | Sort results                      | `=!` (priority) |
+| `?`   | query       | Query attributes                  | `?^` (deadline) |
+| `:`   | description | Long description                  | `: details...`  |
+| `-`   | stdin       | Read from standard input          | `-`             |
+
+Settable token values:
+
+- Status accepts `pending`, `done`, `note`, `archive`, and `delete`.
+  Default aliases are `p`, `d`/`c`, `n`, `a`, and `x`.
+  A bare `,` action toggles `pending`/`done`.
+- Priority accepts `high`, `normal`, and `low`.
+  Default aliases are `h`, `n`, and `l`.
+  A bare `!` action sets high priority;
+  `!+` raises priority and `!-` lowers it.
+- Deadline accepts date expressions such as `today`, `tomorrow`, `feb21`,
+  `10am`, `mon`, `+3d`, `-1w`, and `+M1d`.
+  Quote values with spaces, for example `^"tue 4pm"`.
+  In actions, `^oo` clears the deadline.
 
 ## 🚀 Productivity Tips
 

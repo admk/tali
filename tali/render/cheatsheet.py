@@ -1,10 +1,12 @@
-from typing import List, Tuple
+from collections import defaultdict
+from typing import Dict, List, Tuple, get_args
 
 from box import Box
 from rich import box
 from rich.table import Table
 
 from .. import __toolname__ as _NAME
+from ..book.item import Priority, Status
 from .common import strip_rich
 
 CommandRows = List[Tuple[str, str]]
@@ -243,6 +245,35 @@ class CheatSheet:
             ("Batch Actions", self._batch_commands()),
         ]
 
+    @staticmethod
+    def _simple_alias(pattern: str) -> str | None:
+        if not (pattern.startswith("^") and pattern.endswith("$")):
+            return None
+        alias = pattern[1:-1]
+        if any(char in alias for char in r"\.[](){}?*+|"):
+            return None
+        return alias
+
+    def _aliases_by_value(self, key: str) -> Dict[str, List[str]]:
+        aliases: Dict[str, List[str]] = defaultdict(list)
+        for pattern, value in self.config.item[key].get("alias", {}).items():
+            alias = self._simple_alias(pattern)
+            if alias is not None:
+                aliases[value].append(alias)
+        return dict(aliases)
+
+    def _values_with_aliases(self, key: str, values: Tuple[str, ...]) -> str:
+        aliases = self._aliases_by_value(key)
+        parts = []
+        for value in values:
+            value_aliases = aliases.get(value, [])
+            if value_aliases:
+                alias_text = "/".join(value_aliases)
+                parts.append(f"{value} ({alias_text})")
+            else:
+                parts.append(value)
+        return ", ".join(parts)
+
     def render_examples(self) -> Table:
         title = (
             f"[bold]~ :scroll: {_NAME.capitalize()} Command Reference ~[/bold]"
@@ -259,17 +290,34 @@ class CheatSheet:
         return table
 
     def _token_rows(self) -> TokenRows:
+        status_values = self._values_with_aliases("status", get_args(Status))
+        priority_values = self._values_with_aliases(
+            "priority", get_args(Priority)
+        )
+        priority = self.config.token.priority
         token = {
             "separator": (
                 "Separates selection from action",
                 "1{id}3 {separator} {status}pending",
             ),
             "id": ("Range of item IDs", "1{id}3"),
-            "status": ("Status of the item", "{status}pending"),
+            "status": (
+                f"Status. Values: {status_values}; bare token toggles "
+                "pending/done",
+                "{status}pending",
+            ),
             "project": ("Project", "{project}work"),
             "tag": ("Tag", "{tag}urgent"),
-            "priority": ("Priority", "{priority}high"),
-            "deadline": ("Deadline", "{deadline}today"),
+            "priority": (
+                f"Priority. Values: {priority_values}; action shorthands: "
+                f"{priority}, {priority}+, {priority}-",
+                "{priority}high",
+            ),
+            "deadline": (
+                "Deadline date expression: named, absolute, time-only, end, "
+                "or relative; oo clears in actions",
+                "{deadline}today",
+            ),
             "sort": ("Sort by", "{sort}{priority}"),
             "query": ("Query attributes of the item", "{query}{tag}"),
             "parent": ("Parent item for nesting", "{parent}3"),
@@ -391,6 +439,46 @@ class AgentCheatSheet(CheatSheet):
             "## Token Reference",
             "",
             *self._table(("Token", "Name", "Description", "Example"), rows),
+        ]
+
+    def _settable_value_lines(self) -> List[str]:
+        token = self.config.token
+        rows = [
+            (
+                f"`{token.status}` status",
+                "`pending`, `done`, `note`, `archive`, `delete`",
+                (
+                    "Default aliases: `p`, `d`/`c`, `n`, `a`, `x`. "
+                    f"`{token.status}` alone toggles `pending`/`done`."
+                ),
+            ),
+            (
+                f"`{token.priority}` priority",
+                "`high`, `normal`, `low`",
+                (
+                    "Default aliases: `h`, `n`, `l`. "
+                    f"`{token.priority}` alone sets `high`; "
+                    f"`{token.priority}+` raises and "
+                    f"`{token.priority}-` lowers priority."
+                ),
+            ),
+            (
+                f"`{token.deadline}` deadline",
+                (
+                    "Date Expressions values such as `today`, `tomorrow`, "
+                    "`feb 21`, `10am`, `mon`, `+3d`, `-1w`, `+M1d`"
+                ),
+                (
+                    "Quote values with spaces, e.g. "
+                    f"`{token.deadline}\"tue 4pm\"`. In actions, "
+                    f"`{token.deadline}oo` clears the deadline."
+                ),
+            ),
+        ]
+        return [
+            "## Settable Token Values",
+            "",
+            *self._table(("Token", "Accepted Values", "Notes"), rows),
         ]
 
     def _query_field_lines(self) -> List[str]:
@@ -534,6 +622,7 @@ class AgentCheatSheet(CheatSheet):
             self._placeholder_lines(),
             self._command_form_lines(),
             self._token_reference_lines(),
+            self._settable_value_lines(),
             self._query_field_lines(),
             self._nesting_lines(),
             self._date_expression_lines(),

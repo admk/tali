@@ -45,6 +45,42 @@ class TestAgentCheatSheet(unittest.TestCase):
         self.assertIn("## Date Expressions", text)
         self.assertIn("Date-only forms resolve to end-of-day.", text)
         self.assertIn(
+            "| `,` | status | Status. Values: pending (p), done (d/c), "
+            "note (n), delete (x), archive (a); bare token toggles "
+            "pending/done | `,pending` |",
+            text,
+        )
+        self.assertIn(
+            "| `!` | priority | Priority. Values: high (h), normal (n), "
+            "low (l); action shorthands: !, !+, !- | `!high` |",
+            text,
+        )
+        self.assertIn(
+            "| `^` | deadline | Deadline date expression: named, absolute, "
+            "time-only, end, or relative; oo clears in actions | `^today` |",
+            text,
+        )
+        self.assertIn("## Settable Token Values", text)
+        self.assertIn(
+            "| `,` status | `pending`, `done`, `note`, `archive`, `delete` |",
+            text,
+        )
+        self.assertIn(
+            "Default aliases: `p`, `d`/`c`, `n`, `a`, `x`.",
+            text,
+        )
+        self.assertIn(
+            "| `!` priority | `high`, `normal`, `low` |",
+            text,
+        )
+        self.assertIn("Default aliases: `h`, `n`, `l`.", text)
+        self.assertIn(
+            "| `^` deadline | Date Expressions values such as `today`, "
+            "`tomorrow`, `feb 21`, `10am`, `mon`, `+3d`, `-1w`, "
+            "`+M1d` |",
+            text,
+        )
+        self.assertIn(
             "| Relative | Action offset from item deadline, or now if absent",
             text,
         )
