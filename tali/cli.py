@@ -48,8 +48,8 @@ from .common import (
 from .parser import CommandParser, ParserError
 from .parser.editor import (
     EditorCommand,
+    EditorSyntaxError,
     process_editor_commands,
-    strip_comments,
 )
 from .render.cheatsheet import AgentCheatSheet, CheatSheet
 from .render.cli import Renderer
@@ -411,16 +411,61 @@ class CLI:
                 )
         if parent_id is None:
             return command.text
-        return f"{command.text} {self.config.token.parent}{parent_id}"
+        return self._insert_editor_parent(command.text, parent_id)
+
+    def _is_escaped_at(self, text: str, index: int) -> bool:
+        backslashes = 0
+        cursor = index - 1
+        while cursor >= 0 and text[cursor] == "\\":
+            backslashes += 1
+            cursor -= 1
+        return backslashes % 2 == 1
+
+    def _description_action_index(self, text: str) -> Optional[int]:
+        token = self.config.token.description
+        start = 0
+        while True:
+            index = text.find(token, start)
+            if index == -1:
+                return None
+            has_action_boundary = index == 0 or text[index - 1].isspace()
+            if has_action_boundary and not self._is_escaped_at(text, index):
+                return index
+            start = index + len(token)
+
+    def _insert_editor_parent(self, text: str, parent_id: int) -> str:
+        parent = f"{self.config.token.parent}{parent_id}"
+        description_index = self._description_action_index(text)
+        if description_index is None:
+            return f"{text} {parent}"
+        before = text[:description_index].rstrip()
+        description = text[description_index:].lstrip()
+        return f"{before} {parent} {description}".strip()
 
     def _editor_before_id_map(self, todos: List[TodoItem]) -> dict[str, int]:
         before_ids = {}
         for todo in todos:
             text = self.renderer.render({None: [todo]}, "id", idempotent=True)
-            line = strip_rich(text).strip()
-            if line:
-                before_ids[line] = todo.id
+            for command in self._editor_commands_from_text(text):
+                line = command.text.strip()
+                if line:
+                    before_ids[line] = todo.id
         return before_ids
+
+    def _editor_commands_from_text(self, text: str) -> List[EditorCommand]:
+        text = strip_rich(text).rstrip("\n")
+        try:
+            return process_editor_commands(
+                text.splitlines(),
+                self.config.token.separator,
+                self._editor_add_has_title,
+                description_token=self.config.token.description,
+                description_fence=self.config.token.description_fence,
+                escape_tokens=self.renderer._idempotent_escape_tokens(),
+                comment_token=self.config.token.comment,
+            )
+        except EditorSyntaxError as e:
+            logger.error(e)
 
     def _extract_editor_parent_id(self, text: str) -> Optional[int]:
         match = self._editor_rendered_id_re.match(text)
@@ -486,13 +531,13 @@ class CLI:
             temp_path = temp_file.name
         self._edit_file(temp_path)
         with open(temp_path, "r") as temp_file:
-            edited = temp_file.read().strip().rstrip("\n")
-        edited = strip_comments(edited.splitlines(), self.config.token.comment)
-        edited = process_editor_commands(
-            edited, self.config.token.separator, self._editor_add_has_title
-        )
+            edited = temp_file.read()
+        edited = self._editor_commands_from_text(edited)
         os.unlink(temp_path)
-        before = [b.strip() for b in text.strip().rstrip("\n").splitlines()]
+        before = [
+            command.text.strip()
+            for command in self._editor_commands_from_text(text)
+        ]
         before_ids = self._editor_before_id_map(todos)
         return self._filter_editor_commands(edited, before, before_ids)
 

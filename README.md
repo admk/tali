@@ -204,6 +204,25 @@ This also works inside nested blocks:
       . collect screenshots
 ```
 
+For multi-line descriptions in editor mode,
+use indented `:` lines under the task:
+```
+. /work release checklist
+  : First description line.
+  : Second description line.
+```
+
+For longer descriptions,
+use a fenced block.
+The fence defaults to `"""`
+and can be changed with `token.description_fence`:
+```
+. /work release checklist : """
+First description line.
+Second description line.
+"""
+```
+
 ## ⚙️ Configuration
 
 Global configuration is stored in `~/.config/tali/config.yaml`

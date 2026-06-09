@@ -4,6 +4,7 @@ from tali.book.item import TodoItem
 from tali.cli import CLI
 from tali.parser.editor import (
     EditorCommand,
+    EditorSyntaxError,
     escape_command_text,
     process_editor_commands,
     process_prefix_sharing_lines,
@@ -144,6 +145,80 @@ a
 
 
 class TestProcessEditorCommands(unittest.TestCase):
+    def test_fenced_description_block(self):
+        lines = [
+            '. Task : """',
+            "first # literal",
+            "/project @tag",
+            '"""',
+        ]
+
+        result = process_editor_commands(lines, comment_token="#")
+
+        self.assertEqual(
+            result,
+            [EditorCommand(". Task : first \\# literal\n\\/project \\@tag")],
+        )
+
+    def test_fenced_description_accepts_compact_start(self):
+        lines = ['. Task :"""', "first", "second", '"""']
+
+        result = process_editor_commands(lines)
+
+        self.assertEqual(result, [EditorCommand(". Task : first\nsecond")])
+
+    def test_fenced_description_uses_configured_fence(self):
+        lines = [". Task : END", "first", "second", "END"]
+
+        result = process_editor_commands(lines, description_fence="END")
+
+        self.assertEqual(result, [EditorCommand(". Task : first\nsecond")])
+
+    def test_fence_inside_one_line_description_is_literal(self):
+        lines = ['. Task : hello """ world """']
+
+        result = process_editor_commands(lines)
+
+        self.assertEqual(
+            result, [EditorCommand('. Task : hello """ world """')]
+        )
+
+    def test_unclosed_fenced_description_errors(self):
+        lines = ['. Task : """', "first"]
+
+        with self.assertRaises(EditorSyntaxError):
+            process_editor_commands(lines)
+
+    def test_indented_description_lines_fold_into_parent(self):
+        lines = """
+. Task
+  : first
+  : second
+""".splitlines()
+
+        result = process_editor_commands(lines)
+
+        self.assertEqual(result, [EditorCommand(". Task : first\nsecond")])
+
+    def test_indented_description_lines_mix_with_nested_adds(self):
+        lines = """
+. Parent
+  : parent line 1
+  : parent line 2
+  . Child
+    : child line
+""".splitlines()
+
+        result = process_editor_commands(lines)
+
+        self.assertEqual(
+            result,
+            [
+                EditorCommand(". Parent : parent line 1\nparent line 2"),
+                EditorCommand(". Child : child line", parent_ref=0),
+            ],
+        )
+
     def test_nested_add_lines_track_parent_refs(self):
         lines = """
 . /work Parent

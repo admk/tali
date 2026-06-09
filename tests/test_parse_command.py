@@ -170,7 +170,13 @@ class TestCommandParser(unittest.TestCase):
 
     def test_query(self):
         for key, value in self.config.token.items():
-            if key in ["separator", "sort", "comment", "stdin"]:
+            if key in [
+                "separator",
+                "sort",
+                "comment",
+                "stdin",
+                "description_fence",
+            ]:
                 continue
             if key == "query":
                 key = "title"

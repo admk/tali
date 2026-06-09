@@ -497,6 +497,7 @@ class AgentCheatSheet(CheatSheet):
 
     def _nesting_lines(self) -> List[str]:
         token = self.config.token
+        fence = token.get("description_fence") or '"""'
         intro = [
             "## Item Nesting",
             "",
@@ -521,6 +522,16 @@ class AgentCheatSheet(CheatSheet):
             (
                 "Plain indented lines still share prefixes inside nested "
                 "editor blocks."
+            ),
+            (
+                "In editor mode, indented lines that start with "
+                f"`{token.description}` fold into the previous task's "
+                "multi-line description."
+            ),
+            (
+                "Use a fenced description block starting with "
+                f"`{token.description} {fence}` and ending with `{fence}` "
+                "for longer editor descriptions."
             ),
             "",
         ]

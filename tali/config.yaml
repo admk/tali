@@ -30,6 +30,7 @@ token:
   query: '?'
   parent: '_'
   description: ':'
+  description_fence: '"""'
   comment: '#'
   stdin: '-'
 message:

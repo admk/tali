@@ -25,6 +25,7 @@ from ..parser.editor import escape_command_text
 from .common import pluralize, shorten, strip_rich, timedelta_format
 
 RenderStats = Literal[True, False, "all"]
+_DESCRIPTION_FENCE = '"""'
 
 
 class Renderer:
@@ -243,16 +244,42 @@ class Renderer:
     def _render_created_at(self, created_at: datetime) -> Optional[str]:
         return self.config.item.created_at.format.format(created_at)
 
+    def _description_fence(self) -> str:
+        return self.config.token.get("description_fence") or _DESCRIPTION_FENCE
+
+    def _escape_description_fence(
+        self, description: str, description_fence: str
+    ) -> str:
+        escaped_lines = []
+        for line in description.split("\n"):
+            if line.strip() == description_fence:
+                line = line.replace(
+                    description_fence, "\\" + description_fence, 1
+                )
+            escaped_lines.append(line)
+        return "\n".join(escaped_lines)
+
     def _render_description(
         self, todo: Optional[TodoItem], description: Optional[str]
     ) -> Optional[str]:
         if description is None:
             return None
         if self.idempotent:
+            token = self.config.token.description
+            if "\n" in description:
+                fence = self._description_fence()
+                description = self._escape_description_fence(
+                    description, fence
+                )
+                return (
+                    f"{token} {fence}\n"
+                    f"{description}\n"
+                    f"{fence}"
+                )
             description = escape_command_text(
                 description, self._idempotent_escape_tokens()
             )
-            return f"{self.config.token.description} {description}"
+            return f"{token} {description}"
         style = self.config.item.description
         desc = shorten(description, style.max_length, style.ellipsis)
         return self._render_by_format_map(

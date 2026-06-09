@@ -128,6 +128,100 @@ class TestCLIAction(unittest.TestCase):
         self.assertEqual(book.todos[4].tags, ["tag"])
         self.assertEqual(book.todos[4].parent, 1)
 
+    def test_editor_fenced_description_persists_literal_lines(self):
+        cli = self._cli()
+        book = TaskBook(cli.config, [])
+        self._set_editor_text(
+            cli,
+            '''. Task : """
+first # literal
+/project @tag
+"""
+''',
+        )
+
+        cli._process_editor_action([], book)
+
+        self.assertEqual(book.todos[1].title, "Task")
+        self.assertEqual(
+            book.todos[1].description,
+            "first # literal\n/project @tag",
+        )
+
+    def test_editor_indented_description_persists_with_nested_adds(self):
+        cli = self._cli()
+        book = TaskBook(cli.config, [])
+        self._set_editor_text(
+            cli,
+            """. Parent
+  : parent line 1
+  : parent line 2
+  . Child
+    : child line
+""",
+        )
+
+        cli._process_editor_action([], book)
+
+        self.assertEqual(
+            book.todos[1].description, "parent line 1\nparent line 2"
+        )
+        self.assertEqual(book.todos[2].title, "Child")
+        self.assertEqual(book.todos[2].parent, 1)
+        self.assertEqual(book.todos[2].description, "child line")
+
+    def test_editor_multiline_description_noop_roundtrip(self):
+        cli = self._cli()
+        cli._edit_file = lambda path: None
+        todo = TodoItem(
+            78,
+            "Task",
+            description="first # literal\n/project @tag",
+            tags=["bug"],
+        )
+
+        self.assertEqual(cli.editor_action([todo]), [])
+
+    def test_editor_multiline_description_uses_configured_fence(self):
+        cli = self._cli()
+        cli.config.token.description_fence = "END"
+        cli._edit_file = lambda path: None
+        todo = TodoItem(
+            78,
+            "Task",
+            description="first # literal\n/project @tag",
+            tags=["bug"],
+        )
+
+        rendered = strip_rich(
+            cli.renderer.render({None: [todo]}, "id", idempotent=True)
+        )
+
+        self.assertIn(": END\nfirst # literal\n/project @tag\nEND", rendered)
+        self.assertEqual(cli.editor_action([todo]), [])
+
+    def test_editor_nested_add_under_existing_multiline_parent(self):
+        cli = self._cli()
+        parent = TodoItem(
+            73,
+            "Parent",
+            description="parent line 1\nparent line 2",
+            project="work",
+        )
+        book = TaskBook(cli.config, [parent])
+
+        def edit_file(path):
+            with open(path, "a") as f:
+                f.write("  . Child\n")
+
+        cli._edit_file = edit_file
+
+        cli._process_editor_action([parent], book)
+
+        self.assertEqual(book.todos[74].title, "Child")
+        self.assertEqual(book.todos[74].parent, 73)
+        self.assertEqual(book.todos[74].project, "work")
+
     def test_default_cli_rendering_nests_subitems_in_project_group(self):
         cli = self._cli()
         parent = TodoItem(73, "Parent", project="work")
