@@ -79,6 +79,16 @@ class TestCommandParser(unittest.TestCase):
         )
         self._assert_parse_result(r". literal \# and \: characters", expected)
 
+    def test_separator_in_title(self):
+        expected = (None, None, None, None, {"title": "hello . 2"})
+        self._assert_parse_result(". hello . 2", expected)
+
+        expected = ({"id": [42]}, None, None, None, {"title": "hello . 2"})
+        self._assert_parse_result("42 . hello . 2", expected)
+
+        expected = ({"title": ". hello"}, None, None, None, {"title": "2"})
+        self._assert_parse_result(r"\. hello . 2", expected)
+
     def test_edit(self):
         expected = ({"id": [42]}, None, None, None, {"status": ""})
         self._assert_parse_result("42 . ,", expected)

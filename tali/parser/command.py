@@ -74,22 +74,20 @@ class CommandParser(NodeVisitor, CommonMixin):
             return None, None, None, None, None
         if text == separator:
             return None, None, None, None, "editor"
-        if f" {separator} " in text:
-            # filter and update
-            commands = text.split(f" {separator} ")
-            try:
-                selection, action = commands
-            except ValueError:
-                raise CommandSyntaxError(
-                    "Invalid command format. "
-                    f"Expected '(selection) {separator} (action)'."
-                )
-            selection = self._parse_mode("selection", selection, pos)
-            action = self._parse_mode("action", action, pos)
-        elif text.startswith(f"{separator} "):
+        if text.startswith(f"{separator} "):
             # add new item
             selection = None
-            action = self._parse_mode("action", text[2:], pos)
+            action = self._parse_mode(
+                "action", text[len(separator) + 1 :], pos
+            )
+        elif (
+            index := self._find_unescaped_token(text, f" {separator} ")
+        ) is not None:
+            # filter and update
+            selection_text = text[:index]
+            action_text = text[index + len(separator) + 2 :]
+            selection = self._parse_mode("selection", selection_text, pos)
+            action = self._parse_mode("action", action_text, pos)
         elif text.endswith(f" {separator}"):
             text = text[: -len(f" {separator}")]
             selection = self._parse_mode("selection", text, pos)
@@ -267,9 +265,13 @@ class CommandParser(NodeVisitor, CommonMixin):
             parsed["title"] = self._unescape_command_text(parsed["title"])
 
     def _has_unescaped_token(self, text: str, token: str) -> bool:
+        return self._find_unescaped_token(text, token) is not None
+
+    def _find_unescaped_token(self, text: str, token: str) -> Optional[int]:
         if not token:
-            return False
+            return None
         escaped = False
+        quote = None
         for i, char in enumerate(text):
             if escaped:
                 escaped = False
@@ -277,9 +279,16 @@ class CommandParser(NodeVisitor, CommonMixin):
             if char == "\\":
                 escaped = True
                 continue
+            if quote:
+                if char == quote:
+                    quote = None
+                continue
+            if char in ['"', "'"]:
+                quote = char
+                continue
             if text.startswith(token, i):
-                return True
-        return False
+                return i
+        return None
 
     visit_task_id = CommonMixin._visit_int
     visit_word = visit_project_name = visit_tag_name = visit_pm = (
