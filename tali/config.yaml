@@ -1,38 +1,99 @@
+# Default Tali configuration.
+#
+# Tali loads this file first, then merges user and project config files over it.
+# User config: $XDG_CONFIG_HOME/tali/config.yaml or ~/.config/tali/config.yaml
+# Project config: the nearest .tali/config.yaml from the current directory upward
+#
+# Strings rendered to the terminal may use Rich markup, such as [bold red]...[/].
+# Strings may also reference other config values with {.path.to.key}; references
+# are expanded after all config files are merged.
+
+# Storage and editor-facing serialization settings.
 file:
+  # Todo database directory. null lets discovery choose a CLI override, the
+  # nearest .tali directory, or the XDG data directory.
   db: null
+  # Save changes through git-backed history for `--undo`, `--redo`, and `--history`.
   backup: true
+  # Spaces used when writing JSON data and JSON command output.
   indent: 2
+
+# Optional external pager for long terminal output.
 pager:
+  # When false, output is printed directly.
   enable: false
+  # Pager command. "null" lets tali skip pager execution unless enabled elsewhere.
   command: null
+  # Keep Rich styles when sending output through the pager.
   styles: true
+
+# Editor command used by `tali .`, `<selection> .`, and `--edit-rc`.
 editor:
+  # Command template for editing temporary files. Include "{}" for the file path.
+  # "null" disables editor operations until a command is configured.
+  # Example: "nvim {}"
   command: null
+
+# Defaults for ordinary list output and history display.
 view:
+  # Default selector to run when no command is supplied.
+  # Example: ",p =^" means select pending and sort by deadline
   default: null
+  # Default grouping key.
+  # Supported keys:
+  #   "id", "status", "project", "tag", "priority",
+  #   "parent", "deadline", and "created_at".
   group_by: project
+  # Default sort key inside each group.
   sort_by: created_at
   stats:
-    enable: default   # always / never / default / all
+    # `always`: show stats for every non-empty view.
+    # `never`: hide stats unless --stats is supplied.
+    # `default`: show stats only for the default no-command view.
+    # `all`: show stats only when the current view includes all todos.
+    enable: default
   history:
+    # Maximum number of history entries shown by `--history`.
     max_length: 20
+    # Number of relative time components in history rows, e.g. "2d 3h".
     num_components: 2
+    # Units allowed in relative history times. null uses the renderer default.
     timedelta: null
+
+# Command-language tokens. These strings define the CLI syntax and must remain
+# distinct enough for the parser to separate selections, actions, and queries.
 token:
+  # Inclusive ID range token, e.g. `1..3`.
   id: '..'
+  # Status token, e.g. `,done`.
   status: ','
+  # Selection/action separator.
   separator: '.'
+  # Project token.
   project: '/'
+  # Tag token.
   tag: '@'
+  # Priority token.
   priority: '!'
+  # Deadline token.
   deadline: '^'
+  # Sort token.
   sort: '='
+  # Query token.
   query: '?'
+  # Parent token for nested tasks.
   parent: '_'
+  # Description token.
   description: ':'
+  # Fence used for multi-line descriptions in idempotent/editor output.
   description_fence: '"""'
+  # Comment token stripped from editor input when it is not escaped or quoted.
   comment: '#'
+  # Stdin token for commands that read replacement content from standard input.
   stdin: '-'
+
+# User-facing messages after commands. `{}` placeholders are filled by code;
+# `{.path}` placeholders are config references expanded before rendering.
 message:
   empty: ':dizzy: [italic yellow]Nothing to show.[/]'
   add: '🪄 [italic green]Added {} {}.[/]'
@@ -43,8 +104,12 @@ message:
   redo_add: '{.message.add}'
   undo_add: ':boom: [italic red]Removed {} {}.[/]'
   undo_edit: '{.message.edit}'
+
+# Formatting for grouped task lists.
 group:
   format:
+    # Item layouts per grouping mode. Fields are rendered first, then joined here.
+    # Leading spaces inside field values let omitted fields collapse cleanly.
     id: '{id}{status}{title}{project}{tags}{priority}{deadline}{parent}{description}'
     status: '{id}{title}{project}{tags}{priority}{deadline}{parent}{description}'
     project: '{id}{status}{title}{tags}{priority}{deadline}{parent}{description}'
@@ -54,32 +119,44 @@ group:
     deadline: '{id}{status}{title}{project}{tags}{priority}{parent}{description}'
     created_at: '{.group.format.id}'
   header:
+    # Header above each non-id group. `{group}` is rendered with the matching
+    # field formatter; `{progress}` is a done/total count for the group.
     format: '[bold]{group}[/] [dim]{progress}[/]'
+    # Labels used when grouping by priority.
     priority:
       high: '[red]{.item.priority.format.priority:high} high[/]'
       normal: '. normal'
       low: '[dim]{.item.priority.format.priority:low} low[/]'
+    # Labels used when grouping by status.
+    # Delete is intentionally not listed because deleted tasks are removed from ordinary output.
     status:
       pending: '[yellow]{.item.status.format.status:pending} pending[/]'
       done: '[green]{.item.status.format.status:done} done[/]'
       note: '[blue]{.item.status.format.status:note} note[/]'
       archive: '[dim]{.item.status.format.status:archive} archived[/]'
+    # Relative-date settings used in deadline group headers.
     deadline:
       num_components: 1
       timedelta: 'yMwd'
+
+# Formatting, aliases, and display limits for individual item fields.
 item:
+  # Default item layout outside grouped overrides.
   format: '{.group.format.id}'
   id:
     format:
+      # `_` is the default format for values without a more specific match.
       _: '[dim]{:>4}.[/]'
   status:
     format:
+      # Keys use `<field>:<value>` and apply when the todo field matches.
       status:pending: '[bold yellow]☐[/]'
       status:done: '[bold green]✔[/]'
       status:note: '[bold blue]•[/]'
       status:delete: '[bold red]✘[/]'
       status:archive: '[bold dim]-[/]'
     alias:
+      # Alias keys are regular expressions matched against status input.
       ^a$: archive
       ^p$: pending
       ^n$: note
@@ -87,31 +164,39 @@ item:
       ^c$: done
       ^x$: delete
   title:
+    # Regex aliases for title input. Empty by default.
     alias: {}
     format:
+      # Title styles are applied in map order when the todo matches.
       tags:star: '[bold underline yellow]{}[/]'
       tags:like: '[bold underline magenta]{}[/]'
       priority:high: '[bold red]{}[/]'
       priority:low: '[dim]{}[/]'
       status:done: '[strike dim]{}[/]'
       status:archive: '[strike dim]{}[/]'
+    # 0 disables title shortening.
     max_length: 0
     ellipsis: …
   tag:
     alias:
+      # Tag aliases normalize input tags before storage/rendering.
       ^fav(orite)?$: like
       ^heart$: like
     format:
+      # `_` renders ordinary tags; `_untagged` is the label for empty tag groups.
       _: '[blue]{.token.tag}[underline]{}[/][/]'
       _untagged: '[italic dim]Untagged[/]'
+      # Named tag formats replace the ordinary tag text.
       star: '[bold yellow]★[/]'
       like: '[bold magenta]❤[/]'
       status:done: '[strike dim blue]{}[/]'
   project:
+    # Project assigned when a new item does not specify one.
     default: 'inbox'
     format: '[bold magenta]{.token.project}{}[/]'
   priority:
     alias:
+      # Alias keys are regular expressions matched against priority input.
       ^h$: high
       ^n$: normal
       ^l$: low
@@ -124,15 +209,21 @@ item:
       _: '[bold green]{.token.parent}{}[/]'
   deadline:
     format:
+      # Status-specific deadline formatting takes precedence.
       status:done: '[dim]{}[/]'
+      # Numeric keys are remaining-time thresholds in seconds. The first
+      # threshold greater than the remaining seconds supplies the style.
       2592000: '[green]{}[/]'
       604800: '[cyan]{}[/]'
       86400: '[magenta]{}[/]'
       3600: '[yellow]{}[/]'
       0: '[red]{}[/]'
       _: '[blue]{}[/]'
+    # Units allowed in relative deadline text.
+    # null uses the renderer default ("Mwdhm").
     timedelta: null
     num_components: 2
+    # strftime format for deadlines more than about a year away.
     datetime: '%y-%b-%-d'
   created_at:
     format: '[dim]{:%y-%b-%-d %H:%M}[/]'
@@ -140,22 +231,32 @@ item:
     format: '[italic dim]{}[/]'
     max_length: 30
     ellipsis: …
+    # Marker used when a multi-line description is flattened for normal output.
     newline_marker: '↳'
   diff:
+    # Format for changed fields in edit/undo/redo summaries.
     format: '[bold red]{{[/][strike dim]{}[/] [bold]→[/] {}[bold red]}}[/]'
+
+# Aggregate statistics shown by `--stats` or when view.stats.enable requests it.
 stats:
   title:
+    # `{}` is the formatted percentage.
     all: '{} of all tasks complete.'
     filtered: '{} of filtered tasks complete.'
   progress:
+    # `_` is the default style. Numeric keys are percent thresholds; the first
+    # threshold greater than or equal to progress supplies the style.
     _: '[bold green]{}[/]'
     90: '[bold cyan]{}[/]'
     75: '[bold blue]{}[/]'
     50: '[bold magenta]{}[/]'
     25: '[bold yellow]{}[/]'
     10: '[bold red]{}[/]'
+  # Separator between stat fragments.
   separator: ' · '
   status:
+    # Status count lines. Hidden variants receive `(visible, hidden)` counts
+    # when stats include items omitted by the current filter.
     pending: '[yellow]{.item.status.format.status:pending} {}[/] pending'
     pending_hidden: '[yellow]{.item.status.format.status:pending} {} [dim]({} hidden)[/][/] pending'
     done: '[green]{.item.status.format.status:done} {}[/] done'
