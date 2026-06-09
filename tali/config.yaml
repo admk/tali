@@ -140,6 +140,7 @@ item:
     format: '[italic dim]{}[/]'
     max_length: 30
     ellipsis: …
+    newline_marker: '↳'
   diff:
     format: '[bold red]{{[/][strike dim]{}[/] [bold]→[/] {}[bold red]}}[/]'
 stats:

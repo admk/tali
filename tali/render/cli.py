@@ -26,6 +26,7 @@ from .common import pluralize, shorten, strip_rich, timedelta_format
 
 RenderStats = Literal[True, False, "all"]
 _DESCRIPTION_FENCE = '"""'
+_DESCRIPTION_NEWLINE_MARKER = "↳"
 
 
 class Renderer:
@@ -281,6 +282,9 @@ class Renderer:
             )
             return f"{token} {description}"
         style = self.config.item.description
+        marker = style.get("newline_marker", _DESCRIPTION_NEWLINE_MARKER)
+        separator = f" {marker} " if marker else " "
+        description = description.replace("\n", separator)
         desc = shorten(description, style.max_length, style.ellipsis)
         return self._render_by_format_map(
             todo, self.config.item.description.format, desc

@@ -200,6 +200,33 @@ first # literal
         self.assertIn(": END\nfirst # literal\n/project @tag\nEND", rendered)
         self.assertEqual(cli.editor_action([todo]), [])
 
+    def test_cli_list_multiline_description_uses_marker(self):
+        cli = self._cli()
+        todo = TodoItem(
+            78,
+            "Task",
+            description="first line\nsecond line",
+        )
+
+        rendered = strip_rich(cli.renderer.render({None: [todo]}, "id"))
+
+        self.assertEqual(len(rendered.splitlines()), 1)
+        self.assertIn("first line ↳ second line", rendered)
+
+    def test_cli_list_multiline_description_marker_is_configurable(self):
+        cli = self._cli()
+        cli.config.item.description.newline_marker = "NEXT"
+        todo = TodoItem(
+            78,
+            "Task",
+            description="first line\nsecond line",
+        )
+
+        rendered = strip_rich(cli.renderer.render({None: [todo]}, "id"))
+
+        self.assertEqual(len(rendered.splitlines()), 1)
+        self.assertIn("first line NEXT second line", rendered)
+
     def test_editor_nested_add_under_existing_multiline_parent(self):
         cli = self._cli()
         parent = TodoItem(
