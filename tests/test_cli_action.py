@@ -13,6 +13,13 @@ class TestCLIAction(unittest.TestCase):
             with os_env_swap(XDG_DATA_HOME=data_home):
                 return CLI(["tali", *args])
 
+    def _set_editor_text(self, cli, text):
+        def edit_file(path):
+            with open(path, "w") as f:
+                f.write(text)
+
+        cli._edit_file = edit_file
+
     def test_add_missing_title_exits_cleanly(self):
         cli = self._cli(".", "/proj")
         book = TaskBook(cli.config, [])
@@ -48,6 +55,78 @@ class TestCLIAction(unittest.TestCase):
         self.assertEqual(child.parent, 73)
         self.assertEqual(child.project, "work")
         self.assertEqual(book.todos[74].parent, 73)
+
+    def test_editor_nested_adds_resolve_new_parent_ids(self):
+        cli = self._cli()
+        book = TaskBook(cli.config, [])
+        self._set_editor_text(
+            cli,
+            """. /work Parent
+  . Child
+  . Sibling
+    . Grandchild
+""",
+        )
+
+        cli._process_editor_action([], book)
+
+        self.assertEqual(book.todos[1].title, "Parent")
+        self.assertIsNone(book.todos[1].parent)
+        self.assertEqual(book.todos[2].title, "Child")
+        self.assertEqual(book.todos[2].parent, 1)
+        self.assertEqual(book.todos[2].project, "work")
+        self.assertEqual(book.todos[3].title, "Sibling")
+        self.assertEqual(book.todos[3].parent, 1)
+        self.assertEqual(book.todos[4].title, "Grandchild")
+        self.assertEqual(book.todos[4].parent, 3)
+
+    def test_editor_nested_add_under_existing_parent(self):
+        cli = self._cli()
+        parent = TodoItem(73, "Parent", project="work")
+        book = TaskBook(cli.config, [parent])
+
+        def edit_file(path):
+            with open(path, "a") as f:
+                f.write("  . Child\n")
+
+        cli._edit_file = edit_file
+
+        cli._process_editor_action([parent], book)
+
+        self.assertEqual(book.todos[74].title, "Child")
+        self.assertEqual(book.todos[74].parent, 73)
+        self.assertEqual(book.todos[74].project, "work")
+
+    def test_editor_nested_adds_mix_with_prefix_sharing(self):
+        cli = self._cli()
+        book = TaskBook(cli.config, [])
+        self._set_editor_text(
+            cli,
+            """. /work
+  Parent
+    @urgent
+      . Child
+      . Sibling
+    . Detail
+      @tag
+        leaf
+""",
+        )
+
+        cli._process_editor_action([], book)
+
+        self.assertEqual(book.todos[1].title, "Parent")
+        self.assertEqual(book.todos[1].project, "work")
+        self.assertIsNone(book.todos[1].parent)
+        self.assertEqual(book.todos[2].title, "Child")
+        self.assertEqual(book.todos[2].tags, ["urgent"])
+        self.assertEqual(book.todos[2].parent, 1)
+        self.assertEqual(book.todos[3].title, "Sibling")
+        self.assertEqual(book.todos[3].tags, ["urgent"])
+        self.assertEqual(book.todos[3].parent, 1)
+        self.assertEqual(book.todos[4].title, "Detail leaf")
+        self.assertEqual(book.todos[4].tags, ["tag"])
+        self.assertEqual(book.todos[4].parent, 1)
 
     def test_default_cli_rendering_nests_subitems_in_project_group(self):
         cli = self._cli()

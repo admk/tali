@@ -3,7 +3,9 @@ import unittest
 from tali.book.item import TodoItem
 from tali.cli import CLI
 from tali.parser.editor import (
+    EditorCommand,
     escape_command_text,
+    process_editor_commands,
     process_prefix_sharing_lines,
     strip_comments,
     unescape_command_text,
@@ -17,7 +19,9 @@ class TestStripComments(unittest.TestCase):
 
     def test_preserve_escaped_comment_token(self):
         lines = [r"task title \# not a comment # editor note"]
-        self.assertEqual(strip_comments(lines), [r"task title \# not a comment"])
+        self.assertEqual(
+            strip_comments(lines), [r"task title \# not a comment"]
+        )
 
     def test_preserve_comment_token_inside_quotes(self):
         lines = ['task "issue #42" # editor note']
@@ -137,3 +141,69 @@ a
         lines = input_text.splitlines()
         result = process_prefix_sharing_lines(lines)
         self.assertEqual(result, expected)
+
+
+class TestProcessEditorCommands(unittest.TestCase):
+    def test_nested_add_lines_track_parent_refs(self):
+        lines = """
+. /work Parent
+  . Child
+  . Sibling
+    . Grandchild
+""".splitlines()
+
+        result = process_editor_commands(lines)
+
+        self.assertEqual(
+            result,
+            [
+                EditorCommand(". /work Parent"),
+                EditorCommand(". Child", parent_ref=0),
+                EditorCommand(". Sibling", parent_ref=0),
+                EditorCommand(". Grandchild", parent_ref=2),
+            ],
+        )
+
+    def test_prefix_sharing_still_handles_plain_indents(self):
+        lines = """
+. /home/grocery ^today buy
+  @fruit
+    apples
+    oranges
+  milk
+""".splitlines()
+
+        result = process_editor_commands(lines)
+
+        self.assertEqual(
+            result,
+            [
+                EditorCommand(". /home/grocery ^today buy @fruit apples"),
+                EditorCommand(". /home/grocery ^today buy @fruit oranges"),
+                EditorCommand(". /home/grocery ^today buy milk"),
+            ],
+        )
+
+    def test_nested_add_lines_can_mix_prefix_sharing(self):
+        lines = """
+. /work
+  Parent
+    @urgent
+      . Child
+      . Sibling
+    . Detail
+      @tag
+        leaf
+""".splitlines()
+
+        result = process_editor_commands(lines)
+
+        self.assertEqual(
+            result,
+            [
+                EditorCommand(". /work Parent"),
+                EditorCommand(". @urgent Child", parent_ref=0),
+                EditorCommand(". @urgent Sibling", parent_ref=0),
+                EditorCommand(". Detail @tag leaf", parent_ref=0),
+            ],
+        )

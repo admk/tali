@@ -42,6 +42,8 @@ class TestAgentCheatSheet(unittest.TestCase):
         self.assertIn("`tali . Write tests _1`", text)
         self.assertIn("`tali 2 . _0`", text)
         self.assertIn("`tali 2 ?_`", text)
+        self.assertIn("In editor mode, an indented line", text)
+        self.assertIn("Plain indented lines still share prefixes", text)
         self.assertIn("## Date Expressions", text)
         self.assertIn("Date-only forms resolve to end-of-day.", text)
         self.assertIn(

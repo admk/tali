@@ -185,6 +185,25 @@ This would be interpreted as:
 . /home/grocery ^today buy milk
 ```
 
+To add nested tasks without knowing the parent's ID,
+start each nested child line with `.`:
+```
+. /work release checklist
+  . draft outline
+  . collect screenshots
+    . crop hero image
+```
+
+Indented lines without a leading `.` still use prefix sharing.
+This also works inside nested blocks:
+```
+. /work
+  release checklist
+    @urgent
+      . draft outline
+      . collect screenshots
+```
+
 ## ⚙️ Configuration
 
 Global configuration is stored in `~/.config/tali/config.yaml`

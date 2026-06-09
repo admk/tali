@@ -470,7 +470,7 @@ class AgentCheatSheet(CheatSheet):
                 ),
                 (
                     "Quote values with spaces, e.g. "
-                    f"`{token.deadline}\"tue 4pm\"`. In actions, "
+                    f'`{token.deadline}"tue 4pm"`. In actions, '
                     f"`{token.deadline}oo` clears the deadline."
                 ),
             ),
@@ -512,6 +512,15 @@ class AgentCheatSheet(CheatSheet):
                 "Done/archive status is effective for descendants in filters, "
                 "groups, stats, and pretty rendering, but child statuses are "
                 "not overwritten unless deleting."
+            ),
+            (
+                "In editor mode, an indented line that starts with "
+                f"`{token.separator} ` is added under the nearest previous "
+                "less-indented item, so new nested items do not need known IDs."
+            ),
+            (
+                "Plain indented lines still share prefixes inside nested "
+                "editor blocks."
             ),
             "",
         ]

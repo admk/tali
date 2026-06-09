@@ -1,6 +1,7 @@
 import argparse
 import contextlib
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -45,13 +46,21 @@ from .common import (
     rich_console,
 )
 from .parser import CommandParser, ParserError
-from .parser.editor import process_prefix_sharing_lines, strip_comments
+from .parser.editor import (
+    EditorCommand,
+    process_editor_commands,
+    strip_comments,
+)
 from .render.cheatsheet import AgentCheatSheet, CheatSheet
 from .render.cli import Renderer
 from .render.common import strip_rich
 
 
 class CLI:
+    _editor_rendered_id_re = re.compile(
+        r"^\s*(\d+)(?:\.(?=\s|$)|\s+\.(?=\s|$))"
+    )
+
     options = {
         ("-h", "--help"): {
             "action": "help",
@@ -342,14 +351,17 @@ class CLI:
         edit_result = EditResult([], [])
         add_result = AddResult([])
         error = []
-        for action in editor_actions:
+        created_ids: dict[int, int] = {}
+        for index, command in enumerate(editor_actions):
+            action = command.text
             try:
+                action = self._resolve_editor_parent(command, created_ids)
                 results = self._process_action(book, action, True)
             except Exception as e:
                 if logger.is_enabled_for("debug"):
                     raise e
                 logger.warn(f'Failed to process action: "{action}"\n  {e!r}')
-                error.append(action)
+                error.append(command.text)
                 continue
             for result in results:
                 if isinstance(result, EditResult):
@@ -357,6 +369,8 @@ class CLI:
                     edit_result.after.extend(result.after)
                 if isinstance(result, AddResult):
                     add_result.items.extend(result.items)
+                    if result.items:
+                        created_ids[index] = result.items[0].id
         results = []
         if edit_result.before or edit_result.after:
             results.append(edit_result)
@@ -384,9 +398,81 @@ class CLI:
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to edit file: {e!r}")
 
+    def _resolve_editor_parent(
+        self, command: EditorCommand, created_ids: dict[int, int]
+    ) -> str:
+        parent_id = command.parent_id
+        if parent_id is None and command.parent_ref is not None:
+            parent_id = created_ids.get(command.parent_ref)
+            if parent_id is None:
+                raise ActionValueError(
+                    "Cannot resolve nested editor parent. "
+                    "Make sure the parent line adds an item before its child."
+                )
+        if parent_id is None:
+            return command.text
+        return f"{command.text} {self.config.token.parent}{parent_id}"
+
+    def _editor_before_id_map(self, todos: List[TodoItem]) -> dict[str, int]:
+        before_ids = {}
+        for todo in todos:
+            text = self.renderer.render({None: [todo]}, "id", idempotent=True)
+            line = strip_rich(text).strip()
+            if line:
+                before_ids[line] = todo.id
+        return before_ids
+
+    def _extract_editor_parent_id(self, text: str) -> Optional[int]:
+        match = self._editor_rendered_id_re.match(text)
+        if match is None:
+            return None
+        return int(match.group(1))
+
+    def _editor_add_has_title(self, text: str, separator_token: str) -> bool:
+        try:
+            *_, action = self.command_parser.parse(text)
+        except ParserError:
+            return True
+        return isinstance(action, dict) and bool(action.get("title"))
+
+    def _filter_editor_commands(
+        self,
+        commands: List[EditorCommand],
+        before: List[str],
+        before_ids: dict[str, int],
+    ) -> List[EditorCommand]:
+        before_set = set(before)
+        filtered: List[EditorCommand] = []
+        old_to_new: dict[int, int] = {}
+        for index, command in enumerate(commands):
+            text = command.text.strip()
+            if not text or text in before_set:
+                continue
+            old_to_new[index] = len(filtered)
+            filtered.append(EditorCommand(text, command.parent_ref))
+
+        resolved: List[EditorCommand] = []
+        for command in filtered:
+            parent_ref = command.parent_ref
+            parent_id = command.parent_id
+            if parent_ref is not None:
+                parent = commands[parent_ref]
+                parent_text = parent.text.strip()
+                parent_id = before_ids.get(parent_text)
+                if parent_id is None:
+                    parent_id = self._extract_editor_parent_id(parent_text)
+                if parent_id is not None:
+                    parent_ref = None
+                elif parent_ref in old_to_new:
+                    parent_ref = old_to_new[parent_ref]
+                else:
+                    parent_ref = -1
+            resolved.append(EditorCommand(command.text, parent_ref, parent_id))
+        return resolved
+
     def editor_action(
         self, todos: List[TodoItem], actions: Optional[List[str]] = None
-    ) -> List[str]:
+    ) -> List[EditorCommand]:
         text = self.renderer.render({None: todos}, "id", idempotent=True)
         text = strip_rich(text).rstrip()
         with tempfile.NamedTemporaryFile(
@@ -402,11 +488,13 @@ class CLI:
         with open(temp_path, "r") as temp_file:
             edited = temp_file.read().strip().rstrip("\n")
         edited = strip_comments(edited.splitlines(), self.config.token.comment)
-        edited = process_prefix_sharing_lines(edited)
+        edited = process_editor_commands(
+            edited, self.config.token.separator, self._editor_add_has_title
+        )
         os.unlink(temp_path)
         before = [b.strip() for b in text.strip().rstrip("\n").splitlines()]
-        edited = [e.strip() for e in edited if e.strip()]
-        return [e for e in edited if e not in before]
+        before_ids = self._editor_before_id_map(todos)
+        return self._filter_editor_commands(edited, before, before_ids)
 
     def history_action(
         self, db_dir: str, action: Literal["undo", "redo"]
