@@ -1,5 +1,4 @@
 import copy
-import re
 from datetime import date, datetime
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, get_args
 
@@ -27,6 +26,7 @@ from .common import pluralize, shorten, strip_rich, timedelta_format
 RenderStats = Literal[True, False, "all"]
 _DESCRIPTION_FENCE = '"""'
 _DESCRIPTION_NEWLINE_MARKER = "↳"
+_BOOLEAN_SELECTION_TOKENS = ["+", "~"]
 
 
 class Renderer:
@@ -112,6 +112,7 @@ class Renderer:
             token.parent,
             token.description,
             token.comment,
+            *_BOOLEAN_SELECTION_TOKENS,
         ]
 
     def _render_id(self, todo: Optional[TodoItem], id: int) -> Optional[str]:
@@ -269,14 +270,8 @@ class Renderer:
             token = self.config.token.description
             if "\n" in description:
                 fence = self._description_fence()
-                description = self._escape_description_fence(
-                    description, fence
-                )
-                return (
-                    f"{token} {fence}\n"
-                    f"{description}\n"
-                    f"{fence}"
-                )
+                description = self._escape_description_fence(description, fence)
+                return f"{token} {fence}\n{description}\n{fence}"
             description = escape_command_text(
                 description, self._idempotent_escape_tokens()
             )

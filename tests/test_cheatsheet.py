@@ -62,6 +62,14 @@ class TestAgentCheatSheet(unittest.TestCase):
             "time-only, end, or relative; oo clears in actions | `^today` |",
             text,
         )
+        self.assertIn(
+            "| `+` | or | OR between selection clauses | `/work + /home` |",
+            text,
+        )
+        self.assertIn(
+            "| `~` | not | Negate the next selection filter | `~@waiting` |",
+            text,
+        )
         self.assertIn("## Settable Token Values", text)
         self.assertIn(
             "| `,` status | `pending`, `done`, `note`, `archive`, `delete` |",

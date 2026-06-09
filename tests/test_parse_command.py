@@ -6,8 +6,25 @@ import yaml
 from box import Box
 
 from tali import __toolname__ as _NAME
+from tali.book.select import FilterClause, SelectAnd, SelectNot, SelectOr
 from tali.common import format_config
 from tali.parser.command import CommandParseError, CommandParser
+
+
+def F(filters):
+    return FilterClause(filters)
+
+
+def AND(*children):
+    return SelectAnd(list(children))
+
+
+def OR(*children):
+    return SelectOr(list(children))
+
+
+def NOT(child):
+    return SelectNot(child)
 
 
 class TestCommandParser(unittest.TestCase):
@@ -155,6 +172,154 @@ class TestCommandParser(unittest.TestCase):
         )
         self._assert_parse_result("/work !high ^today", expected)
 
+    def test_boolean_or_selection(self):
+        expected = (
+            OR(F({"project": "work"}), F({"project": "home"})),
+            None,
+            None,
+            None,
+            None,
+        )
+        self._assert_parse_result("/work + /home", expected)
+
+        expected = (
+            OR(
+                F({"project": "work", "tags": ["urgent"]}),
+                F({"project": "home", "priority": "high"}),
+            ),
+            None,
+            None,
+            None,
+            None,
+        )
+        self._assert_parse_result("/work @urgent + /home !high", expected)
+
+        expected = (
+            OR(
+                F({"project": "work"}),
+                F({"project": "home", "tags": ["urgent"]}),
+            ),
+            None,
+            None,
+            None,
+            None,
+        )
+        self._assert_parse_result("/work + /home @urgent", expected)
+
+    def test_boolean_not_selection(self):
+        expected = (
+            AND(F({"project": "work"}), NOT(F({"tags": ["waiting"]}))),
+            None,
+            None,
+            None,
+            None,
+        )
+        self._assert_parse_result("/work ~@waiting", expected)
+
+        expected = (
+            OR(NOT(F({"tags": ["waiting"]})), F({"project": "home"})),
+            None,
+            None,
+            None,
+            None,
+        )
+        self._assert_parse_result("~@waiting + /home", expected)
+
+        expected = (
+            NOT(NOT(F({"tags": ["waiting"]}))),
+            None,
+            None,
+            None,
+            None,
+        )
+        self._assert_parse_result("~~@waiting", expected)
+
+    def test_boolean_operator_literals(self):
+        expected = ({"title": "C++"}, None, None, None, None)
+        self._assert_parse_result("C++", expected)
+
+        expected = ({"title": "foo+bar"}, None, None, None, None)
+        self._assert_parse_result("foo+bar", expected)
+
+        expected = ({"title": "foo +bar"}, None, None, None, None)
+        self._assert_parse_result("foo +bar", expected)
+
+        expected = ({"title": "foo+ bar"}, None, None, None, None)
+        self._assert_parse_result("foo+ bar", expected)
+
+        expected = (
+            {"deadline": [self.parser.datetime_parser.parse("+3d")]},
+            None,
+            None,
+            None,
+            None,
+        )
+        self._assert_parse_result("^+3d", expected)
+
+        expected = ({"tags": ["+urgent"]}, None, None, None, None)
+        self._assert_parse_result("@+urgent", expected)
+
+        expected = ({"title": "+"}, None, None, None, None)
+        self._assert_parse_result(r"\+", expected)
+
+        expected = ({"title": "~waiting"}, None, None, None, None)
+        self._assert_parse_result(r"\~waiting", expected)
+
+    def test_boolean_does_not_affect_actions(self):
+        expected = (None, None, None, None, {"title": "Buy + milk"})
+        self._assert_parse_result(". Buy + milk", expected)
+
+        expected = (None, None, None, None, {"title": "Buy ~ milk"})
+        self._assert_parse_result(". Buy ~ milk", expected)
+
+        expected = (
+            {"id": [42]},
+            None,
+            None,
+            None,
+            {"title": "New + title ~ ok"},
+        )
+        self._assert_parse_result("42 . New + title ~ ok", expected)
+
+    def test_boolean_selection_modifiers(self):
+        expected = (
+            OR(F({"project": "work"}), F({"project": "home"})),
+            None,
+            "deadline",
+            None,
+            None,
+        )
+        self._assert_parse_result("/work + /home =^", expected)
+
+        expected = (
+            OR(F({"project": "work"}), F({"project": "home"})),
+            None,
+            None,
+            ["project"],
+            None,
+        )
+        self._assert_parse_result("/work + /home ?/", expected)
+
+        expected = (
+            OR(F({"project": "work"}), F({"project": "home"})),
+            None,
+            None,
+            None,
+            {"status": "done"},
+        )
+        self._assert_parse_result("/work + /home . ,done", expected)
+
+    def test_boolean_selection_errors(self):
+        for command in [
+            "/work +",
+            "+ /work",
+            "+ +",
+            "/work + + /home",
+            "~",
+            "/work ~",
+        ]:
+            self._assert_parse_error(command)
+
     def test_parent(self):
         expected = ({"parent": 73}, None, None, None, None)
         self._assert_parse_result("_73", expected)
@@ -177,6 +342,12 @@ class TestCommandParser(unittest.TestCase):
     def test_group_sort(self):
         expected = ({}, "tag", "deadline", None, None)
         self._assert_parse_result("@ =^", expected)
+
+        expected = ({}, "priority", "deadline", None, None)
+        self._assert_parse_result("! =^", expected)
+
+        expected = ({}, "status", "deadline", None, None)
+        self._assert_parse_result(", =^", expected)
 
     def test_query(self):
         for key, value in self.config.token.items():

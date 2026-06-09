@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass
 from datetime import date, datetime
 from typing import (
     Any,
@@ -51,9 +52,34 @@ SortBy = Literal[
     "created_at",
 ]
 FilterValue = str | int | Tuple[datetime, datetime]
+FilterDict = Dict[FilterBy, FilterValue]
 GroupKey = Optional[str | datetime | date]
 GroupFunc = Callable[[TodoItem], GroupKey]
 SortFunc = Callable[[TodoItem], Any]
+
+
+@dataclass(frozen=True)
+class FilterClause:
+    filters: FilterDict
+
+
+@dataclass(frozen=True)
+class SelectAnd:
+    children: List[Any]
+
+
+@dataclass(frozen=True)
+class SelectOr:
+    children: List[Any]
+
+
+@dataclass(frozen=True)
+class SelectNot:
+    child: Any
+
+
+SelectionExpr = FilterClause | SelectAnd | SelectOr | SelectNot
+Selection = FilterDict | SelectionExpr
 
 
 class SelectError(Exception):
@@ -188,16 +214,36 @@ class FilterMixin(SelectMixin):
     ) -> bool:
         return self._filter_by_date_range(todo.created_at, date_range)
 
+    def _matches_filters(self, todo: TodoItem, filters: FilterDict) -> bool:
+        for key, value in filters.items():
+            func = getattr(self, f"filter_by_{key}")
+            if not func(todo, value):
+                return False
+        return True
+
+    def _matches_selection(self, todo: TodoItem, selection: Selection) -> bool:
+        if isinstance(selection, FilterClause):
+            return self._matches_filters(todo, selection.filters)
+        if isinstance(selection, SelectAnd):
+            return all(
+                self._matches_selection(todo, child)
+                for child in selection.children
+            )
+        if isinstance(selection, SelectOr):
+            return any(
+                self._matches_selection(todo, child)
+                for child in selection.children
+            )
+        if isinstance(selection, SelectNot):
+            return not self._matches_selection(todo, selection.child)
+        return self._matches_filters(todo, selection)
+
     def filter(
-        self, todos: Sequence[TodoItem], filters: Dict[FilterBy, FilterValue]
+        self, todos: Sequence[TodoItem], selection: Selection
     ) -> List[TodoItem]:
         filtered_todos = []
         for todo in todos:
-            for key, value in filters.items():
-                func = getattr(self, f"filter_by_{key}")
-                if not func(todo, value):
-                    break
-            else:
+            if self._matches_selection(todo, selection):
                 filtered_todos.append(todo)
         return filtered_todos
 

@@ -307,3 +307,66 @@ first # literal
         text = cli.renderer.render_result(result)
 
         self.assertEqual(text, "80")
+
+    def test_boolean_or_selection_matches_either_clause(self):
+        cli = self._cli("/work", "+", "/home")
+        book = TaskBook(
+            cli.config,
+            [
+                TodoItem(1, "Work", project="work"),
+                TodoItem(2, "Home", project="home"),
+                TodoItem(3, "Other", project="other"),
+            ],
+        )
+
+        result = cli._process_action(book, cli.command)[0]
+
+        self.assertEqual({todo.id for todo in result.flatten()}, {1, 2})
+
+    def test_boolean_or_respects_implicit_and_precedence(self):
+        cli = self._cli("/work", "+", "/home", "@urgent")
+        book = TaskBook(
+            cli.config,
+            [
+                TodoItem(1, "Work", project="work"),
+                TodoItem(2, "Urgent home", project="home", tags=["urgent"]),
+                TodoItem(3, "Plain home", project="home"),
+                TodoItem(4, "Other urgent", project="other", tags=["urgent"]),
+            ],
+        )
+
+        result = cli._process_action(book, cli.command)[0]
+
+        self.assertEqual({todo.id for todo in result.flatten()}, {1, 2})
+
+    def test_boolean_not_selection_excludes_matches(self):
+        cli = self._cli("/work", "~@waiting")
+        book = TaskBook(
+            cli.config,
+            [
+                TodoItem(1, "Ready", project="work"),
+                TodoItem(2, "Blocked", project="work", tags=["waiting"]),
+                TodoItem(3, "Home", project="home"),
+            ],
+        )
+
+        result = cli._process_action(book, cli.command)[0]
+
+        self.assertEqual([todo.id for todo in result.flatten()], [1])
+
+    def test_boolean_selection_can_batch_edit(self):
+        cli = self._cli("/work", "+", "/home", ".", ",done")
+        book = TaskBook(
+            cli.config,
+            [
+                TodoItem(1, "Work", project="work"),
+                TodoItem(2, "Home", project="home"),
+                TodoItem(3, "Other", project="other"),
+            ],
+        )
+
+        cli._process_action(book, cli.command)
+
+        self.assertEqual(book.todos[1].status, "done")
+        self.assertEqual(book.todos[2].status, "done")
+        self.assertEqual(book.todos[3].status, "pending")

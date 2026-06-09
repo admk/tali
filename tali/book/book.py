@@ -9,11 +9,14 @@ from ..common import logger
 from .item import Priority, Status, TodoItem
 from .result import AddResult, EditResult, QueryResult, ViewResult
 from .select import (
-    FilterBy,
+    FilterClause,
     FilterMixin,
-    FilterValue,
     GroupBy,
     GroupMixin,
+    SelectAnd,
+    Selection,
+    SelectNot,
+    SelectOr,
     SortBy,
     SortMixin,
 )
@@ -247,9 +250,21 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         base = todo.deadline or datetime.now()
         return base + deadline
 
+    def _selection_mentions_parent(self, selection: Selection) -> bool:
+        if isinstance(selection, FilterClause):
+            return "parent" in selection.filters
+        if isinstance(selection, SelectAnd | SelectOr):
+            return any(
+                self._selection_mentions_parent(child)
+                for child in selection.children
+            )
+        if isinstance(selection, SelectNot):
+            return self._selection_mentions_parent(selection.child)
+        return "parent" in selection
+
     def select(
         self,
-        filters: Optional[Dict[FilterBy, FilterValue]],
+        filters: Optional[Selection],
         group_by: GroupBy = "id",
         sort_by: SortBy = "id",
         include_descendants: bool = True,
@@ -257,7 +272,9 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         filtered_todos = list(self.todos.values())
         if filters is not None:
             filtered_todos = self.filter(filtered_todos, filters)
-            if include_descendants and "parent" not in filters:
+            if include_descendants and not self._selection_mentions_parent(
+                filters
+            ):
                 filtered_todos = self._extend_filtered_with_descendants(
                     filtered_todos
                 )
@@ -361,9 +378,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
             for todo_id in selected_ids:
                 todo = after_by_id[todo_id]
                 value = getattr(self, action)(todo, value)
-                logger.debug(
-                    f"Setting {action!r} to {value!r} for {todo.id}."
-                )
+                logger.debug(f"Setting {action!r} to {value!r} for {todo.id}.")
                 setattr(todo, action, value)
         return self._update_and_return(before, after)
 

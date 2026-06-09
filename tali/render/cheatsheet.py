@@ -193,6 +193,16 @@ class CheatSheet:
                 f"due {deadline('today')}",
             ),
             (
+                f"{project('work')} + {project('home')}",
+                f"[bold]Filter[/bold] tasks in {project('work')} "
+                f"or {project('home')}",
+            ),
+            (
+                f"{project('work')} ~{tag('waiting')}",
+                f"[bold]Filter[/bold] {project('work')} tasks without "
+                f"{tag('waiting')}",
+            ),
+            (
                 f"{tag('')} {sort(deadline(''))}",
                 f"[bold]Group[/bold] tasks by {tag('tag', False)} "
                 f"and [bold]sort[/bold] by {deadline('deadline', False)}",
@@ -327,7 +337,7 @@ class CheatSheet:
             ),
             "stdin": ("Reads from stdin and replace", "{stdin}"),
         }
-        return [
+        rows = [
             (
                 self.config.token[key],
                 key,
@@ -336,6 +346,24 @@ class CheatSheet:
             )
             for key, (desc, example) in token.items()
         ]
+        rows.extend(
+            [
+                (
+                    "+",
+                    "or",
+                    "OR between selection clauses",
+                    f"{self.config.token.project}work + "
+                    f"{self.config.token.project}home",
+                ),
+                (
+                    "~",
+                    "not",
+                    "Negate the next selection filter",
+                    f"~{self.config.token.tag}waiting",
+                ),
+            ]
+        )
+        return rows
 
     def render_token_cheat(self) -> Table:
         title = f"[bold]~ :man_mage: {_NAME.capitalize()} Symbol Cheat Sheet ~[/bold]"

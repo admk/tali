@@ -1,6 +1,8 @@
 # search & action
-selection_chain = selection (ws selection)*
-selection = task_range / shared / sort / group / query / word
+selection_chain = selection_piece (ws selection_piece)*
+selection_piece = or / not_selection / task_range / shared / sort / group / query / selection_word
+not_selection = not_token (not_selection / task_range / shared / selection_word)
+or = or_token
 action_chain = action (ws action)*
 action = description / shared / word
 
@@ -19,6 +21,7 @@ status = status_token word?
 deadline = deadline_token word
 parent = parent_token task_id
 description = description_token (ws? word (ws word)*)?
+selection_word = !or_token !not_token word
 
 # literals
 word = ~r"\"[^\"]+\"" / ~r"\'[^\']+\'" / ~r"[^\s]+"
@@ -33,6 +36,8 @@ parent_token = "{parent}"
 description_token = "{description}"
 sort_token = "{sort}"
 query_token = "{query}"
+or_token = "+" !~r"\S"
+not_token = "~"
 task_id = ~r"\d+"
 project_name = ~r"[a-zA-Z0-9_\-/]+"
 tag_name = ~r"[a-zA-Z0-9_\-]+"

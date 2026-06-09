@@ -107,6 +107,8 @@ tali ^today . @star  # Toggle star tag for all tasks due today
 
 ```bash
 tali /work !high ^today  # Show high-priority work tasks due today
+tali /work + /home  # Show tasks in /work or /home
+tali /work ~@waiting  # Show /work tasks without the @waiting tag
 tali ^fri  # Select tasks that are due by Friday
 tali @ =^  # Group tasks by tag sorted by deadline
 tali 42 ?^  # Query deadline of task 42
@@ -251,6 +253,8 @@ for details of how to customize `tali`.
 | `=`   | sort        | Sort results                      | `=!` (priority) |
 | `?`   | query       | Query attributes                  | `?^` (deadline) |
 | `:`   | description | Long description                  | `: details...`  |
+| `+`   | or          | OR between selection clauses      | `/work + /home` |
+| `~`   | not         | Negate the next selection filter  | `~@waiting`     |
 | `-`   | stdin       | Read from standard input          | `-`             |
 
 Settable token values:
@@ -266,6 +270,8 @@ Settable token values:
   `10am`, `mon`, `+3d`, `-1w`, and `+M1d`.
   Quote values with spaces, for example `^"tue 4pm"`.
   In actions, `^oo` clears the deadline.
+- Selection adjacency is AND, a standalone `+` is OR, and `~` negates the
+  next selection filter.
 
 ## 🚀 Productivity Tips
 

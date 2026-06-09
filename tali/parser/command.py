@@ -1,6 +1,7 @@
 import os
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from box import Box
 from dateutil.relativedelta import relativedelta
@@ -8,7 +9,16 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor, VisitationError
 
-from ..book.select import FilterBy, FilterValue, GroupBy, SortBy
+from ..book.select import (
+    FilterClause,
+    GroupBy,
+    SelectAnd,
+    Selection,
+    SelectionExpr,
+    SelectNot,
+    SelectOr,
+    SortBy,
+)
 from ..common import logger
 from .common import CommonMixin
 from .common import ParserError as CommonParserError
@@ -16,6 +26,7 @@ from .datetime import DateTimeParser
 from .editor import unescape_command_text
 
 Mode = Literal["selection", "action"]
+BOOLEAN_TOKENS = ["+", "~"]
 
 
 class CommandParseError(CommonParserError):
@@ -30,7 +41,17 @@ class CommandSemanticError(CommandParseError):
     """An exception raised when a command is semantically invalid."""
 
 
+@dataclass
+class ParsedSelection:
+    selection: Selection
+    group: Optional[GroupBy] = None
+    sort: Optional[SortBy] = None
+    query: Optional[List[str]] = None
+
+
 class CommandParser(NodeVisitor, CommonMixin):
+    _OR = object()
+
     def __init__(self, config: Box, reference_dt: Optional[datetime] = None):
         super().__init__()
         self.config = config
@@ -46,7 +67,7 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def _parse_mode(
         self, mode: Mode, text: str, pos: int = 0
-    ) -> Dict[str, str | List[str]]:
+    ) -> ParsedSelection | Dict[str, str | List[str]]:
         grammar = getattr(self, f"{mode}_grammar")
         try:
             ast = grammar.parse(text.strip(), pos)
@@ -63,7 +84,7 @@ class CommandParser(NodeVisitor, CommonMixin):
     def parse(
         self, text: str, pos: int = 0
     ) -> Tuple[
-        Optional[Dict[FilterBy, FilterValue]],
+        Optional[Selection],
         Optional[GroupBy],
         Optional[SortBy],
         Optional[List[str]],
@@ -77,9 +98,7 @@ class CommandParser(NodeVisitor, CommonMixin):
         if text.startswith(f"{separator} "):
             # add new item
             selection = None
-            action = self._parse_mode(
-                "action", text[len(separator) + 1 :], pos
-            )
+            action = self._parse_mode("action", text[len(separator) + 1 :], pos)
         elif (
             index := self._find_unescaped_token(text, f" {separator} ")
         ) is not None:
@@ -97,16 +116,20 @@ class CommandParser(NodeVisitor, CommonMixin):
             selection = self._parse_mode("selection", text, pos)
             action = None
         if selection is not None:
-            group = selection.pop("group", None)
-            sort = selection.pop("sort", None)
-            query = selection.pop("query", None)
+            assert isinstance(selection, ParsedSelection)
+            group = selection.group
+            sort = selection.sort
+            query = selection.query
+            selection = selection.selection
         else:
             group = sort = query = None
         return selection, group, sort, query, action  # type: ignore
 
-    def _visit_chain(self, node, visited_children):
+    def _chain_items(self, visited_children):
         item, items = visited_children
-        items = [item] + [i for _, i in items]
+        return [item] + [i for _, i in items]
+
+    def _parse_items(self, items):
         parsed = {}
         kinds = {
             "unique": [
@@ -161,6 +184,9 @@ class CommandParser(NodeVisitor, CommonMixin):
             parsed["parent"] = parsed.pop("parent")
         return parsed
 
+    def _visit_chain(self, node, visited_children):
+        return self._parse_items(self._chain_items(visited_children))
+
     def visit_action_chain(self, node, visited_children):
         parsed = self._visit_chain(node, visited_children)
         if self._has_unescaped_token(
@@ -183,13 +209,100 @@ class CommandParser(NodeVisitor, CommonMixin):
         return parsed
 
     def visit_selection_chain(self, node, visited_children):
-        parsed = self._visit_chain(node, visited_children)
+        items = self._chain_items(visited_children)
+        expr_items, modifier_items = self._split_selection_items(items)
+        selection = self._selection_expr_from_items(expr_items)
+        modifiers = self._parse_items(modifier_items) if modifier_items else {}
+        return ParsedSelection(
+            selection,
+            modifiers.pop("group", None),
+            modifiers.pop("sort", None),
+            modifiers.pop("query", None),
+        )
+
+    def _split_selection_items(self, items):
+        expr_items = []
+        modifier_items = []
+        for item in items:
+            if item is self._OR:
+                expr_items.append(item)
+                continue
+            if isinstance(item, tuple):
+                kind, value = item
+                if kind in ["group", "sort", "query"]:
+                    modifier_items.append(item)
+                    continue
+                if kind in ["priority", "status"] and value == "":
+                    modifier_items.append(("group", kind))
+                    continue
+            expr_items.append(item)
+        return expr_items, modifier_items
+
+    def _is_selection_expr(self, item: Any) -> bool:
+        return isinstance(item, (FilterClause, SelectAnd, SelectOr, SelectNot))
+
+    def _as_selection_expr(self, selection: Selection) -> SelectionExpr:
+        if isinstance(selection, dict):
+            return FilterClause(selection)
+        return selection
+
+    def _parse_filter_items(self, items):
+        parsed = self._parse_items(items)
         self._unescape_parsed_text(parsed)
+        for key in ["group", "sort", "query"]:
+            if key in parsed:
+                raise CommandSemanticError(
+                    f"Cannot use {key!r} inside a selection expression."
+                )
         for group in ["priority", "status"]:
             if parsed.get(group) == "":
-                del parsed[group]
-                parsed["group"] = group
+                raise CommandSemanticError(
+                    f"Cannot use bare {group!r} as a filter."
+                )
         return parsed
+
+    def _and_expr_from_items(self, items) -> Selection:
+        positive_items = []
+        children: List[SelectionExpr] = []
+        for item in items:
+            if self._is_selection_expr(item):
+                children.append(item)
+            else:
+                positive_items.append(item)
+
+        if positive_items:
+            filters = self._parse_filter_items(positive_items)
+            if not children:
+                return filters
+            children.insert(0, FilterClause(filters))
+
+        if not children:
+            return {}
+        if len(children) == 1:
+            return children[0]
+        return SelectAnd(children)
+
+    def _selection_expr_from_items(self, items) -> Selection:
+        if not items:
+            return {}
+        segments = []
+        segment = []
+        for item in items:
+            if item is self._OR:
+                if not segment:
+                    raise CommandSemanticError("Missing selection before '+'.")
+                segments.append(segment)
+                segment = []
+            else:
+                segment.append(item)
+        if not segment:
+            raise CommandSemanticError("Missing selection after '+'.")
+        segments.append(segment)
+
+        selections = [self._and_expr_from_items(s) for s in segments]
+        if len(selections) == 1:
+            return selections[0]
+        return SelectOr([self._as_selection_expr(s) for s in selections])
 
     def visit_query(self, node, visited_children):
         name = node.children[1].children[0].expr_name
@@ -212,6 +325,18 @@ class CommandParser(NodeVisitor, CommonMixin):
     def visit_sort(self, node, visited_children):
         sort = node.children[1].children[0].expr_name.replace("_token", "")
         return "sort", sort
+
+    def visit_or_token(self, node, visited_children):
+        return self._OR
+
+    def visit_not_selection(self, node, visited_children):
+        child = visited_children[1][0]
+        if self._is_selection_expr(child):
+            return SelectNot(child)
+        return SelectNot(FilterClause(self._parse_filter_items([child])))
+
+    def visit_selection_word(self, node, visited_children):
+        return visited_children[2]
 
     def visit_task_range(self, node, visited_children):
         first, last = visited_children[:2]
@@ -254,10 +379,9 @@ class CommandParser(NodeVisitor, CommonMixin):
 
     def _unescape_command_text(self, text: str) -> str:
         tokens = [
-            value
-            for key, value in self.config.token.items()
-            if key != "stdin"
+            value for key, value in self.config.token.items() if key != "stdin"
         ]
+        tokens.extend(BOOLEAN_TOKENS)
         return unescape_command_text(text, tokens)
 
     def _unescape_parsed_text(self, parsed: Dict[str, str | List[str]]) -> None:
@@ -294,7 +418,9 @@ class CommandParser(NodeVisitor, CommonMixin):
     visit_word = visit_project_name = visit_tag_name = visit_pm = (
         CommonMixin._visit_str
     )
-    visit_selection = visit_action = visit_shared = CommonMixin._visit_any_of
+    visit_selection_piece = visit_action = visit_shared = (
+        CommonMixin._visit_any_of
+    )
     visit_ws = CommonMixin._visit_noop
 
     def generic_visit(self, node, visited_children):
