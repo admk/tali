@@ -6,16 +6,6 @@ endif
 " Comments (# ... till end of line)
 syn match taliComment "\v#.*$"
 
-" Markdown highlighting inside fenced multi-line descriptions.
-let s:tali_current_syntax = get(b:, "current_syntax", "")
-unlet! b:current_syntax
-silent! syn include @taliMarkdown syntax/markdown.vim
-if s:tali_current_syntax != ""
-  let b:current_syntax = s:tali_current_syntax
-else
-  unlet! b:current_syntax
-endif
-
 " Task range (e.g., 42, 1..5)
 syn match taliTaskRange "\v<\d+>"
 syn match taliTaskRange "\v<\d+\.\.\d+>"
@@ -41,6 +31,13 @@ syn match taliStatus "\v,\S*"
 syn region taliStatus start=/\v,"/ skip=/\v\\./ end=/\v"/
 syn region taliStatus start=/\v,'/ skip=/\v\\./ end=/\v'/
 
+" Markdown highlighting inside fenced multi-line descriptions.
+unlet! b:current_syntax
+silent! syn include @taliMarkdown syntax/markdown.vim
+unlet! b:current_syntax
+syn case match
+syn spell default
+
 " Description (e.g., : description text, or : """ ... """)
 syn match taliDescription "\v:\s+(\"\"\")@![^#]*"
 syn region taliMultilineDescription
@@ -49,6 +46,7 @@ syn region taliMultilineDescription
       \ end=/\v^\s*"""\s*$/
       \ keepend
       \ contains=@taliMarkdown
+syn sync minlines=100
 
 " Sort operator (e.g., =^, =@)
 syn match taliSort "\v\=([?/@!,^:]|\.\.)"
