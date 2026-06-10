@@ -5,3 +5,4 @@ build/*
 dist/*
 .tali/
 uv.lock
+nvim.log

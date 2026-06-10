@@ -1,0 +1,21 @@
+1 3..5  # ids
+.  # separator
+,done  # status
+/home/grocery  # project
+hello world. this is a test.  # title
+@star  # tags
+^today ^"tue 4pm"  # deadlines
+!high  # priority
+^ ! / .. @ ,  # group
+=.. =/ =! =^  # sort
+?? ?@ ?.. ?!  # query
+: a detailed description  # description
+
+# example
+. /home/grocery
+    buy
+        @fruits
+            apples
+            oranges
+        milk
+/work ^today . @+urgent
