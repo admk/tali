@@ -26,7 +26,6 @@ from .common import pluralize, shorten, strip_rich, timedelta_format
 RenderStats = Literal[True, False, "all"]
 _DESCRIPTION_FENCE = '"""'
 _DESCRIPTION_NEWLINE_MARKER = "↳"
-_BOOLEAN_SELECTION_TOKENS = ["+", "~"]
 
 
 class Renderer:
@@ -112,7 +111,10 @@ class Renderer:
             token.parent,
             token.description,
             token.comment,
-            *_BOOLEAN_SELECTION_TOKENS,
+            token["or"],
+            token["not"],
+            token.open_paren,
+            token.close_paren,
         ]
 
     def _render_id(self, todo: Optional[TodoItem], id: int) -> Optional[str]:

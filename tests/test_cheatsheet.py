@@ -70,6 +70,21 @@ class TestAgentCheatSheet(unittest.TestCase):
             "| `~` | not | Negate the next selection filter | `~@waiting` |",
             text,
         )
+        self.assertIn(
+            "| `(` | group open | Opens a selection expression | "
+            "`(/work + /home` |",
+            text,
+        )
+        self.assertIn(
+            "| `)` | group close | Closes a selection expression | "
+            "`/home) @urgent` |",
+            text,
+        )
+        self.assertIn(
+            "`tali (/work + /home) @urgent`: Filter @urgent tasks in "
+            "/work or /home",
+            text,
+        )
         self.assertIn("## Settable Token Values", text)
         self.assertIn(
             "| `,` status | `pending`, `done`, `note`, `archive`, `delete` |",
@@ -96,6 +111,32 @@ class TestAgentCheatSheet(unittest.TestCase):
         )
         self.assertIn("`+3d`, `-1w`, `+M1d`", text)
         self.assertIn("`tali . Meeting /work ^'tue 4pm' ,n`", text)
+
+    def test_render_uses_configured_boolean_tokens(self):
+        self.config.token["or"] = "OR"
+        self.config.token["not"] = "NO"
+        self.config.token.open_paren = "["
+        self.config.token.close_paren = "]"
+
+        text = AgentCheatSheet(self.config).render()[0]
+
+        self.assertIn(
+            "| `OR` | or | OR between selection clauses | `/work OR /home` |",
+            text,
+        )
+        self.assertIn(
+            "| `NO` | not | Negate the next selection filter | `NO@waiting` |",
+            text,
+        )
+        self.assertIn(
+            "`tali [/work OR /home] @urgent`: Filter @urgent tasks in "
+            "/work or /home",
+            text,
+        )
+        self.assertIn(
+            "`tali /work NO@waiting`: Filter /work tasks without @waiting",
+            text,
+        )
 
     def test_cli_flag_prints_agent_cheatsheet(self):
         cli = CLI(["tali", "--agent-cheatsheet"])

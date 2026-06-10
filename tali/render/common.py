@@ -17,9 +17,8 @@ def pluralize(text: str, count: int, plural: Optional[str] = None) -> str:
 
 
 def strip_rich(text: str) -> str:
-    text = re.sub(r"\[.*?\]", "", text)
-    text = re.sub(r"\[/.*?\]", "", text)
-    return text
+    text = re.sub(r"(?<!\\)\[/?[^\]]*?\]", "", text)
+    return text.replace(r"\[", "[").replace(r"\]", "]")
 
 
 SECONDS = {

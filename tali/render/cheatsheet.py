@@ -70,6 +70,11 @@ class CheatSheet:
             return f"[bold]{self.config.token.separator}[/bold]"
         return "[bold]separator[/bold]"
 
+    def _literal(self, text: str) -> str:
+        return (
+            text.replace("\\", "\\\\").replace("[", r"\[").replace("]", r"\]")
+        )
+
     def _creation_commands(self) -> CommandRows:
         sep = self._separator()
         title = self._title
@@ -186,6 +191,10 @@ class CheatSheet:
         sort = self._sort
         query = self._query
         parent = self._parent
+        or_token = self._literal(self.config.token["or"])
+        not_token = self._literal(self.config.token["not"])
+        open_paren = self._literal(self.config.token.open_paren)
+        close_paren = self._literal(self.config.token.close_paren)
         return [
             (
                 f"{project('work')} {priority('high')} {deadline('today')}",
@@ -193,12 +202,18 @@ class CheatSheet:
                 f"due {deadline('today')}",
             ),
             (
-                f"{project('work')} + {project('home')}",
+                f"{project('work')} {or_token} {project('home')}",
                 f"[bold]Filter[/bold] tasks in {project('work')} "
                 f"or {project('home')}",
             ),
             (
-                f"{project('work')} ~{tag('waiting')}",
+                f"{open_paren}{project('work')} {or_token} "
+                f"{project('home')}{close_paren} {tag('urgent')}",
+                f"[bold]Filter[/bold] {tag('urgent')} tasks in "
+                f"{project('work')} or {project('home')}",
+            ),
+            (
+                f"{project('work')} {not_token}{tag('waiting')}",
                 f"[bold]Filter[/bold] {project('work')} tasks without "
                 f"{tag('waiting')}",
             ),
@@ -335,35 +350,39 @@ class CheatSheet:
                 "Description of the item",
                 "{description} detailed description.",
             ),
+            "or": (
+                "OR between selection clauses",
+                "{project}work {or} {project}home",
+            ),
+            "not": (
+                "Negate the next selection filter",
+                "{not}{tag}waiting",
+            ),
+            "open_paren": (
+                "Opens a selection expression",
+                "{open_paren}{project}work {or} {project}home",
+            ),
+            "close_paren": (
+                "Closes a selection expression",
+                "{project}home{close_paren} {tag}urgent",
+            ),
             "stdin": ("Reads from stdin and replace", "{stdin}"),
         }
-        rows = [
+        names = {
+            "or": "or",
+            "not": "not",
+            "open_paren": "group open",
+            "close_paren": "group close",
+        }
+        return [
             (
                 self.config.token[key],
-                key,
+                names.get(key, key),
                 desc,
                 example.format(**self.config.token),
             )
             for key, (desc, example) in token.items()
         ]
-        rows.extend(
-            [
-                (
-                    "+",
-                    "or",
-                    "OR between selection clauses",
-                    f"{self.config.token.project}work + "
-                    f"{self.config.token.project}home",
-                ),
-                (
-                    "~",
-                    "not",
-                    "Negate the next selection filter",
-                    f"~{self.config.token.tag}waiting",
-                ),
-            ]
-        )
-        return rows
 
     def render_token_cheat(self) -> Table:
         title = f"[bold]~ :man_mage: {_NAME.capitalize()} Symbol Cheat Sheet ~[/bold]"
@@ -373,7 +392,12 @@ class CheatSheet:
         table.add_column("Description")
         table.add_column("Example", style="italic green")
         for token, name, description, example in self._token_rows():
-            table.add_row(token, name, description, example)
+            table.add_row(
+                self._literal(token),
+                self._literal(name),
+                self._literal(description),
+                self._literal(example),
+            )
         return table
 
     def render(self) -> List[Table]:

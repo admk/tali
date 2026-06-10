@@ -242,6 +242,20 @@ first # literal
         self.assertIn(": END\nfirst # literal\n/project @tag\nEND", rendered)
         self.assertEqual(cli.editor_action([todo]), [])
 
+    def test_idempotent_render_escapes_custom_boolean_tokens(self):
+        cli = self._cli("-i")
+        cli.config.token["or"] = "|"
+        cli.config.token["not"] = "%"
+        cli.config.token.open_paren = "<"
+        cli.config.token.close_paren = ">"
+        todo = TodoItem(78, "Use | %<brackets>", tags=["bug"])
+
+        rendered = strip_rich(
+            cli.renderer.render({None: [todo]}, "id", idempotent=True)
+        )
+
+        self.assertIn(r"Use \| \%\<brackets\>", rendered)
+
     def test_cli_list_multiline_description_uses_marker(self):
         cli = self._cli()
         todo = TodoItem(
@@ -381,6 +395,23 @@ first # literal
 
         self.assertEqual({todo.id for todo in result.flatten()}, {1, 2})
 
+    def test_boolean_parentheses_group_or_before_implicit_and(self):
+        cli = self._cli("(/work", "+", "/home)", "@urgent")
+        book = TaskBook(
+            cli.config,
+            [
+                TodoItem(1, "Plain work", project="work"),
+                TodoItem(2, "Urgent work", project="work", tags=["urgent"]),
+                TodoItem(3, "Urgent home", project="home", tags=["urgent"]),
+                TodoItem(4, "Plain home", project="home"),
+                TodoItem(5, "Other urgent", project="other", tags=["urgent"]),
+            ],
+        )
+
+        result = cli._process_action(book, cli.command)[0]
+
+        self.assertEqual({todo.id for todo in result.flatten()}, {2, 3})
+
     def test_boolean_not_selection_excludes_matches(self):
         cli = self._cli("/work", "~@waiting")
         book = TaskBook(
@@ -389,6 +420,22 @@ first # literal
                 TodoItem(1, "Ready", project="work"),
                 TodoItem(2, "Blocked", project="work", tags=["waiting"]),
                 TodoItem(3, "Home", project="home"),
+            ],
+        )
+
+        result = cli._process_action(book, cli.command)[0]
+
+        self.assertEqual([todo.id for todo in result.flatten()], [1])
+
+    def test_boolean_parenthesized_not_excludes_grouped_or(self):
+        cli = self._cli("/work", "~(@waiting", "+", "@blocked)")
+        book = TaskBook(
+            cli.config,
+            [
+                TodoItem(1, "Ready", project="work"),
+                TodoItem(2, "Waiting", project="work", tags=["waiting"]),
+                TodoItem(3, "Blocked", project="work", tags=["blocked"]),
+                TodoItem(4, "Home", project="home"),
             ],
         )
 

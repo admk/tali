@@ -85,6 +85,14 @@ token:
   parent: '_'
   # Description token.
   description: ':'
+  # Boolean OR token for selection expressions.
+  or: '+'
+  # Boolean NOT token for selection expressions.
+  not: '~'
+  # Open parenthesis token for grouped selection expressions.
+  open_paren: '('
+  # Close parenthesis token for grouped selection expressions.
+  close_paren: ')'
   # Fence used for multi-line descriptions in idempotent/editor output.
   description_fence: '"""'
   # Comment token stripped from editor input when it is not escaped or quoted.

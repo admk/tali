@@ -108,6 +108,7 @@ tali ^today . @star  # Toggle star tag for all tasks due today
 ```bash
 tali /work !high ^today  # Show high-priority work tasks due today
 tali /work + /home  # Show tasks in /work or /home
+tali '(/work + /home) @urgent'  # Show urgent tasks in /work or /home
 tali /work ~@waiting  # Show /work tasks without the @waiting tag
 tali ^fri  # Select tasks that are due by Friday
 tali @ =^  # Group tasks by tag sorted by deadline
@@ -255,6 +256,8 @@ for details of how to customize `tali`.
 | `:`   | description | Long description                  | `: details...`  |
 | `+`   | or          | OR between selection clauses      | `/work + /home` |
 | `~`   | not         | Negate the next selection filter  | `~@waiting`     |
+| `(`   | group open  | Opens a selection expression      | `(/work + /home` |
+| `)`   | group close | Closes a selection expression     | `/home) @tag`   |
 | `-`   | stdin       | Read from standard input          | `-`             |
 
 Settable token values:
@@ -272,6 +275,10 @@ Settable token values:
   In actions, `^oo` clears the deadline.
 - Selection adjacency is AND, a standalone `+` is OR, and `~` negates the
   next selection filter.
+  Parentheses group selection expressions; through a shell, quote or escape
+  them, for example `'(/work + /home) @urgent'`.
+  These defaults are configured with `token.or`, `token.not`,
+  `token.open_paren`, and `token.close_paren`.
 
 ## 🚀 Productivity Tips
 

@@ -26,7 +26,6 @@ from .datetime import DateTimeParser
 from .editor import unescape_command_text
 
 Mode = Literal["selection", "action"]
-BOOLEAN_TOKENS = ["+", "~"]
 
 
 class CommandParseError(CommonParserError):
@@ -50,8 +49,6 @@ class ParsedSelection:
 
 
 class CommandParser(NodeVisitor, CommonMixin):
-    _OR = object()
-
     def __init__(self, config: Box, reference_dt: Optional[datetime] = None):
         super().__init__()
         self.config = config
@@ -209,9 +206,17 @@ class CommandParser(NodeVisitor, CommonMixin):
         return parsed
 
     def visit_selection_chain(self, node, visited_children):
-        items = self._chain_items(visited_children)
-        expr_items, modifier_items = self._split_selection_items(items)
-        selection = self._selection_expr_from_items(expr_items)
+        return self._visit_any_of(node, visited_children)
+
+    def visit_selection_with_modifiers(self, node, visited_children):
+        selection, modifier_items = visited_children
+        modifiers = [item for _, item in modifier_items]
+        return self._parsed_selection(selection, modifiers)
+
+    def visit_selection_modifiers(self, node, visited_children):
+        return self._parsed_selection({}, self._chain_items(visited_children))
+
+    def _parsed_selection(self, selection, modifier_items):
         modifiers = self._parse_items(modifier_items) if modifier_items else {}
         return ParsedSelection(
             selection,
@@ -220,23 +225,8 @@ class CommandParser(NodeVisitor, CommonMixin):
             modifiers.pop("query", None),
         )
 
-    def _split_selection_items(self, items):
-        expr_items = []
-        modifier_items = []
-        for item in items:
-            if item is self._OR:
-                expr_items.append(item)
-                continue
-            if isinstance(item, tuple):
-                kind, value = item
-                if kind in ["group", "sort", "query"]:
-                    modifier_items.append(item)
-                    continue
-                if kind in ["priority", "status"] and value == "":
-                    modifier_items.append(("group", kind))
-                    continue
-            expr_items.append(item)
-        return expr_items, modifier_items
+    def visit_selection_expression(self, node, visited_children):
+        return self._visit_any_of(node, visited_children)
 
     def _is_selection_expr(self, item: Any) -> bool:
         return isinstance(item, (FilterClause, SelectAnd, SelectOr, SelectNot))
@@ -245,6 +235,13 @@ class CommandParser(NodeVisitor, CommonMixin):
         if isinstance(selection, dict):
             return FilterClause(selection)
         return selection
+
+    def _raw_item_to_selection_expr(self, item) -> SelectionExpr:
+        if isinstance(item, dict):
+            return FilterClause(item)
+        if self._is_selection_expr(item):
+            return item
+        return FilterClause(self._parse_filter_items([item]))
 
     def _parse_filter_items(self, items):
         parsed = self._parse_items(items)
@@ -262,47 +259,76 @@ class CommandParser(NodeVisitor, CommonMixin):
         return parsed
 
     def _and_expr_from_items(self, items) -> Selection:
-        positive_items = []
         children: List[SelectionExpr] = []
+
+        positive_items = []
+
+        def flush_positive_items():
+            if not positive_items:
+                return
+            filters = self._parse_filter_items(positive_items)
+            children.append(FilterClause(filters))
+            positive_items.clear()
+
         for item in items:
-            if self._is_selection_expr(item):
-                children.append(item)
+            if isinstance(item, dict) or self._is_selection_expr(item):
+                flush_positive_items()
+                children.append(self._raw_item_to_selection_expr(item))
             else:
                 positive_items.append(item)
 
-        if positive_items:
-            filters = self._parse_filter_items(positive_items)
-            if not children:
-                return filters
-            children.insert(0, FilterClause(filters))
+        flush_positive_items()
 
         if not children:
             return {}
         if len(children) == 1:
-            return children[0]
+            child = children[0]
+            if isinstance(child, FilterClause):
+                return child.filters
+            return child
         return SelectAnd(children)
 
-    def _selection_expr_from_items(self, items) -> Selection:
-        if not items:
-            return {}
-        segments = []
-        segment = []
-        for item in items:
-            if item is self._OR:
-                if not segment:
-                    raise CommandSemanticError("Missing selection before '+'.")
-                segments.append(segment)
-                segment = []
-            else:
-                segment.append(item)
-        if not segment:
-            raise CommandSemanticError("Missing selection after '+'.")
-        segments.append(segment)
-
-        selections = [self._and_expr_from_items(s) for s in segments]
+    def visit_selection_or(self, node, visited_children):
+        first, rest = visited_children
+        selections = [first]
+        selections.extend(item[3] for item in rest)
         if len(selections) == 1:
-            return selections[0]
-        return SelectOr([self._as_selection_expr(s) for s in selections])
+            return first
+        return SelectOr(
+            [self._raw_item_to_selection_expr(s) for s in selections]
+        )
+
+    def visit_selection_and(self, node, visited_children):
+        first, rest = visited_children
+        items = [first]
+        items.extend(item[1] for item in rest)
+        return self._and_expr_from_items(items)
+
+    def visit_selection_not(self, node, visited_children):
+        return self._visit_any_of(node, visited_children)
+
+    def visit_not_expression(self, node, visited_children):
+        _, child = visited_children
+        return SelectNot(self._raw_item_to_selection_expr(child))
+
+    def visit_selection_atom(self, node, visited_children):
+        return self._visit_any_of(node, visited_children)
+
+    def visit_grouped_selection(self, node, visited_children):
+        for child in visited_children:
+            if isinstance(child, dict) or self._is_selection_expr(child):
+                return child
+        raise CommandSemanticError("Missing parenthesized selection.")
+
+    def visit_selection_filter(self, node, visited_children):
+        return self._visit_any_of(node, visited_children)
+
+    def visit_selection_modifier(self, node, visited_children):
+        return self._visit_any_of(node, visited_children)
+
+    def visit_selection_group(self, node, visited_children):
+        group, _ = visited_children
+        return group
 
     def visit_query(self, node, visited_children):
         name = node.children[1].children[0].expr_name
@@ -326,17 +352,8 @@ class CommandParser(NodeVisitor, CommonMixin):
         sort = node.children[1].children[0].expr_name.replace("_token", "")
         return "sort", sort
 
-    def visit_or_token(self, node, visited_children):
-        return self._OR
-
-    def visit_not_selection(self, node, visited_children):
-        child = visited_children[1][0]
-        if self._is_selection_expr(child):
-            return SelectNot(child)
-        return SelectNot(FilterClause(self._parse_filter_items([child])))
-
     def visit_selection_word(self, node, visited_children):
-        return visited_children[2]
+        return visited_children[-1]
 
     def visit_task_range(self, node, visited_children):
         first, last = visited_children[:2]
@@ -381,7 +398,6 @@ class CommandParser(NodeVisitor, CommonMixin):
         tokens = [
             value for key, value in self.config.token.items() if key != "stdin"
         ]
-        tokens.extend(BOOLEAN_TOKENS)
         return unescape_command_text(text, tokens)
 
     def _unescape_parsed_text(self, parsed: Dict[str, str | List[str]]) -> None:
