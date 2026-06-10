@@ -161,6 +161,7 @@ tali (-R|--re-index)  # Re-index database
 You can invoke an interactive editor by running:
 ```bash
 tali (-e|--edit)  # start an empty editor for task editing
+tali 0 .  # same as above
 tali <selection> .  # or edit tasks filtered by <selection>
 ```
 
@@ -200,11 +201,14 @@ start each nested child line with `.`:
 Indented lines without a leading `.` still use prefix sharing.
 This also works inside nested blocks:
 ```
-. /work
-  release checklist
-    @urgent
-      . draft outline
-      . collect screenshots
+. /work release checklist
+  @easy
+    . draft outline
+    . collect screenshots
+    . run tests
+  @hard
+    . write code
+    . write tests
 ```
 
 For multi-line descriptions in editor mode,
@@ -313,9 +317,9 @@ For example:
 - Color theme: [Catppuccin Mocha][catppuccin]
   <details open>
     <summary>Screenshot</summary>
-  <p align="center">
-    <img src="https://raw.githubusercontent.com/admk/tali.vim/main/assets/example.png" alt="screenshot" width="500" />
-  </p>
+    <p align="center">
+      <img src="vim/assets/example.png" alt="screenshot" width="500" />
+    </p>
   </details>
 
 ## 🧙‍♂️ Contribute
