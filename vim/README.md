@@ -15,14 +15,19 @@ Neovim / Vim syntax highlighting for [tali][tali].
   {
     "admk/tali",
     ft = "tali",
-    rtp = "vim",
+    init = function(plugin)
+      vim.opt.rtp:append(plugin.dir .. "/vim")
+      vim.filetype.add({
+        extension = { tali = "tali" },
+      })
+    end,
   },
   ```
 
 - [**vim-plug**][vim-plug] (for Vim):
   ```vim
   call plug#begin('~/.vim/plugged')
-    Plug 'admk/tali', { 'rtp': 'vim', 'for': 'tali' }
+    Plug 'admk/tali', { 'rtp': 'vim' }
   call plug#end()
   ```
 

@@ -296,12 +296,18 @@ For example:
 
 ### 🎨 Syntax Highlighting
 
-- Use [`tali.vim`][tali.vim] for Neovim/Vim syntax highlighting.
+- Use [`vim/`](vim/) for Neovim/Vim syntax highlighting.
   Install with [lazy.nvim][lazy.nvim]:
   ```lua
   {
-    "admk/tali.nvim",
+    "admk/tali",
     ft = "tali",
+    init = function(plugin)
+      vim.opt.rtp:append(plugin.dir .. "/vim")
+      vim.filetype.add({
+        extension = { tali = "tali" },
+      })
+    end,
   }
   ```
 - Color theme: [Catppuccin Mocha][catppuccin]
@@ -331,7 +337,6 @@ For example:
 [issues]: https://github.com/admk/tali/issues
 [prs]: https://github.com/admk/tali/pulls
 [discussions]: https://github.com/admk/tali/discussions
-[tali.vim]: https://github.com/admk/tali.vim
 [lazy.nvim]: https://github.com/folke/lazy.nvim
 [catppuccin]: https://github.com/catppuccin/nvim
 [taskbook]: https://github.com/klaudiosinani/taskbook
