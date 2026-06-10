@@ -13,15 +13,16 @@ Neovim / Vim syntax highlighting for [tali][tali].
 - [**lazy.nvim**][lazy.nvim] (for Neovim):
   ```lua
   {
-    "admk/tali.nvim",
+    "admk/tali",
     ft = "tali",
+    rtp = "vim",
   },
   ```
 
 - [**vim-plug**][vim-plug] (for Vim):
   ```vim
   call plug#begin('~/.vim/plugged')
-    Plug 'admk/tali.nvim', { 'ft': 'tali' }
+    Plug 'admk/tali', { 'rtp': 'vim', 'for': 'tali' }
   call plug#end()
   ```
 

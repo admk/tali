@@ -6,6 +6,16 @@ endif
 " Comments (# ... till end of line)
 syn match taliComment "\v#.*$"
 
+" Markdown highlighting inside fenced multi-line descriptions.
+let s:tali_current_syntax = get(b:, "current_syntax", "")
+unlet! b:current_syntax
+silent! syn include @taliMarkdown syntax/markdown.vim
+if s:tali_current_syntax != ""
+  let b:current_syntax = s:tali_current_syntax
+else
+  unlet! b:current_syntax
+endif
+
 " Task range (e.g., 42, 1..5)
 syn match taliTaskRange "\v<\d+>"
 syn match taliTaskRange "\v<\d+\.\.\d+>"
@@ -31,8 +41,14 @@ syn match taliStatus "\v,\S*"
 syn region taliStatus start=/\v,"/ skip=/\v\\./ end=/\v"/
 syn region taliStatus start=/\v,'/ skip=/\v\\./ end=/\v'/
 
-" Description (e.g., : description text)
-syn match taliDescription "\v:\s[^#]*"
+" Description (e.g., : description text, or : """ ... """)
+syn match taliDescription "\v:\s+(\"\"\")@![^#]*"
+syn region taliMultilineDescription
+      \ matchgroup=taliDescriptionFence
+      \ start=/\v:\s*"""$/
+      \ end=/\v^\s*"""\s*$/
+      \ keepend
+      \ contains=@taliMarkdown
 
 " Sort operator (e.g., =^, =@)
 syn match taliSort "\v\=([?/@!,^:]|\.\.)"
@@ -52,6 +68,8 @@ hi def link taliDeadline    PreProc
 hi def link taliPriority    Statement
 hi def link taliStatus      Constant
 hi def link taliDescription String
+hi def link taliMultilineDescription String
+hi def link taliDescriptionFence Delimiter
 hi def link taliSort        Operator
 hi def link taliQuery       Question
 hi def link taliSeparator   Delimiter
