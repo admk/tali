@@ -82,6 +82,42 @@ class TestCLIAction(unittest.TestCase):
         ):
             cli._process_action(book, cli.command, nested=True)
 
+    def test_invalid_action_warns_and_is_skipped(self):
+        cli = self._cli("2", ".", "@-shared")
+        parent = TodoItem(1, "Parent", project="work", tags=["shared"])
+        child = TodoItem(2, "Child", project="work", parent=1)
+        book = TaskBook(cli.config, [parent, child])
+
+        with self.assertLogs("rich", level="WARNING") as logs:
+            result = cli._process_action(book, cli.command)
+
+        self.assertEqual(result, [])
+        self.assertEqual(book.todos[1].tags, ["shared"])
+        self.assertEqual(book.todos[2].tags, [])
+        self.assertIn("Skipping action", logs.output[0])
+        self.assertIn("inherited tag @shared", logs.output[0])
+
+    def test_editor_skips_invalid_action_and_continues_batch(self):
+        cli = self._cli()
+        parent = TodoItem(1, "Parent", project="work", tags=["shared"])
+        child = TodoItem(2, "Child", project="work", parent=1)
+        book = TaskBook(cli.config, [parent, child])
+        self._set_editor_text(
+            cli,
+            """2 . @-shared
+. Added
+""",
+        )
+
+        with self.assertLogs("rich", level="WARNING") as logs:
+            cli._process_editor_action([parent, child], book)
+
+        self.assertEqual(book.todos[1].tags, ["shared"])
+        self.assertEqual(book.todos[2].tags, [])
+        self.assertEqual(book.todos[3].title, "Added")
+        self.assertIn("Skipping action", logs.output[0])
+        self.assertIn("inherited tag @shared", logs.output[0])
+
     def test_add_child_command_persists_parent_and_project(self):
         cli = self._cli(".", "test", "_73")
         book = TaskBook(

@@ -300,6 +300,8 @@ class CLI:
         try:
             parsed = self.command_parser.parse(command)
         except ParserError as e:
+            if nested:
+                raise ActionValueError(str(e)) from e
             logger.error(e)
         selection, group, sort, query, action = parsed
         logger.debug(f"Selection: {selection}")
@@ -326,13 +328,25 @@ class CLI:
                 if nested:
                     raise error
                 logger.error(error)
-            return [book.add(title, **action)]  # type: ignore
+            try:
+                return [book.add(title, **action)]  # type: ignore
+            except ActionValueError as e:
+                if nested:
+                    raise e
+                logger.warn(f'Skipping action: "{command}"\n  {e}')
+                return []
         before_todos = book.select(
             selection,
             include_descendants=action == "editor",
         ).flatten()
         if action != "editor":
-            return [book.action(before_todos, action)]
+            try:
+                return [book.action(before_todos, action)]
+            except ActionValueError as e:
+                if nested:
+                    raise e
+                logger.warn(f'Skipping action: "{command}"\n  {e}')
+                return []
         if nested:
             logger.warn(
                 "Cannot nest editor action in another editor action. "
@@ -352,18 +366,19 @@ class CLI:
         logger.debug(f"Editor commands:\n{editor_actions!r}")
         edit_result = EditResult([], [])
         add_result = AddResult([])
-        error = []
         created_ids: dict[int, int] = {}
         for index, command in enumerate(editor_actions):
             action = command.text
             try:
                 action = self._resolve_editor_parent(command, created_ids)
                 results = self._process_action(book, action, True)
+            except ActionValueError as e:
+                logger.warn(f'Skipping action: "{action}"\n  {e}')
+                continue
             except Exception as e:
                 if logger.is_enabled_for("debug"):
                     raise e
                 logger.warn(f'Failed to process action: "{action}"\n  {e!r}')
-                error.append(command.text)
                 continue
             for result in results:
                 if isinstance(result, EditResult):
@@ -378,13 +393,6 @@ class CLI:
             results.append(edit_result)
         if add_result.items:
             results.append(add_result)
-        if error:
-            ans = logger.ask(
-                "Do you want to continue editing failed actions?", ["Y", "n"]
-            )
-            if ans == "n":
-                return results
-            results = self._process_editor_action([], book, error)
         return results
 
     def _edit_file(self, path: str) -> None:
