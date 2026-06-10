@@ -149,12 +149,14 @@ class CLI:
             "help": "Render output in idempotent format.",
         },
         ("-u", "--undo"): {
-            "action": "store_true",
-            "help": "Undo the last run.",
+            "action": "count",
+            "default": 0,
+            "help": "Undo the last run. Repeat to undo multiple runs.",
         },
         ("-r", "--redo"): {
-            "action": "store_true",
-            "help": "Redo the last undone run.",
+            "action": "count",
+            "default": 0,
+            "help": "Redo the last undone run. Repeat to redo multiple runs.",
         },
         ("-H", "--history"): {
             "action": "store_true",
@@ -678,7 +680,10 @@ class CLI:
                     "Cannot use both --undo and --redo at the same time."
                 )
             action = "undo" if self.args.undo else "redo"
-            self._print_results([self.history_action(db_dir, action)])
+            count = self.args.undo or self.args.redo
+            self._print_results(
+                [self.history_action(db_dir, action) for _ in range(count)]
+            )
             return 0
         if self.args.history:
             self._print_results([self.history(db_dir)])

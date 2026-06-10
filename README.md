@@ -150,8 +150,8 @@ tali /home .  # Edit all tasks in /home project in text editor
 tali (-d|--debug) <...>  # Debug mode
 tali (-j|--json) <...>  # Output in JSON format
 tali (-H|--history)  # Show commit history
-tali (-u|--undo)  # Undo last operation
-tali (-r|--redo)  # Redo last undone operation
+tali (-u|--undo)  # Undo last operation; repeat, e.g. -uu, to undo more
+tali (-r|--redo)  # Redo last undone operation; repeat, e.g. -rr, to redo more
 tali (-R|--re-index)  # Re-index database
 ```
 

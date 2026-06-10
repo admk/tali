@@ -31,6 +31,48 @@ class TestCLIAction(unittest.TestCase):
         self.assertEqual(cm.exception.code, 1)
         self.assertIn("Missing title in command: '. /proj'.", logs.output[0])
 
+    def test_repeated_undo_flags_run_multiple_undo_actions(self):
+        cli = self._cli("-uu")
+        calls = []
+        printed = []
+
+        cli._data_dir = lambda: "db"
+        cli.history_action = lambda db_dir, action: calls.append(
+            (db_dir, action)
+        ) or f"{action}-{len(calls)}"
+        cli._print_results = lambda results: printed.extend(results)
+
+        self.assertEqual(cli.main(), 0)
+        self.assertEqual(calls, [("db", "undo"), ("db", "undo")])
+        self.assertEqual(printed, ["undo-1", "undo-2"])
+
+    def test_repeated_redo_flags_run_multiple_redo_actions(self):
+        cli = self._cli("-rr")
+        calls = []
+
+        cli._data_dir = lambda: "db"
+        cli.history_action = lambda db_dir, action: calls.append(
+            (db_dir, action)
+        ) or f"{action}-{len(calls)}"
+        cli._print_results = lambda results: None
+
+        self.assertEqual(cli.main(), 0)
+        self.assertEqual(calls, [("db", "redo"), ("db", "redo")])
+
+    def test_undo_and_redo_counts_are_mutually_exclusive(self):
+        cli = self._cli("-ur")
+        cli._data_dir = lambda: "db"
+
+        with self.assertLogs("rich", level="ERROR") as logs:
+            with self.assertRaises(SystemExit) as cm:
+                cli.main()
+
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn(
+            "Cannot use both --undo and --redo at the same time.",
+            logs.output[0],
+        )
+
     def test_nested_add_missing_title_stays_catchable(self):
         cli = self._cli(".", "/proj")
         book = TaskBook(cli.config, [])

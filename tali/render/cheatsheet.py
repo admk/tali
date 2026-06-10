@@ -449,8 +449,14 @@ class AgentCheatSheet(CheatSheet):
                 f"`tali <selection> {token.query}<field>`",
                 "Print selected field values.",
             ),
-            ("`tali --undo`", "Undo the last saved mutation."),
-            ("`tali --redo`", "Redo the last undone mutation."),
+            (
+                "`tali -u` / `tali --undo`",
+                "Undo the last saved mutation. Repeat to undo more.",
+            ),
+            (
+                "`tali -r` / `tali --redo`",
+                "Redo the last undone mutation. Repeat to redo more.",
+            ),
         ]
         return [
             "## Command Forms",
@@ -659,7 +665,7 @@ class AgentCheatSheet(CheatSheet):
             "- Use `tali -j <command>` when downstream code needs JSON.",
             (
                 "- Mutations are saved immediately; use `tali --undo` for "
-                "one-step rollback."
+                "one-step rollback, or repeat `-u` to undo more."
             ),
             (
                 "- Multi-word parser values must keep quotes after shell "
