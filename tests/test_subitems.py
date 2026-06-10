@@ -188,6 +188,58 @@ class TestSubItems(unittest.TestCase):
         self.assertEqual([todo.id for todo in groups["feat"]], [79, 80])
         self.assertEqual([todo.id for todo in groups["_untagged"]], [81])
 
+    def test_multi_item_tag_removal_uses_original_action_values(self):
+        parent = TodoItem(
+            1,
+            "Parent",
+            project="work",
+            tags=["parent", "shared"],
+        )
+        child = TodoItem(
+            2,
+            "Child",
+            project="work",
+            tags=["parent", "local", "shared"],
+            parent=1,
+        )
+        sibling = TodoItem(
+            3,
+            "Sibling",
+            project="work",
+            tags=["local", "parent", "shared"],
+            parent=1,
+        )
+        book = self._book([parent, child, sibling])
+
+        result = book.action(
+            [child, sibling],
+            {"tags": ["-parent", "-shared"]},
+        )
+
+        self.assertEqual(
+            [(todo.id, todo.tags) for todo in result.after],
+            [(2, ["local"]), (3, ["local"])],
+        )
+        self.assertEqual(book.todos[2].tags, ["local"])
+        self.assertEqual(book.todos[3].tags, ["local"])
+        with self.assertRaisesRegex(ActionValueError, "inherited tag"):
+            book.action(
+                [book.todos[2], book.todos[3]],
+                {"tags": ["-parent", "-shared"]},
+            )
+
+    def test_cannot_remove_inherited_tag_from_child(self):
+        parent = TodoItem(1, "Parent", project="work", tags=["shared"])
+        child = TodoItem(2, "Child", project="work", parent=1)
+        book = self._book([parent, child])
+
+        with self.assertRaisesRegex(ActionValueError, "inherited tag @shared"):
+            book.action([child], {"tags": ["-shared"]})
+
+        result = book.action([parent, child], {"tags": ["-shared"]})
+
+        self.assertEqual([(todo.id, todo.tags) for todo in result.after], [(1, [])])
+
     def test_render_tree_uses_effective_status_only_for_human_output(self):
         parent = TodoItem(1, "Parent", project="work", status="done")
         child = TodoItem(2, "Child", project="work", parent=1)
@@ -221,6 +273,41 @@ class TestSubItems(unittest.TestCase):
         self.assertFalse(idempotent_lines[2].startswith("  "))
         self.assertIn(",pending", idempotent_lines[2])
         self.assertIn("_2", idempotent_lines[2])
+
+    def test_render_tree_hides_visible_parent_project_and_tags(self):
+        parent = TodoItem(
+            1,
+            "Parent",
+            project="work",
+            tags=["parent", "shared"],
+        )
+        child = TodoItem(
+            2,
+            "Child",
+            project="work",
+            tags=["parent", "local", "shared"],
+            parent=1,
+        )
+        renderer = Renderer(self.config)
+
+        human = strip_rich(renderer.render({None: [parent, child]}, "id"))
+        idempotent = strip_rich(
+            renderer.render({None: [parent, child]}, "id", idempotent=True)
+        )
+
+        human_lines = human.splitlines()
+        idempotent_lines = idempotent.splitlines()
+        self.assertIn("/work", human_lines[0])
+        self.assertIn("@parent", human_lines[0])
+        self.assertIn("@shared", human_lines[0])
+        self.assertNotIn("/work", human_lines[1])
+        self.assertNotIn("@parent", human_lines[1])
+        self.assertIn("@local", human_lines[1])
+        self.assertNotIn("@shared", human_lines[1])
+        self.assertIn("/work", idempotent_lines[1])
+        self.assertIn("@+parent", idempotent_lines[1])
+        self.assertIn("@+local", idempotent_lines[1])
+        self.assertIn("@+shared", idempotent_lines[1])
 
     def test_render_uses_effective_status_when_parent_is_hidden(self):
         parent = TodoItem(1, "Parent", project="work")

@@ -5,7 +5,7 @@ from typing import Dict, List, Literal, Optional, Tuple, TypeVar, get_args
 from box import Box
 from dateutil.relativedelta import relativedelta
 
-from ..common import logger
+from ..common import logger, parent_lineage
 from .item import Priority, Status, TodoItem
 from .result import AddResult, EditResult, QueryResult, ViewResult
 from .select import (
@@ -239,6 +239,68 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
     def tags(self, todo: TodoItem, tags: List[str]) -> List[str]:
         return self._update_list("tag", todo.tags, tags)
 
+    def _ancestor_has_tag(self, todo: TodoItem, tag: str) -> bool:
+        return any(tag in parent.tags for parent in self._parents_of(todo))
+
+    def _parents_of(self, todo: TodoItem) -> List[TodoItem]:
+        return parent_lineage(todo, self.todos, include_self=False)
+
+    def _selected_ancestor_removes_tag(
+        self,
+        todo: TodoItem,
+        tag: str,
+        selected_ids: set[int],
+        tag_removals: set[str],
+    ) -> bool:
+        if tag not in tag_removals:
+            return False
+        return any(
+            parent.id in selected_ids and tag in parent.tags
+            for parent in self._parents_of(todo)
+        )
+
+    def _tag_removals(self, tags: List[str]) -> set[str]:
+        removals = set()
+        for tag in tags:
+            tag = self._resolve_alias("tag", tag.strip())
+            if tag.startswith("-"):
+                removals.add(tag[1:])
+        return removals
+
+    def _validate_tag_removals(
+        self,
+        selected: List[TodoItem],
+        selected_ids: set[int],
+        actions: Dict[str, Literal["editor"] | str | List[str]],
+    ) -> None:
+        tags = actions.get("tags")
+        if not isinstance(tags, list):
+            return
+        tag_removals = self._tag_removals(tags)
+        if not tag_removals:
+            return
+        tag_token = self.config.token.tag
+        for todo in selected:
+            if todo.parent is None:
+                continue
+            for tag in tag_removals:
+                if tag in todo.tags:
+                    continue
+                if not self._ancestor_has_tag(todo, tag):
+                    continue
+                if self._selected_ancestor_removes_tag(
+                    todo,
+                    tag,
+                    selected_ids,
+                    tag_removals,
+                ):
+                    continue
+                raise ActionValueError(
+                    f"Cannot remove inherited tag {tag_token}{tag} "
+                    f"from child item {todo.id}; remove it from the parent "
+                    "item instead."
+                )
+
     def parent(self, todo: TodoItem, id: Optional[int]) -> Optional[int]:
         return self._validate_parent(todo, id)
 
@@ -322,6 +384,7 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
         if not selected:
             return EditResult([], [])
         selected_ids = {todo.id for todo in selected}
+        self._validate_tag_removals(selected, selected_ids, actions)
         status_deletes = False
         if actions.get("status"):
             status_deletes = (
@@ -377,9 +440,11 @@ class TaskBook(FilterMixin, GroupMixin, SortMixin):
                 continue
             for todo_id in selected_ids:
                 todo = after_by_id[todo_id]
-                value = getattr(self, action)(todo, value)
-                logger.debug(f"Setting {action!r} to {value!r} for {todo.id}.")
-                setattr(todo, action, value)
+                new_value = getattr(self, action)(todo, value)
+                logger.debug(
+                    f"Setting {action!r} to {new_value!r} for {todo.id}."
+                )
+                setattr(todo, action, new_value)
         return self._update_and_return(before, after)
 
     def re_index(self) -> EditResult:

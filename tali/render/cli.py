@@ -63,7 +63,7 @@ class Renderer:
 
     def _count_statuses(self, todos: List[TodoItem]) -> Dict[Status, int]:
         statuses = {status: 0 for status in get_args(Status)}
-        for _, _, status in self._tree_rows(todos):
+        for _, _, status, _, _ in self._tree_rows(todos):
             statuses[status] += 1
         return statuses
 
@@ -334,10 +334,18 @@ class Renderer:
         effective_status: Optional[Status] = None,
         depth: int = 0,
         hide_parent: bool = False,
+        hide_project: bool = False,
+        inherited_tags: Optional[List[str]] = None,
     ) -> str:
         fields = self._render_fields(todo, effective_status)
         if hide_parent:
             fields["parent"] = ""
+        if hide_project:
+            fields["project"] = ""
+        if inherited_tags:
+            tags = [tag for tag in todo.tags if tag not in inherited_tags]
+            rendered_tags = self._render_tags(todo, tags)
+            fields["tags"] = f" {rendered_tags}" if rendered_tags else ""
         format = self.config.group.format[group_by]
         item = format.format(**fields)[1:]
         if depth > 0 and not self.idempotent:
@@ -347,38 +355,62 @@ class Renderer:
     def _tree_rows(
         self,
         todos: List[TodoItem],
-    ) -> List[Tuple[TodoItem, int, Optional[Status]]]:
+    ) -> List[
+        Tuple[TodoItem, int, Optional[Status], List[str], Optional[str]]
+    ]:
         todo_by_id = {todo.id: todo for todo in todos}
         children: Dict[int, List[TodoItem]] = {}
         for todo in todos:
             if todo.parent in todo_by_id:
                 children.setdefault(todo.parent, []).append(todo)
         roots = [todo for todo in todos if todo.parent not in todo_by_id]
-        rows: List[Tuple[TodoItem, int, Optional[Status]]] = []
+        rows: List[
+            Tuple[TodoItem, int, Optional[Status], List[str], Optional[str]]
+        ] = []
         seen = set()
 
         def visit(
             todo: TodoItem,
             depth: int,
             inherited_status: Optional[Status],
+            inherited_tags: List[str],
+            inherited_project: Optional[str],
         ) -> None:
             if todo.id in seen:
                 return
             seen.add(todo.id)
             todo_status = getattr(todo, "_effective_status", todo.status)
             effective_status = inherited_status or todo_status
-            rows.append((todo, depth, effective_status))
+            rows.append(
+                (
+                    todo,
+                    depth,
+                    effective_status,
+                    inherited_tags,
+                    inherited_project,
+                )
+            )
             if effective_status in ["done", "archive"]:
                 inherited_status = effective_status
             else:
                 inherited_status = None
+            child_tags = list(inherited_tags)
+            for tag in todo.tags:
+                if tag not in child_tags:
+                    child_tags.append(tag)
             for child in children.get(todo.id, []):
-                visit(child, depth + 1, inherited_status)
+                visit(
+                    child,
+                    depth + 1,
+                    inherited_status,
+                    child_tags,
+                    todo.project,
+                )
 
         for todo in roots:
-            visit(todo, 0, None)
+            visit(todo, 0, None, [], None)
         for todo in todos:
-            visit(todo, 0, None)
+            visit(todo, 0, None, [], None)
         return rows
 
     def render_item_diff(
@@ -464,17 +496,26 @@ class Renderer:
                     group=group, progress=progress
                 )
                 text.append(header)
-            for todo, depth, effective_status in self._tree_rows(gtodos):
+            for (
+                todo,
+                depth,
+                effective_status,
+                inherited_tags,
+                inherited_project,
+            ) in self._tree_rows(gtodos):
                 if self.idempotent:
                     effective_status = None
                     depth = 0
                 hide_parent = depth > 0 and not self.idempotent
+                hide_project = hide_parent and todo.project == inherited_project
                 item = self.render_item(
                     todo,
                     group_by,
                     effective_status,
                     depth,
                     hide_parent,
+                    hide_project,
+                    inherited_tags if hide_parent else None,
                 )
                 text.append(item)
             text.append("")

@@ -17,7 +17,7 @@ from box import Box
 from dateutil.relativedelta import relativedelta
 
 from ..book.item import Priority, Status, TodoItem
-from ..common import has_prefix
+from ..common import has_prefix, parent_lineage
 
 FilterBy = Literal[
     "title",
@@ -103,22 +103,9 @@ class SelectMixin:
     todos: Dict[int, TodoItem]
 
     def _effective_status(self, todo: TodoItem) -> Status:
-        lineage = []
-        seen_ids = set()
-        current = todo
-        while current.id not in seen_ids:
-            seen_ids.add(current.id)
-            lineage.append(current)
-            if current.parent is None:
-                break
-            parent = self.todos.get(current.parent)
-            if parent is None:
-                break
-            current = parent
-
         inherited_status = None
         effective_status = todo.status
-        for current in reversed(lineage):
+        for current in reversed(parent_lineage(todo, self.todos)):
             effective_status = inherited_status or current.status
             if effective_status in ["done", "archive"]:
                 inherited_status = effective_status
@@ -129,20 +116,11 @@ class SelectMixin:
     def _effective_tags(self, todo: TodoItem) -> List[str]:
         tags = []
         seen_tags = set()
-        seen_ids = set()
-        current = todo
-        while current.id not in seen_ids:
-            seen_ids.add(current.id)
+        for current in parent_lineage(todo, self.todos):
             for tag in current.tags:
                 if tag not in seen_tags:
                     seen_tags.add(tag)
                     tags.append(tag)
-            if current.parent is None:
-                break
-            parent = self.todos.get(current.parent)
-            if parent is None:
-                break
-            current = parent
         return tags
 
 

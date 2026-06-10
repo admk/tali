@@ -9,8 +9,10 @@ from typing import (
     Callable,
     Generator,
     List,
+    Mapping,
     NoReturn,
     Optional,
+    Protocol,
     Sequence,
     TypeVar,
 )
@@ -29,8 +31,34 @@ rich_console = Console()
 T = TypeVar("T")
 
 
+class ParentLinked(Protocol):
+    id: int
+    parent: Optional[int]
+
+
+P = TypeVar("P", bound=ParentLinked)
+
+
 def flatten(sequence: Sequence[Sequence[T]]) -> List[T]:
     return [item for subseq in sequence for item in subseq]
+
+
+def parent_lineage(
+    item: P,
+    items_by_id: Mapping[int, P],
+    include_self: bool = True,
+) -> List[P]:
+    lineage = []
+    seen_ids = set()
+    current = item if include_self else items_by_id.get(item.parent)
+    while current is not None and current.id not in seen_ids:
+        seen_ids.add(current.id)
+        lineage.append(current)
+        parent_id = current.parent
+        if parent_id is None:
+            break
+        current = items_by_id.get(parent_id)
+    return lineage
 
 
 def json_dumps(obj: Any, indent=2, **kwargs) -> str:
